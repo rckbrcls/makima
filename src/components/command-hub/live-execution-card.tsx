@@ -14,9 +14,10 @@ import type { LiveExecution } from "./types"
 
 interface LiveExecutionCardProps {
   execution: LiveExecution
+  onStop?: (repo: string, commandName: string) => void
 }
 
-export function LiveExecutionCard({ execution }: LiveExecutionCardProps) {
+export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps) {
   return (
     <Card className="flex flex-col border-border/70 bg-card/85 shadow-[0_18px_36px_var(--shadow-color)]">
       <CardHeader className="border-b border-border/60">
@@ -53,7 +54,12 @@ export function LiveExecutionCard({ execution }: LiveExecutionCardProps) {
         </div>
       </CardContent>
       <CardFooter className="justify-between">
-        <Button variant="outline" size="sm" className="border-border bg-card/70">
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-border bg-card/70"
+          onClick={() => onStop?.(execution.repo, execution.command)}
+        >
           <Square data-icon="inline-start" />
           Terminate
         </Button>

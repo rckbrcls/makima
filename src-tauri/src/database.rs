@@ -1,12 +1,11 @@
 use crate::types::{
-    parse_command_status, parse_command_type, parse_repository_status, Command, CommandStatus,
-    DashboardState, ExecutionHistoryItem, PipelineStep, PipelineTemplate, Repository,
-    RepositoryStatus,
+    parse_command_status, parse_command_type, Command, DashboardState, ExecutionHistoryItem,
+    PipelineStep, PipelineTemplate, Repository, RepositoryStatus,
 };
 use crate::utils::recompute_history_stats;
 use rusqlite::{params, Connection};
 use std::{fs, path::Path, path::PathBuf, time::Duration};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 pub fn resolve_db_path(app: &AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app
@@ -65,14 +64,14 @@ pub fn init_db(db_path: &Path) -> Result<(), String> {
 
 pub fn with_db<T>(
     db_path: &Path,
-    action: impl FnOnce(&Connection) -> rusqlite::Result<T>,
+    action: impl FnOnce(&mut Connection) -> rusqlite::Result<T>,
 ) -> Result<T, String> {
-    let conn = Connection::open(db_path).map_err(|error| error.to_string())?;
+    let mut conn = Connection::open(db_path).map_err(|error| error.to_string())?;
     conn.execute_batch("PRAGMA foreign_keys = ON;")
         .map_err(|error| error.to_string())?;
     conn.busy_timeout(Duration::from_secs(5))
         .map_err(|error| error.to_string())?;
-    action(&conn).map_err(|error| error.to_string())
+    action(&mut conn).map_err(|error| error.to_string())
 }
 
 pub fn load_state(db_path: &Path) -> Result<DashboardState, String> {
@@ -309,8 +308,9 @@ pub fn persist_pipeline_template(
     template: &PipelineTemplate,
 ) -> Result<(), String> {
     with_db(db_path, |conn| {
-        let steps_json =
-            serde_json::to_string(&template.steps).map_err(|e| format!("JSON error: {}", e))?;
+        let steps_json = serde_json::to_string(&template.steps).map_err(|error| {
+            rusqlite::Error::ToSqlConversionFailure(Box::new(error))
+        })?;
         if let Some(id) = template.id {
             conn.execute(
                 "UPDATE pipeline_templates

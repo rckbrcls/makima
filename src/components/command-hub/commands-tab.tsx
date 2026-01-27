@@ -19,14 +19,25 @@ interface CommandsTabProps {
   selectedRepo: string | null
   commands: Command[]
   repositories: Repository[]
+  onRunCommand?: (command: Command) => void
+  onStopCommand?: (repo: string, commandName: string) => void
 }
 
 export function CommandsTab({
   selectedRepo,
   commands,
   repositories,
+  onRunCommand,
+  onStopCommand,
 }: CommandsTabProps) {
   const groupedCommands = groupByRepo(commands)
+
+  const stopAllForRepo = (repoName: string) => {
+    if (!onStopCommand) return
+    commands
+      .filter((command) => command.repo === repoName && command.status === "running")
+      .forEach((command) => onStopCommand(command.repo, command.name))
+  }
 
   if (selectedRepo === null) {
     // All repos: grouped by repo
@@ -50,7 +61,12 @@ export function CommandsTab({
                     {repo?.branch}
                   </span>
                 </h3>
-                <Button variant="outline" size="sm" className="border-border bg-card/80">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border bg-card/80"
+                  onClick={() => stopAllForRepo(repoName)}
+                >
                   <Square data-icon="inline-start" />
                   Stop all
                 </Button>
@@ -61,6 +77,7 @@ export function CommandsTab({
                     key={`${repoName}-${command.name}`}
                     command={command}
                     index={index}
+                    onRun={onRunCommand}
                   />
                 ))}
               </div>
@@ -110,7 +127,12 @@ export function CommandsTab({
             Every command runs in background with live feedback.
           </CardDescription>
           <CardAction>
-            <Button variant="outline" size="sm" className="border-border bg-card/80">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-border bg-card/80"
+              onClick={() => stopAllForRepo(selectedRepo)}
+            >
               <Square data-icon="inline-start" />
               Stop all
             </Button>
@@ -122,6 +144,7 @@ export function CommandsTab({
               key={`${command.repo}-${command.name}`}
               command={command}
               index={index}
+              onRun={onRunCommand}
             />
           ))}
         </CardContent>

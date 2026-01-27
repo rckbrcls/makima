@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Select,
   SelectContent,
@@ -7,17 +7,32 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { QuickComposer } from "./quick-composer"
-import type { Repository } from "./types"
+import type { Repository, RunCommandInput } from "./types"
 
 interface ComposeTabProps {
   selectedRepo: string | null
   repositories: Repository[]
+  onRunCommand?: (request: RunCommandInput) => void | Promise<void>
 }
 
-export function ComposeTab({ selectedRepo, repositories }: ComposeTabProps) {
+export function ComposeTab({
+  selectedRepo,
+  repositories,
+  onRunCommand,
+}: ComposeTabProps) {
   const [composeRepo, setComposeRepo] = useState<string>(
     selectedRepo || repositories[0]?.name || ""
   )
+
+  useEffect(() => {
+    if (selectedRepo) {
+      setComposeRepo(selectedRepo)
+      return
+    }
+    if (!composeRepo && repositories.length > 0) {
+      setComposeRepo(repositories[0].name)
+    }
+  }, [selectedRepo, repositories, composeRepo])
 
   // Se nenhum repo está selecionado no sidebar, mostra select + composer
   if (selectedRepo === null) {
@@ -40,11 +55,11 @@ export function ComposeTab({ selectedRepo, repositories }: ComposeTabProps) {
             </SelectContent>
           </Select>
         </div>
-        <QuickComposer repoName={composeRepo} />
+        <QuickComposer repoName={composeRepo} onRunCommand={onRunCommand} />
       </div>
     )
   }
 
   // Se um repo está selecionado no sidebar, usa ele diretamente
-  return <QuickComposer repoName={selectedRepo} />
+  return <QuickComposer repoName={selectedRepo} onRunCommand={onRunCommand} />
 }

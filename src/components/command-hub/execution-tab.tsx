@@ -9,6 +9,7 @@ interface ExecutionTabProps {
   queue: RunQueueItem[]
   pipelines: Pipeline[]
   repositories: Repository[]
+  onStopCommand?: (repo: string, commandName: string) => void
 }
 
 export function ExecutionTab({
@@ -17,13 +18,18 @@ export function ExecutionTab({
   queue,
   pipelines,
   repositories,
+  onStopCommand,
 }: ExecutionTabProps) {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       {/* Live execution cards */}
       <div className="flex flex-col gap-4">
         {liveExecutions.map((exec) => (
-          <LiveExecutionCard key={exec.repo} execution={exec} />
+          <LiveExecutionCard
+            key={`${exec.repo}-${exec.command}`}
+            execution={exec}
+            onStop={onStopCommand}
+          />
         ))}
       </div>
 

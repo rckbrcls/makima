@@ -3,13 +3,13 @@ import { StatsCards } from "./stats-cards"
 import { HistoryList } from "./history-list"
 import { RunDetailsPanel } from "./run-details-panel"
 import type { ExecutionHistoryItem, HistoryStats, Repository, StatCard } from "./types"
-import { selectedRunLogs } from "@/lib/command-hub/mock-data"
 
 interface HistoryTabProps {
   selectedRepo: string | null
   executionHistory: ExecutionHistoryItem[]
   historyStats: HistoryStats
   repositories: Repository[]
+  logs: string[]
 }
 
 export function HistoryTab({
@@ -17,6 +17,7 @@ export function HistoryTab({
   executionHistory,
   historyStats,
   repositories,
+  logs,
 }: HistoryTabProps) {
   const statsCards: StatCard[] = [
     {
@@ -56,9 +57,7 @@ export function HistoryTab({
         />
 
         {/* Run details panel */}
-        {selectedRun && (
-          <RunDetailsPanel run={selectedRun} logs={selectedRunLogs} />
-        )}
+        {selectedRun && <RunDetailsPanel run={selectedRun} logs={logs} />}
       </div>
     </div>
   )

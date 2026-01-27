@@ -9,27 +9,31 @@ import {
 } from "@/components/ui/sheet"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
-import {
-  commands,
-  executionHistory,
-  historyStats,
-  liveExecutions,
-  pipelines,
-  repositories,
-  runQueue,
-} from "@/lib/command-hub/mock-data"
+import { filterByRepo, runningCount, computeStats } from "@/lib/command-hub/helpers"
+import { selectedRunLogs } from "@/lib/command-hub/mock-data"
+import { useCommanderState } from "@/hooks/use-commander-state"
 import { CommandHubHeader } from "./command-hub-header"
 import { RepositorySidebar } from "./repository-sidebar"
 import { CommandsTab } from "./commands-tab"
 import { ExecutionTab } from "./execution-tab"
 import { HistoryTab } from "./history-tab"
 import { ComposeTab } from "./compose-tab"
-import { computeStats } from "@/lib/command-hub/helpers"
+import type { Command } from "./types"
 
 export function CommandHub() {
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { state, usingMock, runCommand, stopCommand } = useCommanderState()
+
+  const {
+    commands,
+    executionHistory,
+    historyStats,
+    liveExecutions,
+    pipelines,
+    repositories,
+    runQueue,
+  } = state
 
   // Filtered / grouped data
   const filteredCommands = filterByRepo(commands, selectedRepo)
@@ -49,6 +53,19 @@ export function CommandHub() {
   repositories.forEach((repo) => {
     runningCounts[repo.name] = runningCount(repo.name, commands)
   })
+
+  const handleRunCommand = (command: Command) => {
+    void runCommand({
+      repo: command.repo,
+      name: command.name,
+      command: command.command,
+      commandType: command.type,
+    })
+  }
+
+  const handleStopCommand = (repo: string, commandName: string) => {
+    void stopCommand({ repo, command: commandName })
+  }
 
   const handleSelectRepo = (repo: string | null) => {
     setSelectedRepo(repo)
@@ -116,6 +133,8 @@ export function CommandHub() {
                     selectedRepo={selectedRepo}
                     commands={filteredCommands}
                     repositories={repositories}
+                    onRunCommand={handleRunCommand}
+                    onStopCommand={handleStopCommand}
                   />
                 </TabsContent>
 
@@ -127,6 +146,7 @@ export function CommandHub() {
                     queue={filteredQueue}
                     pipelines={filteredPipelines}
                     repositories={repositories}
+                    onStopCommand={handleStopCommand}
                   />
                 </TabsContent>
 
@@ -137,6 +157,7 @@ export function CommandHub() {
                     executionHistory={filteredHistory}
                     historyStats={statsForTab}
                     repositories={repositories}
+                    logs={usingMock ? selectedRunLogs : []}
                   />
                 </TabsContent>
 
@@ -145,6 +166,7 @@ export function CommandHub() {
                   <ComposeTab
                     selectedRepo={selectedRepo}
                     repositories={repositories}
+                    onRunCommand={runCommand}
                   />
                 </TabsContent>
               </div>

@@ -54,7 +54,7 @@ export interface ExecutionHistoryItem {
   id: number
   name: string
   repo: string
-  status: "success" | "failed"
+  status: CommandStatus
   duration: string
   timestamp: string
 }
@@ -70,4 +70,26 @@ export interface StatCard {
   value: string
   icon?: ElementType
   note?: string
+}
+
+export interface DashboardState {
+  repositories: Repository[]
+  commands: Command[]
+  liveExecutions: LiveExecution[]
+  runQueue: RunQueueItem[]
+  pipelines: Pipeline[]
+  executionHistory: ExecutionHistoryItem[]
+  historyStats: HistoryStats
+}
+
+export interface RunCommandInput {
+  repo: string
+  name?: string
+  command: string
+  commandType?: CommandType
+}
+
+export interface StopCommandInput {
+  repo: string
+  command: string
 }

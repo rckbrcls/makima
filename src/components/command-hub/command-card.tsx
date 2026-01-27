@@ -17,9 +17,10 @@ import type { Command } from "./types"
 interface CommandCardProps {
   command: Command
   index: number
+  onRun?: (command: Command) => void
 }
 
-export function CommandCard({ command, index }: CommandCardProps) {
+export function CommandCard({ command, index, onRun }: CommandCardProps) {
   const Icon = typeIcons[command.type]
 
   return (
@@ -79,6 +80,7 @@ export function CommandCard({ command, index }: CommandCardProps) {
         <Button
           size="xs"
           className="h-6 bg-primary text-primary-foreground hover:bg-primary/90"
+          onClick={() => onRun?.(command)}
         >
           <Play data-icon="inline-start" />
           Run
