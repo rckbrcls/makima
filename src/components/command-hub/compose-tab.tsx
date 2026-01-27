@@ -1,3 +1,11 @@
+import { useState } from "react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { QuickComposer } from "./quick-composer"
 import type { Repository } from "./types"
 
@@ -7,23 +15,36 @@ interface ComposeTabProps {
 }
 
 export function ComposeTab({ selectedRepo, repositories }: ComposeTabProps) {
-  // Se nenhum repo está selecionado, mostra para todos ou permite selecionar
+  const [composeRepo, setComposeRepo] = useState<string>(
+    selectedRepo || repositories[0]?.name || ""
+  )
+
+  // Se nenhum repo está selecionado no sidebar, mostra select + composer
   if (selectedRepo === null) {
     return (
       <div className="flex flex-col gap-4">
-        <div className="rounded-none border border-border/60 bg-card/85 p-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Select a repository to compose commands, or choose one below:
-          </p>
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-foreground">
+            Repository:
+          </label>
+          <Select value={composeRepo} onValueChange={setComposeRepo}>
+            <SelectTrigger className="w-[200px] border-border bg-background/80">
+              <SelectValue placeholder="Select repository" />
+            </SelectTrigger>
+            <SelectContent>
+              {repositories.map((repo) => (
+                <SelectItem key={repo.name} value={repo.name}>
+                  {repo.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {repositories.map((repo) => (
-            <QuickComposer key={repo.name} repoName={repo.name} />
-          ))}
-        </div>
+        <QuickComposer repoName={composeRepo} />
       </div>
     )
   }
 
+  // Se um repo está selecionado no sidebar, usa ele diretamente
   return <QuickComposer repoName={selectedRepo} />
 }

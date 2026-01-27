@@ -7,6 +7,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet"
+import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
 import {
@@ -98,52 +99,56 @@ export function CommandHub() {
           {/* Main area with tabs */}
           <Tabs
             defaultValue="commands"
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1"
+            className="flex min-h-0 flex-1 flex-col"
           >
-            <TabsList className="mb-4 self-start border border-border/60 bg-card/80 shadow-[0_8px_16px_var(--shadow-color)]">
+            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80 shadow-[0_8px_16px_var(--shadow-color)]">
               <TabsTrigger value="commands">Commands</TabsTrigger>
               <TabsTrigger value="execution">Execution</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="compose">Compose</TabsTrigger>
             </TabsList>
 
-            {/* Tab: Commands */}
-            <TabsContent value="commands" className="flex flex-col">
-              <CommandsTab
-                selectedRepo={selectedRepo}
-                commands={filteredCommands}
-                repositories={repositories}
-              />
-            </TabsContent>
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
+                {/* Tab: Commands */}
+                <TabsContent value="commands" className="flex flex-col">
+                  <CommandsTab
+                    selectedRepo={selectedRepo}
+                    commands={filteredCommands}
+                    repositories={repositories}
+                  />
+                </TabsContent>
 
-            {/* Tab: Execution */}
-            <TabsContent value="execution" className="flex flex-col">
-              <ExecutionTab
-                selectedRepo={selectedRepo}
-                liveExecutions={filteredLive}
-                queue={filteredQueue}
-                pipelines={filteredPipelines}
-                repositories={repositories}
-              />
-            </TabsContent>
+                {/* Tab: Execution */}
+                <TabsContent value="execution" className="flex flex-col">
+                  <ExecutionTab
+                    selectedRepo={selectedRepo}
+                    liveExecutions={filteredLive}
+                    queue={filteredQueue}
+                    pipelines={filteredPipelines}
+                    repositories={repositories}
+                  />
+                </TabsContent>
 
-            {/* Tab: History */}
-            <TabsContent value="history" className="flex flex-col">
-              <HistoryTab
-                selectedRepo={selectedRepo}
-                executionHistory={filteredHistory}
-                historyStats={statsForTab}
-                repositories={repositories}
-              />
-            </TabsContent>
+                {/* Tab: History */}
+                <TabsContent value="history" className="flex flex-col">
+                  <HistoryTab
+                    selectedRepo={selectedRepo}
+                    executionHistory={filteredHistory}
+                    historyStats={statsForTab}
+                    repositories={repositories}
+                  />
+                </TabsContent>
 
-            {/* Tab: Compose */}
-            <TabsContent value="compose" className="flex flex-col">
-              <ComposeTab
-                selectedRepo={selectedRepo}
-                repositories={repositories}
-              />
-            </TabsContent>
+                {/* Tab: Compose */}
+                <TabsContent value="compose" className="flex flex-col">
+                  <ComposeTab
+                    selectedRepo={selectedRepo}
+                    repositories={repositories}
+                  />
+                </TabsContent>
+              </div>
+            </Card>
           </Tabs>
         </div>
       </div>
