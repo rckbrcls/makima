@@ -116,7 +116,7 @@ export function CommandsTab({
             </Button>
           </CardAction>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
+        <CardContent className="grid gap-3 py-4 sm:grid-cols-2">
           {commands.map((command, index) => (
             <CommandCard
               key={`${command.repo}-${command.name}`}
