@@ -28,6 +28,7 @@
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-resizable-panels": "^4.5.2",
     "shadcn": "^3.7.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.0.6",
