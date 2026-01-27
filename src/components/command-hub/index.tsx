@@ -67,7 +67,7 @@ export function CommandHub() {
         <CommandHubHeader onMenuClick={() => setMobileOpen(true)} />
 
         {/* Body: sidebar + main */}
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Desktop sidebar */}
           <aside className="hidden min-h-0 lg:flex lg:flex-col lg:sticky lg:top-4 lg:self-start">
             <RepositorySidebar
