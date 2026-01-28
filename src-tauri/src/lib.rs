@@ -8,7 +8,7 @@ mod types;
 mod utils;
 
 use runtime::AppRuntime;
-use tauri::Manager;
+use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,6 +29,40 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                .title("commander")
+                .inner_size(800.0, 600.0)
+                .resizable(true);
+
+            // set transparent title bar only when building for macOS
+            #[cfg(target_os = "macos")]
+            let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
+
+            let window = win_builder.build().unwrap();
+
+            // set background color only when building for macOS
+            #[cfg(target_os = "macos")]
+            {
+                use cocoa::appkit::{NSColor, NSWindow};
+                use cocoa::base::{id, nil};
+
+                let ns_window = window.ns_window().unwrap() as id;
+                unsafe {
+                    // primary color (cyan): oklch(0.5 0.15 200) ≈ RGB(60, 150, 180) for light mode
+                    // primary color (cyan): oklch(0.68 0.12 200) ≈ RGB(100, 180, 210) for dark mode
+                    // Using light mode primary color (cyan)
+                    let bg_color = NSColor::colorWithRed_green_blue_alpha_(
+                        nil,
+                        60.0 / 255.0,
+                        150.0 / 255.0,
+                        180.0 / 255.0,
+                        1.0,
+                    );
+                    ns_window.setBackgroundColor_(bg_color);
+                }
+            }
+
             let runtime = AppRuntime::new(app.handle())
                 .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
             app.manage(runtime);

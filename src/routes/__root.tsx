@@ -38,7 +38,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          {children}
+          <div className="relative flex h-svh flex-col overflow-hidden">
+            <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+          </div>
         </ThemeProvider>
         <TanStackDevtools
           config={{

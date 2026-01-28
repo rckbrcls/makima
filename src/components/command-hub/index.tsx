@@ -73,7 +73,7 @@ export function CommandHub() {
   }
 
   return (
-    <div className="relative h-svh overflow-hidden bg-background text-foreground">
+    <div className="relative h-full overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,var(--glow-1),transparent_45%),radial-gradient(circle_at_82%_8%,var(--glow-2),transparent_42%),radial-gradient(circle_at_72%_78%,var(--glow-3),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(90deg,var(--grid-line)_1px,transparent_1px),linear-gradient(0deg,var(--grid-line)_1px,transparent_1px)] [background-size:44px_44px]" />
       <div className="pointer-events-none absolute -left-24 top-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl animate-[float_12s_ease-in-out_infinite]" />
