@@ -153,9 +153,15 @@ fn detect_command_port(command: &str, repo_path: Option<&str>) -> Option<u16> {
     detect_default_port(check)
 }
 
-/// Checks whether the given port is free to bind.
+/// Checks whether the given port is free on both IPv4 and IPv6.
+/// Node.js (and Next.js) binds to `::` (IPv6 all interfaces) by default.
+/// On macOS `IPV6_V6ONLY` is enabled, so an IPv4-only check would miss
+/// a port that is already occupied on IPv6.
 fn is_port_available(port: u16) -> bool {
-    std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
+    use std::net::{Ipv4Addr, Ipv6Addr};
+    let ipv4_free = std::net::TcpListener::bind((Ipv4Addr::UNSPECIFIED, port)).is_ok();
+    let ipv6_free = std::net::TcpListener::bind((Ipv6Addr::UNSPECIFIED, port)).is_ok();
+    ipv4_free && ipv6_free
 }
 
 /// Returns the first available port starting from `preferred`.
