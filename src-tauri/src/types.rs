@@ -39,6 +39,7 @@ pub enum CommandStatus {
     Queued,
     Success,
     Failed,
+    Stopped,
     Idle,
 }
 
@@ -49,6 +50,7 @@ impl CommandStatus {
             CommandStatus::Queued => "queued",
             CommandStatus::Success => "success",
             CommandStatus::Failed => "failed",
+            CommandStatus::Stopped => "stopped",
             CommandStatus::Idle => "idle",
         }
     }
@@ -60,6 +62,7 @@ pub fn parse_command_status(value: &str) -> CommandStatus {
         "queued" => CommandStatus::Queued,
         "success" => CommandStatus::Success,
         "failed" => CommandStatus::Failed,
+        "stopped" => CommandStatus::Stopped,
         _ => CommandStatus::Idle,
     }
 }

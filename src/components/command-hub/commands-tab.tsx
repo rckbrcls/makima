@@ -25,6 +25,7 @@ interface CommandsTabProps {
   onStopCommand?: (repo: string, commandName: string) => void
   onDeleteCommand?: (command: Command) => void
   onAddCommand?: (command: Command) => void | Promise<void>
+  onUpdateCommand?: (command: Command) => void | Promise<void>
   onRunCommandInput?: (request: RunCommandInput) => void | Promise<void>
 }
 
@@ -36,10 +37,35 @@ export function CommandsTab({
   onStopCommand,
   onDeleteCommand,
   onAddCommand,
+  onUpdateCommand,
   onRunCommandInput,
 }: CommandsTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingCommand, setEditingCommand] = useState<Command | undefined>(undefined)
   const groupedCommands = groupByRepo(commands)
+
+  const handleEdit = (command: Command) => {
+    setEditingCommand(command)
+    setDialogOpen(true)
+  }
+
+  const handleUpdateCommand = async (command: Command) => {
+    await onUpdateCommand?.(command)
+    setEditingCommand(undefined)
+    setDialogOpen(false)
+  }
+
+  const handleAddCommand = async (command: Command) => {
+    await onAddCommand?.(command)
+    setDialogOpen(false)
+  }
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open)
+    if (!open) {
+      setEditingCommand(undefined)
+    }
+  }
 
   const stopAllForRepo = (repoName: string) => {
     if (!onStopCommand) return
@@ -88,6 +114,7 @@ export function CommandsTab({
                     index={index}
                     onRun={onRunCommand}
                     onDelete={onDeleteCommand}
+                    onEdit={handleEdit}
                   />
                 ))}
               </div>
@@ -95,6 +122,16 @@ export function CommandsTab({
             </section>
           )
         })}
+        {/* Quick Composer Dialog for editing when no repo is selected */}
+        <QuickComposer
+          repoName={editingCommand?.repo || ""}
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+          onRunCommand={onRunCommandInput}
+          onAddCommand={handleAddCommand}
+          onUpdateCommand={handleUpdateCommand}
+          editingCommand={editingCommand}
+        />
       </div>
     )
   }
@@ -142,7 +179,10 @@ export function CommandsTab({
                 variant="outline"
                 size="sm"
                 className="border-border bg-card/80"
-                onClick={() => setDialogOpen(true)}
+                onClick={() => {
+                  setEditingCommand(undefined)
+                  setDialogOpen(true)
+                }}
               >
                 <Plus data-icon="inline-start" />
                 Add command
@@ -167,6 +207,7 @@ export function CommandsTab({
               index={index}
               onRun={onRunCommand}
               onDelete={onDeleteCommand}
+              onEdit={handleEdit}
             />
           ))}
         </CardContent>
@@ -176,9 +217,11 @@ export function CommandsTab({
       <QuickComposer
         repoName={selectedRepo || ""}
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleDialogClose}
         onRunCommand={onRunCommandInput}
-        onAddCommand={onAddCommand}
+        onAddCommand={handleAddCommand}
+        onUpdateCommand={handleUpdateCommand}
+        editingCommand={editingCommand}
       />
     </div>
   )

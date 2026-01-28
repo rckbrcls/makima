@@ -66,6 +66,114 @@ fn cleanup_dev_locks(repo_path: &str) {
     }
 }
 
+/// Extracts an explicit port flag from a command string.
+/// Handles `-p PORT`, `--port PORT`, and `--port=PORT` formats.
+fn parse_port_flag(value: &str) -> Option<u16> {
+    let parts: Vec<&str> = value.split_whitespace().collect();
+    for (i, part) in parts.iter().enumerate() {
+        if matches!(*part, "-p" | "--port" | "-P") {
+            if let Some(next) = parts.get(i + 1) {
+                if let Ok(port) = next.parse::<u16>() {
+                    return Some(port);
+                }
+            }
+        }
+        if let Some(val) = part
+            .strip_prefix("--port=")
+            .or_else(|| part.strip_prefix("-p="))
+        {
+            if let Ok(port) = val.parse::<u16>() {
+                return Some(port);
+            }
+        }
+    }
+    None
+}
+
+/// Returns the well-known default port for common frameworks.
+fn detect_default_port(script: &str) -> Option<u16> {
+    let lower = script.to_lowercase();
+    if lower.contains("next") {
+        return Some(3000);
+    }
+    if lower.contains("vite") {
+        return Some(5173);
+    }
+    if lower.contains("react-scripts") {
+        return Some(3000);
+    }
+    if lower.contains("ng serve") {
+        return Some(4200);
+    }
+    if lower.contains("nuxt") {
+        return Some(3000);
+    }
+    if lower.contains("remix") {
+        return Some(3000);
+    }
+    None
+}
+
+/// Resolves the underlying script content from package.json for
+/// commands like `pnpm dev`, `npm run start`, `yarn build`, etc.
+fn resolve_script_content(command: &str, repo_path: &str) -> Option<String> {
+    let parts: Vec<&str> = command.split_whitespace().collect();
+    let script_name = match parts.as_slice() {
+        ["pnpm", name, ..] => Some(*name),
+        ["npm", "run", name, ..] => Some(*name),
+        ["yarn", name, ..] => Some(*name),
+        _ => None,
+    }?;
+    let package_path = Path::new(repo_path).join("package.json");
+    let contents = std::fs::read_to_string(package_path).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&contents).ok()?;
+    json.get("scripts")?
+        .get(script_name)?
+        .as_str()
+        .map(|s| s.to_string())
+}
+
+/// Detects the port a command will bind to by checking explicit flags,
+/// resolving the underlying package.json script, and falling back to
+/// well-known framework defaults.
+fn detect_command_port(command: &str, repo_path: Option<&str>) -> Option<u16> {
+    if let Some(port) = parse_port_flag(command) {
+        return Some(port);
+    }
+
+    let script_content = repo_path.and_then(|rp| resolve_script_content(command, rp));
+
+    if let Some(ref content) = script_content {
+        if let Some(port) = parse_port_flag(content) {
+            return Some(port);
+        }
+    }
+
+    let check = script_content.as_deref().unwrap_or(command);
+    detect_default_port(check)
+}
+
+/// Checks whether the given port is free to bind.
+fn is_port_available(port: u16) -> bool {
+    std::net::TcpListener::bind(("127.0.0.1", port)).is_ok()
+}
+
+/// Returns the first available port starting from `preferred`.
+/// Tries `preferred`, `preferred+1`, … up to 100 attempts, then
+/// falls back to an OS-assigned ephemeral port.
+fn find_available_port(preferred: u16) -> u16 {
+    for offset in 0..100u16 {
+        let candidate = preferred.saturating_add(offset);
+        if is_port_available(candidate) {
+            return candidate;
+        }
+    }
+    std::net::TcpListener::bind(("127.0.0.1", 0))
+        .and_then(|l| l.local_addr())
+        .map(|a| a.port())
+        .unwrap_or(preferred)
+}
+
 pub fn spawn_log_reader(
     state: Arc<AppRuntime>,
     app: tauri::AppHandle,
@@ -150,6 +258,21 @@ pub fn start_execution(
         cleanup_dev_locks(path);
     }
 
+    // Detect the default port for this command and, if it is already
+    // occupied, pick the next available one.  The chosen port is
+    // injected via the PORT environment variable so frameworks like
+    // Next.js, Nuxt, Remix, etc. pick it up automatically.
+    let allocated_port = detect_command_port(&request.command, repo_path.as_deref()).map(|default| {
+        let port = find_available_port(default);
+        if port != default {
+            log::info!(
+                "[start] port {default} busy, using {port} for command={}",
+                request.command
+            );
+        }
+        port
+    });
+
     let mut cmd = if cfg!(target_os = "windows") {
         let mut cmd = std::process::Command::new("cmd");
         cmd.arg("/C").arg(&request.command);
@@ -159,6 +282,10 @@ pub fn start_execution(
         cmd.arg("-lc").arg(&request.command);
         cmd
     };
+
+    if let Some(port) = allocated_port {
+        cmd.env("PORT", port.to_string());
+    }
 
     #[cfg(unix)]
     {
@@ -339,10 +466,13 @@ pub fn spawn_waiter(
         };
 
         let duration_label = format_duration(duration);
-        let success = exit_status.success();
-        let status = if success {
+        let status = if exit_status.success() {
             CommandStatus::Success
+        } else if exit_status.code().is_none() {
+            // Process was killed by signal (e.g., SIGTERM, SIGKILL)
+            CommandStatus::Stopped
         } else {
+            // Process exited with non-zero exit code
             CommandStatus::Failed
         };
         let timestamp = current_timestamp();

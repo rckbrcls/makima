@@ -13,6 +13,7 @@ export const statusStyles: Record<string, string> = {
   queued: "border-chart-4/50 bg-chart-4/15 text-chart-4",
   success: "border-chart-1/50 bg-chart-1/15 text-chart-1",
   failed: "border-destructive/40 bg-destructive/15 text-destructive",
+  stopped: "border-muted-foreground/40 bg-muted-foreground/15 text-muted-foreground",
   idle: "border-border bg-muted/60 text-muted-foreground",
 }
 

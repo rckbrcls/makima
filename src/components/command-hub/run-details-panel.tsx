@@ -31,7 +31,14 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-[0.65rem] text-muted-foreground">
-          <span>Exit code: {run.status === "failed" ? "1" : "0"}</span>
+          <span>
+            Exit code:{" "}
+            {run.status === "failed"
+              ? "1"
+              : run.status === "stopped"
+              ? "—"
+              : "0"}
+          </span>
           <span>Duration: {run.duration}</span>
         </div>
         <div className="h-1 w-full overflow-hidden border border-border bg-muted">
@@ -40,6 +47,8 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
               "h-full w-full",
               run.status === "failed"
                 ? "bg-destructive/70"
+                : run.status === "stopped"
+                ? "bg-muted-foreground/70"
                 : "bg-chart-1/70"
             )}
           />

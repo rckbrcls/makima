@@ -28,6 +28,7 @@ export function CommandHub() {
     stopCommand,
     addRepository,
     addCommand,
+    updateCommand,
     deleteCommand,
     deleteRepository,
     getExecutionLogs,
@@ -163,6 +164,7 @@ export function CommandHub() {
                     onStopCommand={handleStopCommand}
                     onDeleteCommand={handleDeleteCommand}
                     onAddCommand={addCommand}
+                    onUpdateCommand={updateCommand}
                     onRunCommandInput={runCommand}
                   />
                 </TabsContent>

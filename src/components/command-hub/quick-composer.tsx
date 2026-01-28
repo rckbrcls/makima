@@ -33,6 +33,8 @@ interface QuickComposerProps {
   onOpenChange?: (open: boolean) => void
   onRunCommand?: (request: RunCommandInput) => void | Promise<void>
   onAddCommand?: (command: Command) => void | Promise<void>
+  onUpdateCommand?: (command: Command) => void | Promise<void>
+  editingCommand?: Command
   inline?: boolean
 }
 
@@ -42,6 +44,8 @@ export function QuickComposer({
   onOpenChange,
   onRunCommand,
   onAddCommand,
+  onUpdateCommand,
+  editingCommand,
   inline = false,
 }: QuickComposerProps) {
   const [baseCommand, setBaseCommand] = useState("pnpm run")
@@ -111,22 +115,34 @@ export function QuickComposer({
   }
 
   const handleSave = () => {
-    if (!isValid || !commandName.trim() || !onAddCommand) return
-    onAddCommand({
+    if (!isValid || !commandName.trim()) return
+    
+    const commandToSave: Command = {
       name: commandName.trim(),
       command: composedCommand,
-      type: selectedCommandData?.commandType || "run",
-      status: "idle",
-      duration: "-",
-      lastRun: "-",
-      repo: repoName,
-    })
+      type: selectedCommandData?.commandType || editingCommand?.type || "run",
+      status: editingCommand?.status || "idle",
+      duration: editingCommand?.duration || "-",
+      lastRun: editingCommand?.lastRun || "-",
+      repo: editingCommand?.repo || repoName,
+    }
+
+    if (editingCommand && onUpdateCommand) {
+      onUpdateCommand(commandToSave)
+    } else if (onAddCommand) {
+      onAddCommand(commandToSave)
+    }
+
     setSaveDialogOpen(false)
-    setCommandName("")
+    if (!editingCommand) {
+      setCommandName("")
+    }
     if (!inline) {
       onOpenChange?.(false)
     }
-    resetFields()
+    if (!editingCommand) {
+      resetFields()
+    }
   }
 
   const resetFields = () => {
@@ -231,10 +247,46 @@ export function QuickComposer({
   }
 
   useEffect(() => {
-    if (!open && !inline) {
+    if (editingCommand) {
+      setCommandName(editingCommand.name)
+      
+      // Parse command to separate baseCommand and args
+      // Simple approach: split by first space after the base command pattern
+      const commandParts = editingCommand.command.trim().split(/\s+/)
+      if (commandParts.length > 0) {
+        // Try to identify common base commands (pnpm, npm, yarn, etc.)
+        const basePatterns = ["pnpm", "npm", "yarn", "node", "python", "python3", "go", "cargo", "make"]
+        let baseEndIndex = 1
+        
+        // If starts with package manager, include "run" if present
+        if (basePatterns.includes(commandParts[0]) && commandParts.length > 1 && commandParts[1] === "run") {
+          baseEndIndex = 2
+        } else if (basePatterns.includes(commandParts[0])) {
+          baseEndIndex = 1
+        } else {
+          // Default: first two words as base (e.g., "pnpm run")
+          baseEndIndex = Math.min(2, commandParts.length)
+        }
+        
+        setBaseCommand(commandParts.slice(0, baseEndIndex).join(" "))
+        setArgs(commandParts.slice(baseEndIndex).join(" "))
+      } else {
+        setBaseCommand(editingCommand.command)
+        setArgs("")
+      }
+      
+      // Set command type based on editingCommand.type
+      setSelectedCommand("custom")
+      
+      // Reset template selections when editing
+      setSelectedLanguage("custom")
+      setSelectedFramework("custom")
+      setSelectedPackageManager("pnpm")
+    } else if (!open && !inline) {
+      // Only reset if not editing and dialog is closed
       resetFields()
     }
-  }, [open, inline])
+  }, [editingCommand, open, inline])
 
   const content = (
     <Card>
@@ -430,10 +482,10 @@ export function QuickComposer({
       <Button
         variant="default"
         onClick={handleSaveClick}
-        disabled={!isValid || !onAddCommand}
+        disabled={!isValid || (!onAddCommand && !onUpdateCommand) || (editingCommand && !onUpdateCommand) || (!editingCommand && !onAddCommand)}
       >
         <Plus className="mr-2 size-4" />
-        Save command
+        {editingCommand ? "Update command" : "Save command"}
       </Button>
     </div>
   )
@@ -446,9 +498,11 @@ export function QuickComposer({
         <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Save Command</DialogTitle>
+              <DialogTitle>{editingCommand ? "Update Command" : "Save Command"}</DialogTitle>
               <DialogDescription>
-                Enter a name for this command to save it for future use.
+                {editingCommand
+                  ? "Update the command details."
+                  : "Enter a name for this command to save it for future use."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -487,7 +541,7 @@ export function QuickComposer({
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={!commandName.trim()}>
-                Save
+                {editingCommand ? "Update" : "Save"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -501,9 +555,11 @@ export function QuickComposer({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
-            <DialogTitle>Quick composer</DialogTitle>
+            <DialogTitle>{editingCommand ? "Edit command" : "Quick composer"}</DialogTitle>
             <DialogDescription>
-              {repoName
+              {editingCommand
+                ? `Edit ${editingCommand.name} command.`
+                : repoName
                 ? `Build custom commands for ${repoName}.`
                 : "Select a repository to build custom commands."}
             </DialogDescription>
@@ -523,10 +579,10 @@ export function QuickComposer({
             <Button
               variant="default"
               onClick={handleSaveClick}
-              disabled={!isValid || !onAddCommand}
+              disabled={!isValid || (!onAddCommand && !onUpdateCommand) || (editingCommand && !onUpdateCommand) || (!editingCommand && !onAddCommand)}
             >
               <Plus className="mr-2 size-4" />
-              Save command
+              {editingCommand ? "Update command" : "Save command"}
             </Button>
           </DialogFooter>
         </DialogContent>

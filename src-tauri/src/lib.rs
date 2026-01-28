@@ -23,6 +23,7 @@ pub fn run() {
             commands::commander_repo_branches,
             commands::commander_import_commands,
             commands::commander_add_command,
+            commands::commander_update_command,
             commands::commander_run_command,
             commands::commander_stop_command,
             commands::commander_delete_command,

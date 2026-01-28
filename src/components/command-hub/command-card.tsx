@@ -21,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { AlertTriangle, Clock, Play, Trash2 } from "lucide-react"
+import { AlertTriangle, Clock, Pencil, Play, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { statusStyles, typeIcons } from "@/lib/command-hub/constants"
 import type { Command } from "./types"
@@ -31,9 +31,10 @@ interface CommandCardProps {
   index: number
   onRun?: (command: Command) => void
   onDelete?: (command: Command) => void
+  onEdit?: (command: Command) => void
 }
 
-export function CommandCard({ command, index, onRun, onDelete }: CommandCardProps) {
+export function CommandCard({ command, index, onRun, onDelete, onEdit }: CommandCardProps) {
   const Icon = typeIcons[command.type]
 
   return (
@@ -59,6 +60,16 @@ export function CommandCard({ command, index, onRun, onDelete }: CommandCardProp
             >
               {command.status}
             </Badge>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground hover:text-primary"
+              aria-label={`Edit ${command.name}`}
+              disabled={command.status === "running" || !onEdit}
+              onClick={() => onEdit?.(command)}
+            >
+              <Pencil className="size-3" />
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -114,6 +125,8 @@ export function CommandCard({ command, index, onRun, onDelete }: CommandCardProp
                 ? "w-1/3 bg-chart-4/80"
                 : command.status === "failed"
                 ? "w-full bg-destructive/70"
+                : command.status === "stopped"
+                ? "w-full bg-muted-foreground/70"
                 : command.status === "success"
                 ? "w-full bg-chart-1/70"
                 : "w-0"

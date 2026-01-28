@@ -396,6 +396,44 @@ pub fn commander_stop_command(
 }
 
 #[tauri::command]
+pub fn commander_update_command(
+    state: State<'_, Arc<AppRuntime>>,
+    command: Command,
+) -> Result<(), String> {
+    {
+        let data = state.data.lock().map_err(|_| "state poisoned")?;
+        if data
+            .live_executions
+            .iter()
+            .any(|item| item.repo == command.repo && item.command == command.name)
+        {
+            return Err("command is running".to_string());
+        }
+        if !data
+            .commands
+            .iter()
+            .any(|item| item.repo == command.repo && item.name == command.name)
+        {
+            return Err("command not found".to_string());
+        }
+    }
+
+    database::persist_command(&state.db_path, &command)?;
+
+    let mut data = state.data.lock().map_err(|_| "state poisoned")?;
+    if let Some(existing_command) = data
+        .commands
+        .iter_mut()
+        .find(|item| item.repo == command.repo && item.name == command.name)
+    {
+        *existing_command = command;
+    } else {
+        return Err("command not found".to_string());
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn commander_delete_command(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,

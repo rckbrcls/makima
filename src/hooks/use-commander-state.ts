@@ -200,6 +200,34 @@ export function useCommanderState() {
     [refreshState]
   )
 
+  const updateCommand = useCallback(
+    async (command: Command) => {
+      if (!isTauriAvailable()) {
+        toast.error("Backend unavailable", {
+          description: "Tauri is not connected.",
+        })
+        return
+      }
+      const toastId = toast.loading("Updating command...", {
+        description: `${command.repo} · ${command.name}`,
+      })
+      try {
+        await invoke("commander_update_command", { command })
+        await refreshState()
+        toast.success("Command updated", {
+          id: toastId,
+          description: `${command.repo} · ${command.name}`,
+        })
+      } catch (error) {
+        toast.error("Failed to update command", {
+          id: toastId,
+          description: getErrorMessage(error),
+        })
+      }
+    },
+    [refreshState]
+  )
+
   const deleteCommand = useCallback(
     async (repo: string, name: string) => {
       if (!isTauriAvailable()) {
@@ -348,6 +376,7 @@ export function useCommanderState() {
     stopCommand,
     addRepository,
     addCommand,
+    updateCommand,
     deleteCommand,
     deleteRepository,
     getExecutionLogs,

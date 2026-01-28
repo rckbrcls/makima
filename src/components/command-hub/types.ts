@@ -1,7 +1,7 @@
 import type { ElementType } from "react"
 
 export type RepositoryStatus = "active" | "idle" | "warn"
-export type CommandStatus = "running" | "queued" | "success" | "failed" | "idle"
+export type CommandStatus = "running" | "queued" | "success" | "failed" | "stopped" | "idle"
 export type CommandType = "run" | "build" | "test" | "lint" | "check" | "bundle"
 export type StepState = "done" | "running" | "pending"
 

@@ -80,6 +80,8 @@ export function HistoryExecutionCard({
               "h-full w-full",
               run.status === "failed"
                 ? "bg-destructive/70"
+                : run.status === "stopped"
+                ? "bg-muted-foreground/70"
                 : "bg-chart-1/70"
             )}
           />
