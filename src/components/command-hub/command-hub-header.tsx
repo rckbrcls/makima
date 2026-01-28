@@ -97,26 +97,19 @@ export function CommandHubHeader({
               Auto-setup
             </Button>
             <Button
-              variant="outline"
-              className="h-9 border-border bg-card/70 text-xs"
+              className="h-9 border-border text-xs"
               onClick={() => setComposeDialogOpen(true)}
             >
-              <Wand2 data-icon="inline-start" />
+               <Plus data-icon="inline-start" />
               New command
             </Button>
-            <AddRepositoryDialog onAddRepository={onAddRepository}>
-              <Button className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
-                <Plus data-icon="inline-start" />
-                New repo
-              </Button>
-            </AddRepositoryDialog>
           </div>
         </div>
       </header>
 
       {/* Compose Dialog */}
       <Dialog open={composeDialogOpen} onOpenChange={setComposeDialogOpen}>
-        <DialogContent className="max-w-7xl">
+        <DialogContent className="min-w-1/2">
           <DialogHeader>
             <DialogTitle>New command</DialogTitle>
             <DialogDescription>
