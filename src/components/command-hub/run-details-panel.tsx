@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/card"
 import { FileText, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ExecutionHistoryItem } from "./types"
+import type { ExecutionHistoryItem, ExecutionLogLine } from "./types"
 
 interface RunDetailsPanelProps {
   run: ExecutionHistoryItem
-  logs: string[]
+  logs: ExecutionLogLine[]
 }
 
 export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
@@ -45,18 +45,24 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
           />
         </div>
         <div className="space-y-1 rounded-none border border-border bg-muted/80 p-3 text-[0.65rem] text-foreground">
-          {logs.map((line, i) => (
-            <div
-              key={i}
-              className={cn(
-                (line.includes("failed") || line.includes("aborted")) &&
-                  "text-destructive",
-                line.includes("passed") && "text-chart-1"
-              )}
-            >
-              {line}
-            </div>
-          ))}
+          {logs.length === 0 ? (
+            <div className="text-muted-foreground">No logs saved yet.</div>
+          ) : (
+            logs.map((entry, i) => (
+              <div
+                key={i}
+                className={cn(
+                  entry.stream === "stderr" && "text-destructive",
+                  (entry.line.includes("failed") ||
+                    entry.line.includes("aborted")) &&
+                    "text-destructive",
+                  entry.line.includes("passed") && "text-chart-1"
+                )}
+              >
+                {entry.line}
+              </div>
+            ))
+          )}
         </div>
       </CardContent>
       <CardFooter className="justify-between">

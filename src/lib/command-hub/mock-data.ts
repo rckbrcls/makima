@@ -1,6 +1,7 @@
 import type {
   Command,
   ExecutionHistoryItem,
+  ExecutionLogLine,
   HistoryStats,
   LiveExecution,
   Pipeline,
@@ -166,10 +167,10 @@ export const liveExecutions: LiveExecution[] = [
     cpu: "38%",
     ram: "1.2 GB",
     logs: [
-      "[14:32:10] bundler ready",
-      "[14:32:12] starting tauri dev",
-      "[14:32:18] watching src/**/*",
-      "[14:32:23] cache warmed in 4.1s",
+      { line: "[14:32:10] bundler ready", stream: "stdout" },
+      { line: "[14:32:12] starting tauri dev", stream: "stdout" },
+      { line: "[14:32:18] watching src/**/*", stream: "stdout" },
+      { line: "[14:32:23] cache warmed in 4.1s", stream: "stdout" },
     ],
   },
   {
@@ -179,9 +180,9 @@ export const liveExecutions: LiveExecution[] = [
     cpu: "12%",
     ram: "340 MB",
     logs: [
-      "[14:33:01] collecting tests…",
-      "[14:33:04] running 48 tests",
-      "[14:33:12] 32/48 passed",
+      { line: "[14:33:01] collecting tests…", stream: "stdout" },
+      { line: "[14:33:04] running 48 tests", stream: "stdout" },
+      { line: "[14:33:12] 32/48 passed", stream: "stdout" },
     ],
   },
   {
@@ -191,17 +192,38 @@ export const liveExecutions: LiveExecution[] = [
     cpu: "22%",
     ram: "680 MB",
     logs: [
-      "[14:31:50] storybook starting",
-      "[14:31:55] loaded 24 stories",
-      "[14:31:58] serving on :6006",
+      { line: "[14:31:50] storybook starting", stream: "stdout" },
+      { line: "[14:31:55] loaded 24 stories", stream: "stdout" },
+      { line: "[14:31:58] serving on :6006", stream: "stdout" },
     ],
   },
 ]
 
 export const runQueue: RunQueueItem[] = [
-  { name: "Build Desktop", repo: "commander", eta: "~3 min" },
-  { name: "Tests", repo: "billing-api", eta: "~8 min" },
-  { name: "Storybook", repo: "ui-kit", eta: "~5 min" },
+  {
+    id: 1,
+    name: "Build Desktop",
+    repo: "commander",
+    command: "pnpm build",
+    commandType: "build",
+    queuedAt: "14:10",
+  },
+  {
+    id: 2,
+    name: "Tests",
+    repo: "billing-api",
+    command: "pnpm test",
+    commandType: "test",
+    queuedAt: "14:11",
+  },
+  {
+    id: 3,
+    name: "Storybook",
+    repo: "ui-kit",
+    command: "pnpm storybook",
+    commandType: "run",
+    queuedAt: "14:12",
+  },
 ]
 
 export const pipelines: Pipeline[] = [
@@ -307,16 +329,16 @@ export const historyStats: HistoryStats = {
   avgDuration: "01:48",
 }
 
-export const selectedRunLogs: string[] = [
-  "[12:05:01] Starting deploy to staging…",
-  "[12:05:03] Pulling latest from release/2026.01",
-  "[12:05:08] Installing dependencies…",
-  "[12:05:22] Dependencies installed",
-  "[12:05:24] Running pre-deploy checks…",
-  "[12:05:30] Typecheck passed",
-  "[12:05:32] Lint passed",
-  "[12:05:35] Running test suite…",
-  "[12:06:48] 3 tests failed: auth.spec.ts",
-  "[12:06:50] Deploy aborted — Tests failed",
-  "[12:06:50] Exit code 1",
+export const selectedRunLogs: ExecutionLogLine[] = [
+  { line: "[12:05:01] Starting deploy to staging…", stream: "stdout" },
+  { line: "[12:05:03] Pulling latest from release/2026.01", stream: "stdout" },
+  { line: "[12:05:08] Installing dependencies…", stream: "stdout" },
+  { line: "[12:05:22] Dependencies installed", stream: "stdout" },
+  { line: "[12:05:24] Running pre-deploy checks…", stream: "stdout" },
+  { line: "[12:05:30] Typecheck passed", stream: "stdout" },
+  { line: "[12:05:32] Lint passed", stream: "stdout" },
+  { line: "[12:05:35] Running test suite…", stream: "stdout" },
+  { line: "[12:06:48] 3 tests failed: auth.spec.ts", stream: "stderr" },
+  { line: "[12:06:50] Deploy aborted — Tests failed", stream: "stderr" },
+  { line: "[12:06:50] Exit code 1", stream: "stderr" },
 ]

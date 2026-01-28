@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Activity, Square, Terminal } from "lucide-react"
+import { cn } from "@/lib/utils"
 import type { LiveExecution } from "./types"
 
 interface LiveExecutionCardProps {
@@ -48,8 +49,16 @@ export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps)
           <div className="h-full w-2/3 bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1/80 bg-[length:200%_100%] animate-[shimmer_2.6s_linear_infinite]" />
         </div>
         <div className="space-y-1 rounded-none border border-border bg-muted/80 p-3 text-[0.65rem] text-foreground">
-          {execution.logs.map((line, i) => (
-            <div key={i}>{line}</div>
+          {execution.logs.map((entry, i) => (
+            <div
+              key={i}
+              className={cn(
+                entry.stream === "stderr" && "text-destructive",
+                entry.line.includes("failed") && "text-destructive"
+              )}
+            >
+              {entry.line}
+            </div>
           ))}
         </div>
       </CardContent>

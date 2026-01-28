@@ -4,6 +4,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import type {
   Command,
   DashboardState,
+  ExecutionLogLine,
   NewRepositoryInput,
   Repository,
   RunCommandInput,
@@ -19,6 +20,7 @@ import {
   pipelines,
   repositories,
   runQueue,
+  selectedRunLogs,
 } from "@/lib/command-hub/mock-data"
 
 const LOG_CAPACITY = 500
@@ -51,7 +53,7 @@ type ExecutionLogEvent = {
   repo: string
   command: string
   line: string
-  stream: string
+  stream: ExecutionLogLine["stream"]
 }
 
 const isTauriAvailable = () => {
@@ -370,6 +372,15 @@ export function useCommanderState() {
     [refreshState]
   )
 
+  const getExecutionLogs = useCallback(async (executionId: number) => {
+    if (!isTauriAvailable()) {
+      return selectedRunLogs
+    }
+    return invoke<ExecutionLogLine[]>("commander_get_execution_logs", {
+      execution_id: executionId,
+    })
+  }, [])
+
   useEffect(() => {
     let active = true
     const unlisteners: UnlistenFn[] = []
@@ -402,7 +413,10 @@ export function useCommanderState() {
                 if (index === -1) return prev
 
                 const target = prev.liveExecutions[index]
-                const nextLogs = [...target.logs, payload.line]
+                const nextLogs = [
+                  ...target.logs,
+                  { line: payload.line, stream: payload.stream },
+                ]
                 if (nextLogs.length > LOG_CAPACITY) {
                   nextLogs.splice(0, nextLogs.length - LOG_CAPACITY)
                 }
@@ -452,5 +466,6 @@ export function useCommanderState() {
     addCommand,
     deleteCommand,
     deleteRepository,
+    getExecutionLogs,
   }
 }

@@ -147,15 +147,25 @@ pub struct LiveExecution {
     pub pid: u32,
     pub cpu: String,
     pub ram: String,
-    pub logs: Vec<String>,
+    pub logs: Vec<ExecutionLogLine>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionLogLine {
+    pub line: String,
+    pub stream: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RunQueueItem {
+    pub id: u32,
     pub name: String,
     pub repo: String,
-    pub eta: String,
+    pub command: String,
+    pub command_type: CommandType,
+    pub queued_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

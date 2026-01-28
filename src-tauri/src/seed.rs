@@ -1,6 +1,7 @@
 use crate::types::{
-    Command, CommandStatus, CommandType, DashboardState, ExecutionHistoryItem, HistoryStats,
-    LiveExecution, Pipeline, PipelineStep, Repository, RepositoryStatus, RunQueueItem, StepState,
+    Command, CommandStatus, CommandType, DashboardState, ExecutionHistoryItem, ExecutionLogLine,
+    HistoryStats, LiveExecution, Pipeline, PipelineStep, Repository, RepositoryStatus,
+    RunQueueItem, StepState,
 };
 
 pub fn empty_state() -> DashboardState {
@@ -177,10 +178,22 @@ pub fn seed_state() -> DashboardState {
                 cpu: "38%".to_string(),
                 ram: "1.2 GB".to_string(),
                 logs: vec![
-                    "[14:32:10] bundler ready".to_string(),
-                    "[14:32:12] starting tauri dev".to_string(),
-                    "[14:32:18] watching src/**/*".to_string(),
-                    "[14:32:23] cache warmed in 4.1s".to_string(),
+                    ExecutionLogLine {
+                        line: "[14:32:10] bundler ready".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:32:12] starting tauri dev".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:32:18] watching src/**/*".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:32:23] cache warmed in 4.1s".to_string(),
+                        stream: "stdout".to_string(),
+                    },
                 ],
             },
             LiveExecution {
@@ -190,9 +203,18 @@ pub fn seed_state() -> DashboardState {
                 cpu: "12%".to_string(),
                 ram: "340 MB".to_string(),
                 logs: vec![
-                    "[14:33:01] collecting tests...".to_string(),
-                    "[14:33:04] running 48 tests".to_string(),
-                    "[14:33:12] 32/48 passed".to_string(),
+                    ExecutionLogLine {
+                        line: "[14:33:01] collecting tests...".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:33:04] running 48 tests".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:33:12] 32/48 passed".to_string(),
+                        stream: "stdout".to_string(),
+                    },
                 ],
             },
             LiveExecution {
@@ -202,27 +224,45 @@ pub fn seed_state() -> DashboardState {
                 cpu: "22%".to_string(),
                 ram: "680 MB".to_string(),
                 logs: vec![
-                    "[14:31:50] storybook starting".to_string(),
-                    "[14:31:55] loaded 24 stories".to_string(),
-                    "[14:31:58] serving on :6006".to_string(),
+                    ExecutionLogLine {
+                        line: "[14:31:50] storybook starting".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:31:55] loaded 24 stories".to_string(),
+                        stream: "stdout".to_string(),
+                    },
+                    ExecutionLogLine {
+                        line: "[14:31:58] serving on :6006".to_string(),
+                        stream: "stdout".to_string(),
+                    },
                 ],
             },
         ],
         run_queue: vec![
             RunQueueItem {
+                id: 1,
                 name: "Build Desktop".to_string(),
                 repo: "commander".to_string(),
-                eta: "~3 min".to_string(),
+                command: "pnpm build".to_string(),
+                command_type: CommandType::Build,
+                queued_at: "2026-01-28 14:10".to_string(),
             },
             RunQueueItem {
+                id: 2,
                 name: "Tests".to_string(),
                 repo: "billing-api".to_string(),
-                eta: "~8 min".to_string(),
+                command: "pnpm test".to_string(),
+                command_type: CommandType::Test,
+                queued_at: "2026-01-28 14:11".to_string(),
             },
             RunQueueItem {
+                id: 3,
                 name: "Storybook".to_string(),
                 repo: "ui-kit".to_string(),
-                eta: "~5 min".to_string(),
+                command: "pnpm storybook".to_string(),
+                command_type: CommandType::Run,
+                queued_at: "2026-01-28 14:12".to_string(),
             },
         ],
         pipelines: vec![

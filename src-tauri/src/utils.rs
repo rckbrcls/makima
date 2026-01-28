@@ -1,4 +1,8 @@
-use crate::types::{CommandStatus, ExecutionHistoryItem, HistoryStats};
+use crate::types::{
+    CommandStatus, ExecutionHistoryItem, HistoryStats, LiveExecution, Pipeline, PipelineStep,
+    RunQueueItem, StepState,
+};
+use std::collections::HashMap;
 use std::time::Duration;
 
 pub fn current_timestamp() -> String {
@@ -52,4 +56,38 @@ pub fn recompute_history_stats(items: &[ExecutionHistoryItem]) -> HistoryStats {
         success_rate,
         avg_duration,
     }
+}
+
+pub fn recompute_pipelines(
+    live_executions: &[LiveExecution],
+    run_queue: &[RunQueueItem],
+) -> Vec<Pipeline> {
+    let mut by_repo: HashMap<String, Vec<PipelineStep>> = HashMap::new();
+
+    for execution in live_executions {
+        by_repo
+            .entry(execution.repo.clone())
+            .or_default()
+            .push(PipelineStep {
+                label: execution.command.clone(),
+                state: StepState::Running,
+            });
+    }
+
+    for item in run_queue {
+        by_repo
+            .entry(item.repo.clone())
+            .or_default()
+            .push(PipelineStep {
+                label: item.name.clone(),
+                state: StepState::Pending,
+            });
+    }
+
+    let mut pipelines: Vec<Pipeline> = by_repo
+        .into_iter()
+        .map(|(repo, steps)| Pipeline { repo, steps })
+        .collect();
+    pipelines.sort_by(|a, b| a.repo.cmp(&b.repo));
+    pipelines
 }

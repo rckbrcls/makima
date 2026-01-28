@@ -9,15 +9,14 @@ import {
 } from "@/components/ui/sheet"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { filterByRepo, runningCount, computeStats } from "@/lib/command-hub/helpers"
-import { selectedRunLogs } from "@/lib/command-hub/mock-data"
+import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
 import { useCommanderState } from "@/hooks/use-commander-state"
 import { CommandHubHeader } from "./command-hub-header"
 import { RepositorySidebar } from "./repository-sidebar"
 import { CommandsTab } from "./commands-tab"
 import { ExecutionTab } from "./execution-tab"
 import { HistoryTab } from "./history-tab"
-import { ComposeTab } from "./compose-tab"
+import { PipelineTab } from "./pipeline-tab"
 import type { Command } from "./types"
 
 export function CommandHub() {
@@ -25,19 +24,18 @@ export function CommandHub() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const {
     state,
-    usingMock,
     runCommand,
     stopCommand,
     addRepository,
     addCommand,
     deleteCommand,
     deleteRepository,
+    getExecutionLogs,
   } = useCommanderState()
 
   const {
     commands,
     executionHistory,
-    historyStats,
     liveExecutions,
     pipelines,
     repositories,
@@ -53,9 +51,6 @@ export function CommandHub() {
     ? pipelines.filter((p) => p.repo === selectedRepo)
     : pipelines
 
-  const statsForTab = selectedRepo
-    ? computeStats(filteredHistory)
-    : historyStats
 
   // Calculate running counts for each repo
   const runningCounts: Record<string, number> = {}
@@ -104,6 +99,10 @@ export function CommandHub() {
         <CommandHubHeader
           onMenuClick={() => setMobileOpen(true)}
           onAddRepository={addRepository}
+          repositories={repositories}
+          selectedRepo={selectedRepo}
+          onRunCommandInput={runCommand}
+          onAddCommand={addCommand}
         />
 
         {/* Body: sidebar + main */}
@@ -148,8 +147,8 @@ export function CommandHub() {
             <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80">
               <TabsTrigger value="commands">Commands</TabsTrigger>
               <TabsTrigger value="execution">Execution</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              <TabsTrigger value="compose">Compose</TabsTrigger>
+              <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+              <TabsTrigger value="statistics">Statistics</TabsTrigger>
             </TabsList>
 
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
@@ -163,6 +162,8 @@ export function CommandHub() {
                     onRunCommand={handleRunCommand}
                     onStopCommand={handleStopCommand}
                     onDeleteCommand={handleDeleteCommand}
+                    onAddCommand={addCommand}
+                    onRunCommandInput={runCommand}
                   />
                 </TabsContent>
 
@@ -171,33 +172,26 @@ export function CommandHub() {
                   <ExecutionTab
                     selectedRepo={selectedRepo}
                     liveExecutions={filteredLive}
-                    queue={filteredQueue}
-                    pipelines={filteredPipelines}
                     repositories={repositories}
                     executionHistory={filteredHistory}
+                    getExecutionLogs={getExecutionLogs}
                     onStopCommand={handleStopCommand}
                   />
                 </TabsContent>
 
-                {/* Tab: History */}
-                <TabsContent value="history" className="flex flex-col">
-                  <HistoryTab
+                {/* Tab: Pipeline */}
+                <TabsContent value="pipeline" className="flex flex-col">
+                  <PipelineTab
                     selectedRepo={selectedRepo}
-                    executionHistory={filteredHistory}
-                    historyStats={statsForTab}
+                    queue={filteredQueue}
+                    pipelines={filteredPipelines}
                     repositories={repositories}
-                    logs={usingMock ? selectedRunLogs : []}
                   />
                 </TabsContent>
 
-                {/* Tab: Compose */}
-                <TabsContent value="compose" className="flex flex-col">
-                  <ComposeTab
-                    selectedRepo={selectedRepo}
-                    repositories={repositories}
-                    onRunCommand={runCommand}
-                    onAddCommand={addCommand}
-                  />
+                {/* Tab: Statistics */}
+                <TabsContent value="statistics" className="flex flex-col">
+                  <HistoryTab state={state} selectedRepo={selectedRepo} />
                 </TabsContent>
               </div>
             </Card>

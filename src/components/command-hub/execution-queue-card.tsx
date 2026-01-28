@@ -21,13 +21,13 @@ export function ExecutionQueueCard({ queue }: ExecutionQueueCardProps) {
       <CardContent className="space-y-3">
         {queue.map((item) => (
           <div
-            key={`${item.repo}-${item.name}`}
+            key={item.id}
             className="space-y-1 border border-border bg-card/70 p-3"
           >
             <div className="flex items-center justify-between text-xs font-medium text-foreground">
               <span>{item.name}</span>
               <span className="text-[0.65rem] text-muted-foreground">
-                {item.eta}
+                {item.queuedAt}
               </span>
             </div>
             <div className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">

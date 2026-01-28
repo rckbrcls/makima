@@ -1,6 +1,8 @@
 import type {
   Command,
+  DashboardState,
   ExecutionHistoryItem,
+  ExtendedStats,
   HistoryStats,
   Repository,
 } from "@/components/command-hub/types"
@@ -64,4 +66,85 @@ export function runningCount(
 ): number {
   return commands.filter((c) => c.repo === repoName && c.status === "running")
     .length
+}
+
+function parseDuration(duration: string): number {
+  if (duration === "-" || !duration) return 0
+  const [m, s] = duration.split(":").map(Number)
+  return m * 60 + s
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds === 0) return "00:00"
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+  }
+  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+}
+
+export function computeExtendedStats(
+  state: DashboardState
+): ExtendedStats {
+  const {
+    executionHistory,
+    commands,
+    repositories,
+    runQueue,
+    liveExecutions,
+  } = state
+
+  // Basic stats from history
+  const totalRuns = executionHistory.length
+  const successes = executionHistory.filter((i) => i.status === "success").length
+  const failures = executionHistory.filter((i) => i.status === "failed").length
+  const successRate =
+    totalRuns > 0 ? `${Math.round((successes / totalRuns) * 100)}%` : "0%"
+  const failureRate =
+    totalRuns > 0 ? `${Math.round((failures / totalRuns) * 100)}%` : "0%"
+
+  // Duration calculations
+  const durations = executionHistory
+    .map((i) => parseDuration(i.duration))
+    .filter((d) => d > 0)
+
+  let avgDuration = "–"
+  let totalDuration = "–"
+  let fastestRun = "–"
+  let slowestRun = "–"
+
+  if (durations.length > 0) {
+    const totalSec = durations.reduce((acc, d) => acc + d, 0)
+    const avgSec = Math.round(totalSec / durations.length)
+    avgDuration = formatDuration(avgSec)
+    totalDuration = formatDuration(totalSec)
+
+    const fastestSec = Math.min(...durations)
+    const slowestSec = Math.max(...durations)
+    fastestRun = formatDuration(fastestSec)
+    slowestRun = formatDuration(slowestSec)
+  }
+
+  // Command and repository stats
+  const commandsInQueue = runQueue.length
+  const activeRepositories = repositories.filter((r) => r.status === "active")
+    .length
+  const totalCommands = commands.length
+  const runningCommands = liveExecutions.length
+
+  return {
+    totalRuns,
+    successRate,
+    failureRate,
+    avgDuration,
+    totalDuration,
+    fastestRun,
+    slowestRun,
+    commandsInQueue,
+    activeRepositories,
+    totalCommands,
+    runningCommands,
+  }
 }

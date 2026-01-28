@@ -27,6 +27,7 @@ pub fn run() {
             commands::commander_stop_command,
             commands::commander_delete_command,
             commands::commander_delete_repository,
+            commands::commander_get_execution_logs,
             port_registry::port_registry_lease_port,
             port_registry::port_registry_release_port,
             port_registry::port_registry_list_leases,

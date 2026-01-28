@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -8,12 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { CircleDot, GitBranch, Square, Terminal } from "lucide-react"
+import { CircleDot, GitBranch, Plus, Square, Terminal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { repoStatusColor, getRepo, groupByRepo } from "@/lib/command-hub/helpers"
 import { CommandCard } from "./command-card"
+import { QuickComposer } from "./quick-composer"
 import { StatsCards } from "./stats-cards"
-import type { Command, Repository, StatCard } from "./types"
+import type { Command, Repository, RunCommandInput, StatCard } from "./types"
 
 interface CommandsTabProps {
   selectedRepo: string | null
@@ -22,6 +24,8 @@ interface CommandsTabProps {
   onRunCommand?: (command: Command) => void
   onStopCommand?: (repo: string, commandName: string) => void
   onDeleteCommand?: (command: Command) => void
+  onAddCommand?: (command: Command) => void | Promise<void>
+  onRunCommandInput?: (request: RunCommandInput) => void | Promise<void>
 }
 
 export function CommandsTab({
@@ -31,7 +35,10 @@ export function CommandsTab({
   onRunCommand,
   onStopCommand,
   onDeleteCommand,
+  onAddCommand,
+  onRunCommandInput,
 }: CommandsTabProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const groupedCommands = groupByRepo(commands)
 
   const stopAllForRepo = (repoName: string) => {
@@ -130,15 +137,26 @@ export function CommandsTab({
             Every command runs in background with live feedback.
           </CardDescription>
           <CardAction>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-border bg-card/80"
-              onClick={() => stopAllForRepo(selectedRepo)}
-            >
-              <Square data-icon="inline-start" />
-              Stop all
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-border bg-card/80"
+                onClick={() => setDialogOpen(true)}
+              >
+                <Plus data-icon="inline-start" />
+                Add command
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-border bg-card/80"
+                onClick={() => stopAllForRepo(selectedRepo)}
+              >
+                <Square data-icon="inline-start" />
+                Stop all
+              </Button>
+            </div>
           </CardAction>
         </CardHeader>
         <CardContent className="grid gap-3 py-4 sm:grid-cols-2">
@@ -153,6 +171,15 @@ export function CommandsTab({
           ))}
         </CardContent>
       </Card>
+
+      {/* Quick Composer Dialog */}
+      <QuickComposer
+        repoName={selectedRepo || ""}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onRunCommand={onRunCommandInput}
+        onAddCommand={onAddCommand}
+      />
     </div>
   )
 }

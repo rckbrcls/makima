@@ -1,8 +1,8 @@
 use crate::types::{
     parse_command_status, parse_command_type, Command, DashboardState, ExecutionHistoryItem,
-    PipelineStep, PipelineTemplate, Repository, RepositoryStatus,
+    ExecutionLogLine, PipelineStep, PipelineTemplate, Repository, RepositoryStatus, RunQueueItem,
 };
-use crate::utils::recompute_history_stats;
+use crate::utils::{recompute_history_stats, recompute_pipelines};
 use rusqlite::{params, Connection};
 use std::{fs, path::Path, path::PathBuf, time::Duration};
 use tauri::{AppHandle, Manager};
@@ -48,6 +48,23 @@ pub fn init_db(db_path: &Path) -> Result<(), String> {
         duration TEXT NOT NULL,
         timestamp TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS execution_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        repo TEXT NOT NULL,
+        name TEXT NOT NULL,
+        command TEXT NOT NULL,
+        command_type TEXT NOT NULL,
+        queued_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_execution_queue_repo ON execution_queue(repo);
+      CREATE TABLE IF NOT EXISTS execution_logs (
+        execution_id INTEGER NOT NULL,
+        line TEXT NOT NULL,
+        stream TEXT NOT NULL,
+        line_order INTEGER NOT NULL,
+        FOREIGN KEY (execution_id) REFERENCES execution_history(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_execution_logs_execution_id ON execution_logs(execution_id);
       CREATE TABLE IF NOT EXISTS pipeline_templates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -79,6 +96,7 @@ pub fn load_state(db_path: &Path) -> Result<DashboardState, String> {
         let mut repositories = Vec::new();
         let mut commands = Vec::new();
         let mut execution_history = Vec::new();
+        let mut run_queue = Vec::new();
 
         {
             let mut stmt = conn.prepare(
@@ -148,14 +166,37 @@ pub fn load_state(db_path: &Path) -> Result<DashboardState, String> {
             }
         }
 
+        {
+            let mut stmt = conn.prepare(
+                "SELECT id, name, repo, command, command_type, queued_at
+         FROM execution_queue
+         ORDER BY id ASC",
+            )?;
+            let queue_iter = stmt.query_map([], |row| {
+                let id: i64 = row.get(0)?;
+                Ok(RunQueueItem {
+                    id: id as u32,
+                    name: row.get(1)?,
+                    repo: row.get(2)?,
+                    command: row.get(3)?,
+                    command_type: parse_command_type(&row.get::<_, String>(4)?),
+                    queued_at: row.get(5)?,
+                })
+            })?;
+            for entry in queue_iter {
+                run_queue.push(entry?);
+            }
+        }
+
         let history_stats = recompute_history_stats(&execution_history);
+        let pipelines = recompute_pipelines(&[], &run_queue);
 
         Ok(DashboardState {
             repositories,
             commands,
             live_executions: Vec::new(),
-            run_queue: Vec::new(),
-            pipelines: Vec::new(),
+            run_queue,
+            pipelines,
             execution_history,
             history_stats,
         })
@@ -168,6 +209,7 @@ pub fn persist_full_state(db_path: &Path, state: &DashboardState) -> Result<(), 
         tx.execute("DELETE FROM commands", [])?;
         tx.execute("DELETE FROM repositories", [])?;
         tx.execute("DELETE FROM execution_history", [])?;
+        tx.execute("DELETE FROM execution_queue", [])?;
 
         for repo in &state.repositories {
             let tech_json = serde_json::to_string(&repo.tech).unwrap_or_else(|_| "[]".to_string());
@@ -205,6 +247,21 @@ pub fn persist_full_state(db_path: &Path, state: &DashboardState) -> Result<(), 
                     history.status.as_str(),
                     history.duration,
                     history.timestamp
+                ],
+            )?;
+        }
+
+        for item in &state.run_queue {
+            tx.execute(
+                "INSERT INTO execution_queue (id, repo, name, command, command_type, queued_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    item.id,
+                    item.repo,
+                    item.name,
+                    item.command,
+                    item.command_type.as_str(),
+                    item.queued_at
                 ],
             )?;
         }
@@ -271,6 +328,86 @@ pub fn persist_history(db_path: &Path, history: &ExecutionHistoryItem) -> Result
             ],
         )?;
         Ok(())
+    })
+}
+
+pub fn enqueue_run_queue_item(
+    db_path: &Path,
+    item: &RunQueueItem,
+) -> Result<u32, String> {
+    with_db(db_path, |conn| {
+        conn.execute(
+            "INSERT INTO execution_queue (repo, name, command, command_type, queued_at)
+       VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                item.repo,
+                item.name,
+                item.command,
+                item.command_type.as_str(),
+                item.queued_at
+            ],
+        )?;
+        Ok(conn.last_insert_rowid() as u32)
+    })
+}
+
+pub fn delete_run_queue_item(db_path: &Path, id: u32) -> Result<(), String> {
+    with_db(db_path, |conn| {
+        conn.execute("DELETE FROM execution_queue WHERE id = ?1", params![id])?;
+        Ok(())
+    })
+}
+
+pub fn persist_execution_logs(
+    db_path: &Path,
+    execution_id: u32,
+    logs: &[ExecutionLogLine],
+) -> Result<(), String> {
+    with_db(db_path, |conn| {
+        let tx = conn.transaction()?;
+        tx.execute(
+            "DELETE FROM execution_logs WHERE execution_id = ?1",
+            params![execution_id],
+        )?;
+        for (line_order, entry) in logs.iter().enumerate() {
+            tx.execute(
+                "INSERT INTO execution_logs (execution_id, line, stream, line_order)
+         VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    execution_id,
+                    entry.line,
+                    entry.stream,
+                    line_order as i64
+                ],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    })
+}
+
+pub fn load_execution_logs(
+    db_path: &Path,
+    execution_id: u32,
+) -> Result<Vec<ExecutionLogLine>, String> {
+    with_db(db_path, |conn| {
+        let mut logs = Vec::new();
+        let mut stmt = conn.prepare(
+            "SELECT line, stream
+       FROM execution_logs
+       WHERE execution_id = ?1
+       ORDER BY line_order ASC",
+        )?;
+        let rows = stmt.query_map(params![execution_id], |row| {
+            Ok(ExecutionLogLine {
+                line: row.get(0)?,
+                stream: row.get(1)?,
+            })
+        })?;
+        for entry in rows {
+            logs.push(entry?);
+        }
+        Ok(logs)
     })
 }
 
@@ -351,6 +488,10 @@ pub fn delete_pipeline_template(db_path: &Path, id: u32) -> Result<(), String> {
 pub fn delete_command(db_path: &Path, repo: &str, name: &str) -> Result<(), String> {
     with_db(db_path, |conn| {
         conn.execute(
+            "DELETE FROM execution_queue WHERE repo = ?1 AND name = ?2",
+            params![repo, name],
+        )?;
+        conn.execute(
             "DELETE FROM commands WHERE repo = ?1 AND name = ?2",
             params![repo, name],
         )?;
@@ -362,6 +503,10 @@ pub fn delete_repository(db_path: &Path, repo: &str) -> Result<(), String> {
     with_db(db_path, |conn| {
         conn.execute(
             "DELETE FROM execution_history WHERE repo = ?1",
+            params![repo],
+        )?;
+        conn.execute(
+            "DELETE FROM execution_queue WHERE repo = ?1",
             params![repo],
         )?;
         conn.execute(

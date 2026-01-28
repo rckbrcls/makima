@@ -1,17 +1,15 @@
 use crate::database;
-use crate::events::ExecutionStartedEvent;
-use crate::process::{spawn_log_reader, spawn_waiter};
+use crate::process::start_execution;
 use crate::runtime::AppRuntime;
 use crate::types::{
-  Command, CommandStatus, CommandType, DashboardState, LiveExecution, ProcessEntry,
-  RepoBranches, Repository, RepositoryStatus, RunCommandRequest, StopCommandRequest,
+  Command, CommandStatus, CommandType, DashboardState, ExecutionLogLine, RepoBranches,
+  Repository, RunCommandRequest, RunQueueItem, StopCommandRequest,
 };
-use crate::utils::recompute_history_stats;
-use std::process::{Command as ProcessCommand, Stdio};
-use std::sync::{Arc, Mutex};
+use crate::utils::{current_timestamp, recompute_history_stats, recompute_pipelines};
+use std::process::Command as ProcessCommand;
+use std::sync::Arc;
 use std::{collections::HashSet, fs, path::Path};
-use std::time::Instant;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 pub fn commander_state(state: State<'_, Arc<AppRuntime>>) -> DashboardState {
@@ -294,58 +292,35 @@ pub fn commander_run_command(
     state: State<'_, Arc<AppRuntime>>,
     request: RunCommandRequest,
 ) -> Result<(), String> {
-    let repo_path = {
+    {
         let data = state.data.lock().map_err(|_| "state poisoned")?;
-        data.repositories
-            .iter()
-            .find(|repo| repo.name == request.repo)
-            .map(|repo| repo.path.clone())
-    };
-    if repo_path.is_none() {
-        return Err("repository not found".to_string());
+        if !data.repositories.iter().any(|repo| repo.name == request.repo) {
+            return Err("repository not found".to_string());
+        }
     }
 
     let display_name = request
         .name
         .clone()
         .unwrap_or_else(|| request.command.clone());
-    let execution_id = state.next_execution_id();
-
-    let mut cmd = if cfg!(target_os = "windows") {
-        let mut cmd = ProcessCommand::new("cmd");
-        cmd.arg("/C").arg(&request.command);
-        cmd
-    } else {
-        let mut cmd = ProcessCommand::new("sh");
-        cmd.arg("-lc").arg(&request.command);
-        cmd
+    let command_type = request.command_type.clone().unwrap_or(CommandType::Run);
+    let should_queue = {
+        let data = state.data.lock().map_err(|_| "state poisoned")?;
+        data.live_executions
+            .iter()
+            .any(|item| item.repo == request.repo)
     };
 
-    if let Some(path) = &repo_path {
-        cmd.current_dir(path);
-    }
-
-    let mut child = cmd
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| error.to_string())?;
-
-    let pid = child.id();
-    let stdout = child.stdout.take();
-    let stderr = child.stderr.take();
-    let child = Arc::new(Mutex::new(child));
-
-    {
+    if should_queue {
+        let queued_at = current_timestamp();
         let mut data = state.data.lock().map_err(|_| "state poisoned")?;
-        let command_type = request.command_type.unwrap_or(CommandType::Run);
         let command_entry = data
             .commands
             .iter_mut()
             .find(|item| item.name == display_name && item.repo == request.repo);
         if let Some(entry) = command_entry {
-            entry.status = CommandStatus::Running;
-            entry.last_run = "now".to_string();
+            entry.status = CommandStatus::Queued;
+            entry.last_run = "queued".to_string();
             entry.duration = "-".to_string();
             entry.command_type = command_type.clone();
             entry.command = request.command.clone();
@@ -353,90 +328,30 @@ pub fn commander_run_command(
             let new_command = Command {
                 name: display_name.clone(),
                 command: request.command.clone(),
-                command_type,
-                status: CommandStatus::Running,
+                command_type: command_type.clone(),
+                status: CommandStatus::Queued,
                 duration: "-".to_string(),
-                last_run: "now".to_string(),
+                last_run: "queued".to_string(),
                 repo: request.repo.clone(),
             };
             data.commands.push(new_command);
         }
 
-        data.live_executions.push(LiveExecution {
+        let queue_item = RunQueueItem {
+            id: 0,
+            name: display_name.clone(),
             repo: request.repo.clone(),
-            command: display_name.clone(),
-            pid,
-            cpu: "-".to_string(),
-            ram: "-".to_string(),
-            logs: Vec::new(),
-        });
-
-        if let Some(repo_entry) = data
-            .repositories
-            .iter_mut()
-            .find(|item| item.name == request.repo)
-        {
-            repo_entry.status = RepositoryStatus::Active;
-            repo_entry.running = display_name.clone();
-            repo_entry.last_run = "now".to_string();
-        }
+            command: request.command.clone(),
+            command_type: command_type.clone(),
+            queued_at,
+        };
+        let queue_id = database::enqueue_run_queue_item(&state.db_path, &queue_item)?;
+        data.run_queue.push(RunQueueItem { id: queue_id, ..queue_item });
+        data.pipelines = recompute_pipelines(&data.live_executions, &data.run_queue);
+        return Ok(());
     }
 
-    {
-        let mut processes = state.processes.lock().map_err(|_| "state poisoned")?;
-        processes.insert(
-            execution_id,
-            ProcessEntry {
-                child: Arc::clone(&child),
-                repo: request.repo.clone(),
-                command_name: display_name.clone(),
-                started_at: Instant::now(),
-            },
-        );
-    }
-
-    app.emit(
-        "commander://execution-started",
-        ExecutionStartedEvent {
-            repo: request.repo.clone(),
-            command: display_name.clone(),
-            pid,
-        },
-    )
-    .ok();
-
-    if let Some(stdout) = stdout {
-        spawn_log_reader(
-            state.inner().clone(),
-            app.clone(),
-            stdout,
-            request.repo.clone(),
-            display_name.clone(),
-            "stdout".to_string(),
-        );
-    }
-
-    if let Some(stderr) = stderr {
-        spawn_log_reader(
-            state.inner().clone(),
-            app.clone(),
-            stderr,
-            request.repo.clone(),
-            display_name.clone(),
-            "stderr".to_string(),
-        );
-    }
-
-    spawn_waiter(
-        state.inner().clone(),
-        app,
-        execution_id,
-        request.repo,
-        display_name,
-        child,
-    );
-
-    Ok(())
+    start_execution(state.inner().clone(), app, request)
 }
 
 #[tauri::command]
@@ -495,6 +410,7 @@ pub fn commander_delete_command(
         .retain(|item| !(item.repo == repo && item.name == name));
     data.live_executions
         .retain(|item| !(item.repo == repo && item.command == name));
+    data.pipelines = recompute_pipelines(&data.live_executions, &data.run_queue);
     Ok(())
 }
 
@@ -520,8 +436,16 @@ pub fn commander_delete_repository(
     data.commands.retain(|item| item.repo != repo);
     data.live_executions.retain(|item| item.repo != repo);
     data.run_queue.retain(|item| item.repo != repo);
-    data.pipelines.retain(|item| item.repo != repo);
+    data.pipelines = recompute_pipelines(&data.live_executions, &data.run_queue);
     data.execution_history.retain(|item| item.repo != repo);
     data.history_stats = recompute_history_stats(&data.execution_history);
     Ok(())
+}
+
+#[tauri::command]
+pub fn commander_get_execution_logs(
+    state: State<'_, Arc<AppRuntime>>,
+    execution_id: u32,
+) -> Result<Vec<ExecutionLogLine>, String> {
+    database::load_execution_logs(&state.db_path, execution_id)
 }

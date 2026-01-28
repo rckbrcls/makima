@@ -38,13 +38,21 @@ export interface LiveExecution {
   pid: number
   cpu: string
   ram: string
-  logs: string[]
+  logs: ExecutionLogLine[]
+}
+
+export interface ExecutionLogLine {
+  line: string
+  stream: "stdout" | "stderr" | string
 }
 
 export interface RunQueueItem {
+  id: number
   name: string
   repo: string
-  eta: string
+  command: string
+  commandType: CommandType
+  queuedAt: string
 }
 
 export interface PipelineStep {
@@ -70,6 +78,20 @@ export interface HistoryStats {
   totalRuns: number
   successRate: string
   avgDuration: string
+}
+
+export interface ExtendedStats {
+  totalRuns: number
+  successRate: string
+  failureRate: string
+  avgDuration: string
+  totalDuration: string
+  fastestRun: string
+  slowestRun: string
+  commandsInQueue: number
+  activeRepositories: number
+  totalCommands: number
+  runningCommands: number
 }
 
 export interface StatCard {

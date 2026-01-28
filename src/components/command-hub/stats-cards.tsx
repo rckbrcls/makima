@@ -14,18 +14,26 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
+  const delayClasses = [
+    "delay-100",
+    "delay-200",
+    "delay-300",
+    "delay-500",
+    "delay-700",
+    "delay-1000",
+  ]
+
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {stats.map((item, index) => {
         const Icon = item.icon
+        const delayClass = delayClasses[Math.min(index, delayClasses.length - 1)]
         return (
           <Card
             key={item.label}
             className={cn(
               "border-border/70 bg-card/80 backdrop-blur animate-in fade-in slide-in-from-bottom-6 duration-700",
-              index === 0 && "delay-100",
-              index === 1 && "delay-200",
-              index === 2 && "delay-300"
+              delayClass
             )}
           >
             <CardHeader className="border-b border-border/60">
@@ -43,7 +51,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
               </CardTitle>
             </CardHeader>
             {item.note && (
-              <CardContent className="flex items-center justify-between text-[0.7rem] text-muted-foreground">
+              <CardContent className="flex items-center justify-between text-[0.7rem] text-muted-foreground pt-3">
                 <span>{item.note}</span>
                 <ChevronRight className="size-4 text-muted-foreground/70" />
               </CardContent>
