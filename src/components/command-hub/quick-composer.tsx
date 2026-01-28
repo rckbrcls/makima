@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,10 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Play, Plus } from "lucide-react"
-import { frameworks } from "@/lib/command-hub/data/framework-commands"
+import {
+  languages,
+  replacePackageManager,
+} from "@/lib/command-hub/data/framework-commands"
 import type { Command, RunCommandInput } from "./types"
 
 interface QuickComposerProps {
@@ -45,7 +49,11 @@ export function QuickComposer({
   const [notes, setNotes] = useState("")
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [commandName, setCommandName] = useState("")
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("custom")
   const [selectedFramework, setSelectedFramework] = useState<string>("custom")
+  const [selectedPackageManager, setSelectedPackageManager] = useState<
+    "pnpm" | "npm" | "yarn"
+  >("pnpm")
   const [selectedCommand, setSelectedCommand] = useState<string>("custom")
 
   const composedCommand = useMemo(() => {
@@ -58,9 +66,21 @@ export function QuickComposer({
     return Boolean(repoName?.trim() && composedCommand.trim())
   }, [repoName, composedCommand])
 
+  const selectedLanguageData = useMemo(() => {
+    return languages.find((l) => l.id === selectedLanguage)
+  }, [selectedLanguage])
+
+  const availableFrameworks = useMemo(() => {
+    if (!selectedLanguageData) return []
+    return selectedLanguageData.frameworks
+  }, [selectedLanguageData])
+
   const selectedFrameworkData = useMemo(() => {
-    return frameworks.find((f) => f.id === selectedFramework)
-  }, [selectedFramework])
+    if (!selectedLanguageData || selectedFramework === "custom") return null
+    return selectedLanguageData.frameworks.find(
+      (f) => f.id === selectedFramework
+    )
+  }, [selectedLanguageData, selectedFramework])
 
   const availableCommands = useMemo(() => {
     if (!selectedFrameworkData) return []
@@ -87,7 +107,6 @@ export function QuickComposer({
 
   const handleSaveClick = () => {
     if (!isValid) return
-    // Se já houver um nome preenchido, manter; caso contrário, limpar para o usuário preencher
     setSaveDialogOpen(true)
   }
 
@@ -104,26 +123,62 @@ export function QuickComposer({
     })
     setSaveDialogOpen(false)
     setCommandName("")
-    // Fechar o dialog principal após salvar (apenas se não for inline)
     if (!inline) {
       onOpenChange?.(false)
     }
-    // Resetar campos
+    resetFields()
+  }
+
+  const resetFields = () => {
     setBaseCommand("pnpm run")
     setArgs("")
     setNotes("")
+    setSelectedLanguage("custom")
     setSelectedFramework("custom")
+    setSelectedPackageManager("pnpm")
     setSelectedCommand("custom")
+  }
+
+  const handleLanguageChange = (languageId: string) => {
+    setSelectedLanguage(languageId)
+    setSelectedFramework("custom")
+    setSelectedPackageManager("pnpm")
+    setSelectedCommand("custom")
+    if (languageId === "custom") {
+      setCommandName("")
+      setBaseCommand("pnpm run")
+      setArgs("")
+    }
   }
 
   const handleFrameworkChange = (frameworkId: string) => {
     setSelectedFramework(frameworkId)
     setSelectedCommand("custom")
-    // Limpar campos quando mudar de framework
-    if (frameworkId === "custom") {
+    if (frameworkId === "custom" || !selectedLanguageData) {
       setCommandName("")
       setBaseCommand("pnpm run")
       setArgs("")
+      return
+    }
+    const framework = selectedLanguageData.frameworks.find(
+      (f) => f.id === frameworkId
+    )
+    if (framework && framework.requiresPackageManager) {
+      setSelectedPackageManager("pnpm")
+    }
+  }
+
+  const handlePackageManagerChange = (
+    packageManager: "pnpm" | "npm" | "yarn"
+  ) => {
+    setSelectedPackageManager(packageManager)
+    // Se houver um comando selecionado, atualizar o baseCommand
+    if (selectedCommand !== "custom" && selectedCommandData) {
+      const updatedCommand = replacePackageManager(
+        selectedCommandData.baseCommand,
+        packageManager
+      )
+      setBaseCommand(updatedCommand)
     }
   }
 
@@ -132,17 +187,30 @@ export function QuickComposer({
     if (commandId === "custom" || !selectedFrameworkData) {
       return
     }
-    const command = selectedFrameworkData.commands.find((c) => c.id === commandId)
+    const command = selectedFrameworkData.commands.find(
+      (c) => c.id === commandId
+    )
     if (command) {
       setCommandName(command.commandName)
-      setBaseCommand(command.baseCommand)
+      // Aplicar substituição de package manager se necessário
+      if (
+        selectedFrameworkData.requiresPackageManager &&
+        selectedPackageManager
+      ) {
+        const updatedCommand = replacePackageManager(
+          command.baseCommand,
+          selectedPackageManager
+        )
+        setBaseCommand(updatedCommand)
+      } else {
+        setBaseCommand(command.baseCommand)
+      }
       setArgs(command.args)
     }
   }
 
   const handleCommandNameChange = (value: string) => {
     setCommandName(value)
-    // Se o usuário editar manualmente, resetar os selects para custom
     if (selectedCommand !== "custom") {
       setSelectedCommand("custom")
     }
@@ -150,7 +218,6 @@ export function QuickComposer({
 
   const handleBaseCommandChange = (value: string) => {
     setBaseCommand(value)
-    // Se o usuário editar manualmente, resetar os selects para custom
     if (selectedCommand !== "custom") {
       setSelectedCommand("custom")
     }
@@ -158,148 +225,185 @@ export function QuickComposer({
 
   const handleArgsChange = (value: string) => {
     setArgs(value)
-    // Se o usuário editar manualmente, resetar os selects para custom
     if (selectedCommand !== "custom") {
       setSelectedCommand("custom")
     }
   }
 
-  // Resetar campos quando o dialog fechar
   useEffect(() => {
     if (!open && !inline) {
-      setBaseCommand("pnpm run")
-      setArgs("")
-      setNotes("")
-      setCommandName("")
-      setSelectedFramework("custom")
-      setSelectedCommand("custom")
+      resetFields()
     }
   }, [open, inline])
 
   const content = (
-    <div className="grid min-h-0 gap-4 sm:grid-cols-[1.2fr_1fr]">
-            <div className="space-y-3">
-              {!repoName && (
-                <div className="rounded-none border border-destructive/30 bg-destructive/10 p-2 text-[0.65rem] text-destructive">
-                  No repository selected. Please select a repository to continue.
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                    framework
-                  </label>
-                  <Select
-                    value={selectedFramework}
-                    onValueChange={handleFrameworkChange}
-                    disabled={!repoName}
-                  >
-                    <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
-                      <SelectValue placeholder="Select a framework (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="custom">Custom</SelectItem>
-                      {frameworks.map((framework) => (
-                        <SelectItem key={framework.id} value={framework.id}>
-                          {framework.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                    command
-                  </label>
-                  <Select
-                    value={selectedCommand}
-                    onValueChange={handleCommandChange}
-                    disabled={!repoName || selectedFramework === "custom"}
-                  >
-                    <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
-                      <SelectValue
-                        placeholder={
-                          selectedFramework === "custom"
-                            ? "Select a framework first"
-                            : "Select a command (optional)"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="custom">Custom</SelectItem>
-                      {availableCommands.map((command) => (
-                        <SelectItem key={command.id} value={command.id}>
-                          {command.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="grid min-h-0 gap-4 sm:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-3">
+            {!repoName && (
+              <div className="rounded-none border border-destructive/30 bg-destructive/10 p-2 text-[0.65rem] text-destructive">
+                No repository selected. Please select a repository to continue.
               </div>
+            )}
+            <div className="space-y-2">
               <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                command name
+                language
               </label>
-              <Input
-                className="h-9 border-border bg-background/80 text-xs"
-                placeholder="Optional: e.g., build-desktop"
-                value={commandName}
-                onChange={(event) => handleCommandNameChange(event.target.value)}
+              <Select
+                value={selectedLanguage}
+                onValueChange={handleLanguageChange}
                 disabled={!repoName}
-              />
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                base command
-              </label>
-              <Input
-                className="h-9 border-border bg-background/80 text-xs"
-                value={baseCommand}
-                onChange={(event) => handleBaseCommandChange(event.target.value)}
-                disabled={!repoName}
-              />
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                arguments
-              </label>
-              <Input
-                className="h-9 border-border bg-background/80 text-xs"
-                placeholder="build --filter=desktop"
-                value={args}
-                onChange={(event) => handleArgsChange(event.target.value)}
-                disabled={!repoName}
-              />
+              >
+                <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                  <SelectValue placeholder="Select a language (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  {languages.map((language) => (
+                    <SelectItem key={language.id} value={language.id}>
+                      {language.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                notes and variables
+                framework
               </label>
-              <Textarea
-                className="min-h-[124px] border-border bg-background/80 text-xs"
-                placeholder="ENV=production\nCACHE=false\n"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                disabled={!repoName}
-              />
-              <div className="rounded-none border border-border/70 bg-accent/60 p-3 text-[0.65rem] text-muted-foreground">
-                Tip: use {"{{repo}}"} and {"{{branch}}"} to inject context in
-                real-time.
+              <Select
+                value={selectedFramework}
+                onValueChange={handleFrameworkChange}
+                disabled={!repoName || selectedLanguage === "custom"}
+              >
+                <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                  <SelectValue
+                    placeholder={
+                      selectedLanguage === "custom"
+                        ? "Select a language first"
+                        : "Select a framework (optional)"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  {availableFrameworks.map((framework) => (
+                    <SelectItem key={framework.id} value={framework.id}>
+                      {framework.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedFrameworkData?.requiresPackageManager && (
+              <div className="space-y-2">
+                <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  package manager
+                </label>
+                <Select
+                  value={selectedPackageManager}
+                  onValueChange={handlePackageManagerChange}
+                  disabled={!repoName || selectedFramework === "custom"}
+                >
+                  <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pnpm">pnpm</SelectItem>
+                    <SelectItem value="npm">npm</SelectItem>
+                    <SelectItem value="yarn">yarn</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                command
+              </label>
+              <Select
+                value={selectedCommand}
+                onValueChange={handleCommandChange}
+                disabled={!repoName || selectedFramework === "custom"}
+              >
+                <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                  <SelectValue
+                    placeholder={
+                      selectedFramework === "custom"
+                        ? "Select a framework first"
+                        : "Select a command (optional)"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  {availableCommands.map((command) => (
+                    <SelectItem key={command.id} value={command.id}>
+                      {command.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              command name
+            </label>
+            <Input
+              className="h-9 border-border bg-background/80 text-xs"
+              placeholder="Optional: e.g., build-desktop"
+              value={commandName}
+              onChange={(event) => handleCommandNameChange(event.target.value)}
+              disabled={!repoName}
+            />
+            <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              base command
+            </label>
+            <Input
+              className="h-9 border-border bg-background/80 text-xs"
+              value={baseCommand}
+              onChange={(event) => handleBaseCommandChange(event.target.value)}
+              disabled={!repoName}
+            />
+            <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              arguments
+            </label>
+            <Input
+              className="h-9 border-border bg-background/80 text-xs"
+              placeholder="build --filter=desktop"
+              value={args}
+              onChange={(event) => handleArgsChange(event.target.value)}
+              disabled={!repoName}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              notes and variables
+            </label>
+            <Textarea
+              className="min-h-[124px] border-border bg-background/80 text-xs"
+              placeholder="ENV=production\nCACHE=false\n"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              disabled={!repoName}
+            />
+            <div className="rounded-none border border-border/70 bg-accent/60 p-3 text-[0.65rem] text-muted-foreground">
+              Tip: use {"{{repo}}"} and {"{{branch}}"} to inject context in
+              real-time.
             </div>
           </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 
   const footer = (
     <div className="flex gap-2 justify-end">
       {!inline && (
-        <Button
-          variant="outline"
-          onClick={() => onOpenChange?.(false)}
-        >
+        <Button variant="outline" onClick={() => onOpenChange?.(false)}>
           Cancel
         </Button>
       )}
-      <Button
-        variant="outline"
-        onClick={handleRun}
-        disabled={!isValid}
-      >
+      <Button variant="outline" onClick={handleRun} disabled={!isValid}>
         <Play className="mr-2 size-4" />
         Run now
       </Button>
@@ -392,11 +496,7 @@ export function QuickComposer({
             >
               Cancel
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleRun}
-              disabled={!isValid}
-            >
+            <Button variant="outline" onClick={handleRun} disabled={!isValid}>
               <Play className="mr-2 size-4" />
               Run now
             </Button>

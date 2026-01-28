@@ -363,6 +363,10 @@ pub fn persist_execution_logs(
     execution_id: u32,
     logs: &[ExecutionLogLine],
 ) -> Result<(), String> {
+    log::info!(
+        "[db] persist_execution_logs called: execution_id={execution_id}, logs.len()={}",
+        logs.len()
+    );
     with_db(db_path, |conn| {
         let tx = conn.transaction()?;
         tx.execute(
@@ -382,6 +386,7 @@ pub fn persist_execution_logs(
             )?;
         }
         tx.commit()?;
+        log::info!("[db] persist_execution_logs committed {0} lines for execution_id={execution_id}", logs.len());
         Ok(())
     })
 }
@@ -390,7 +395,8 @@ pub fn load_execution_logs(
     db_path: &Path,
     execution_id: u32,
 ) -> Result<Vec<ExecutionLogLine>, String> {
-    with_db(db_path, |conn| {
+    log::info!("[db] load_execution_logs called: execution_id={execution_id}");
+    let result = with_db(db_path, |conn| {
         let mut logs = Vec::new();
         let mut stmt = conn.prepare(
             "SELECT line, stream
@@ -408,7 +414,12 @@ pub fn load_execution_logs(
             logs.push(entry?);
         }
         Ok(logs)
-    })
+    });
+    match &result {
+        Ok(logs) => log::info!("[db] load_execution_logs returned {} lines for execution_id={execution_id}", logs.len()),
+        Err(err) => log::error!("[db] load_execution_logs failed for execution_id={execution_id}: {err}"),
+    }
+    result
 }
 
 pub fn load_pipeline_templates(db_path: &Path) -> Result<Vec<PipelineTemplate>, String> {

@@ -1,5 +1,5 @@
 use crate::database;
-use crate::process::start_execution;
+use crate::process::{kill_process_tree, start_execution};
 use crate::runtime::AppRuntime;
 use crate::types::{
   Command, CommandStatus, CommandType, DashboardState, ExecutionLogLine, RepoBranches,
@@ -304,12 +304,32 @@ pub fn commander_run_command(
         .clone()
         .unwrap_or_else(|| request.command.clone());
     let command_type = request.command_type.clone().unwrap_or(CommandType::Run);
-    let should_queue = {
+
+    let (same_command_pid, has_other_running) = {
         let data = state.data.lock().map_err(|_| "state poisoned")?;
-        data.live_executions
+        let same_pid = data
+            .live_executions
             .iter()
-            .any(|item| item.repo == request.repo)
+            .find(|item| item.repo == request.repo && item.command == display_name)
+            .map(|item| item.pid);
+        let other = data
+            .live_executions
+            .iter()
+            .any(|item| item.repo == request.repo && item.command != display_name);
+        (same_pid, other)
     };
+
+    // If the same command is already running, kill it so the waiter
+    // will pick up the queued restart automatically.
+    if let Some(pid) = same_command_pid {
+        log::info!(
+            "[run] restarting: killing process group {pid} for repo={} command={display_name}",
+            request.repo
+        );
+        kill_process_tree(pid);
+    }
+
+    let should_queue = same_command_pid.is_some() || has_other_running;
 
     if should_queue {
         let queued_at = current_timestamp();
@@ -359,18 +379,16 @@ pub fn commander_stop_command(
     state: State<'_, Arc<AppRuntime>>,
     request: StopCommandRequest,
 ) -> Result<(), String> {
-    let processes = state.processes.lock().map_err(|_| "state poisoned")?;
-    let entry = processes
-        .iter()
-        .find(|(_, entry)| entry.repo == request.repo && entry.command_name == request.command)
-        .map(|(_, entry)| Arc::clone(&entry.child));
+    let pid = {
+        let data = state.data.lock().map_err(|_| "state poisoned")?;
+        data.live_executions
+            .iter()
+            .find(|item| item.repo == request.repo && item.command == request.command)
+            .map(|item| item.pid)
+    };
 
-    if let Some(child) = entry {
-        child
-            .lock()
-            .map_err(|_| "process lock poisoned")?
-            .kill()
-            .map_err(|error| error.to_string())?;
+    if let Some(pid) = pid {
+        kill_process_tree(pid);
         Ok(())
     } else {
         Err("execution not found".to_string())

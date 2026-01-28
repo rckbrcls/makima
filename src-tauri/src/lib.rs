@@ -45,7 +45,8 @@ pub fn run() {
             let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
                 .title("commander")
                 .inner_size(800.0, 600.0)
-                .resizable(true);
+                .resizable(true)
+                .min_inner_size(400.0, 400.0);
 
             // set transparent title bar only when building for macOS
             #[cfg(target_os = "macos")]

@@ -12,28 +12,8 @@ import type {
 } from "@/components/command-hub/types"
 import { toast } from "@/components/ui/sonner"
 import { computeStats } from "@/lib/command-hub/helpers"
-import {
-  commands,
-  executionHistory,
-  historyStats,
-  liveExecutions,
-  pipelines,
-  repositories,
-  runQueue,
-  selectedRunLogs,
-} from "@/lib/command-hub/mock-data"
 
 const LOG_CAPACITY = 500
-
-const mockState: DashboardState = {
-  repositories,
-  commands,
-  liveExecutions,
-  runQueue,
-  pipelines,
-  executionHistory,
-  historyStats,
-}
 
 const emptyState: DashboardState = {
   repositories: [],
@@ -71,11 +51,7 @@ const getErrorMessage = (error: unknown) => {
 }
 
 export function useCommanderState() {
-  const initialIsTauri = isTauriAvailable()
-  const [state, setState] = useState<DashboardState>(
-    initialIsTauri ? emptyState : mockState
-  )
-  const [usingMock, setUsingMock] = useState(!initialIsTauri)
+  const [state, setState] = useState<DashboardState>(emptyState)
 
   const refreshState = useCallback(async () => {
     if (!isTauriAvailable()) return
@@ -142,6 +118,13 @@ export function useCommanderState() {
 
   const addRepository = useCallback(
     async (input: NewRepositoryInput) => {
+      if (!isTauriAvailable()) {
+        toast.error("Backend unavailable", {
+          description: "Tauri is not connected.",
+        })
+        return false
+      }
+
       const repo: Repository = {
         name: input.name,
         path: input.path,
@@ -150,32 +133,6 @@ export function useCommanderState() {
         status: "idle",
         lastRun: "never",
         running: "-",
-      }
-
-      if (!isTauriAvailable()) {
-        let added = false
-        setState((prev) => {
-          if (prev.repositories.some((item) => item.name === repo.name)) {
-            return prev
-          }
-          added = true
-          const nextRepositories = [...prev.repositories, repo].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )
-          return { ...prev, repositories: nextRepositories }
-        })
-
-        if (added) {
-          toast.success("Repository added", {
-            description: repo.name,
-          })
-          return true
-        }
-
-        toast.error("Failed to add repository", {
-          description: "Repository already exists.",
-        })
-        return false
       }
 
       const toastId = toast.loading("Adding repository...", {
@@ -246,39 +203,8 @@ export function useCommanderState() {
   const deleteCommand = useCallback(
     async (repo: string, name: string) => {
       if (!isTauriAvailable()) {
-        let removed = false
-        setState((prev) => {
-          const target = prev.commands.find(
-            (item) => item.repo === repo && item.name === name
-          )
-          if (!target) {
-            return prev
-          }
-          if (target.status === "running") {
-            return prev
-          }
-          removed = true
-          return {
-            ...prev,
-            commands: prev.commands.filter(
-              (item) => !(item.repo === repo && item.name === name)
-            ),
-            liveExecutions: prev.liveExecutions.filter(
-              (item) => !(item.repo === repo && item.command === name)
-            ),
-            runQueue: prev.runQueue.filter(
-              (item) => !(item.repo === repo && item.name === name)
-            ),
-          }
-        })
-
-        if (removed) {
-          toast.success("Command deleted", { description: `${repo} · ${name}` })
-          return true
-        }
-
-        toast.error("Failed to delete command", {
-          description: "Stop the command before deleting.",
+        toast.error("Backend unavailable", {
+          description: "Tauri is not connected.",
         })
         return false
       }
@@ -308,44 +234,8 @@ export function useCommanderState() {
   const deleteRepository = useCallback(
     async (repo: string) => {
       if (!isTauriAvailable()) {
-        let removed = false
-        setState((prev) => {
-          if (!prev.repositories.some((item) => item.name === repo)) {
-            return prev
-          }
-          const hasRunning = prev.commands.some(
-            (item) => item.repo === repo && item.status === "running"
-          )
-          if (hasRunning) {
-            return prev
-          }
-          removed = true
-          const nextHistory = prev.executionHistory.filter(
-            (item) => item.repo !== repo
-          )
-          return {
-            ...prev,
-            repositories: prev.repositories.filter(
-              (item) => item.name !== repo
-            ),
-            commands: prev.commands.filter((item) => item.repo !== repo),
-            liveExecutions: prev.liveExecutions.filter(
-              (item) => item.repo !== repo
-            ),
-            runQueue: prev.runQueue.filter((item) => item.repo !== repo),
-            pipelines: prev.pipelines.filter((item) => item.repo !== repo),
-            executionHistory: nextHistory,
-            historyStats: computeStats(nextHistory),
-          }
-        })
-
-        if (removed) {
-          toast.success("Repository deleted", { description: repo })
-          return true
-        }
-
-        toast.error("Failed to delete repository", {
-          description: "Stop running commands before deleting.",
+        toast.error("Backend unavailable", {
+          description: "Tauri is not connected.",
         })
         return false
       }
@@ -374,10 +264,10 @@ export function useCommanderState() {
 
   const getExecutionLogs = useCallback(async (executionId: number) => {
     if (!isTauriAvailable()) {
-      return selectedRunLogs
+      throw new Error("Backend unavailable: Tauri is not connected.")
     }
     return invoke<ExecutionLogLine[]>("commander_get_execution_logs", {
-      execution_id: executionId,
+      executionId,
     })
   }, [])
 
@@ -387,8 +277,6 @@ export function useCommanderState() {
 
     const setup = async () => {
       if (!isTauriAvailable()) {
-        setUsingMock(true)
-        setState(mockState)
         return
       }
 
@@ -396,7 +284,6 @@ export function useCommanderState() {
         const initial = await invoke<DashboardState>("commander_state")
         if (!active) return
         setState(initial)
-        setUsingMock(false)
 
         unlisteners.push(
           await listen<ExecutionLogEvent>(
@@ -443,8 +330,6 @@ export function useCommanderState() {
       } catch (error) {
         if (!active) return
         console.warn("[commander] failed to connect to backend", error)
-        setUsingMock(true)
-        setState(mockState)
       }
     }
 
@@ -458,7 +343,6 @@ export function useCommanderState() {
 
   return {
     state,
-    usingMock,
     refreshState,
     runCommand,
     stopCommand,

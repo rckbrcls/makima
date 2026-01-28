@@ -78,8 +78,7 @@ commander/
 │   ├── lib/
 │   │   ├── command-hub/
 │   │   │   ├── helpers.ts       # Funcoes utilitarias (filtro, agrupamento, stats)
-│   │   │   ├── constants.ts     # Estilos de status e mapeamento de icones
-│   │   │   └── mock-data.ts     # Dados de demonstracao
+│   │   │   └── constants.ts     # Estilos de status e mapeamento de icones
 │   │   └── utils.ts             # Utilitario cn() para classes Tailwind
 │   ├── routes/
 │   │   ├── __root.tsx           # Root route (HTML, providers, devtools)
@@ -118,7 +117,7 @@ CommandHub
 
 Os dados fluem de cima para baixo via props. Funcoes auxiliares em `lib/command-hub/helpers.ts` processam filtragem por repositorio, agrupamento e calculo de estatisticas. O sistema de temas usa CSS custom properties com color space oklch e e controlado pelo `ThemeProvider`.
 
-Atualmente a aplicacao utiliza **dados mockados** (`mock-data.ts`) para demonstracao, com a arquitetura preparada para integracao com backend real.
+A aplicacao integra-se com o backend Tauri para gerenciar repositorios, comandos e execucoes em tempo real.
 
 ## Como Executar
 

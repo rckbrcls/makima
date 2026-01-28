@@ -11,11 +11,60 @@ use crate::types::{
 use crate::utils::{current_timestamp, format_duration, recompute_history_stats, recompute_pipelines};
 use std::{
     io::{BufRead, BufReader},
+    path::Path,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
 };
 use tauri::{AppHandle, Emitter};
+
+/// Kills the entire process tree by targeting the process group.
+/// Sends SIGTERM first for graceful shutdown, then SIGKILL after a brief delay.
+#[cfg(unix)]
+pub fn kill_process_tree(pid: u32) {
+    if pid == 0 {
+        log::error!("[kill_tree] refusing to kill PID 0");
+        return;
+    }
+    use std::process::Command as Cmd;
+    let pgid = format!("-{}", pid);
+    log::info!("[kill_tree] sending SIGTERM to process group {pid}");
+    Cmd::new("kill").args(["-TERM", &pgid]).output().ok();
+    thread::sleep(Duration::from_millis(300));
+    log::info!("[kill_tree] sending SIGKILL to process group {pid}");
+    Cmd::new("kill").args(["-9", &pgid]).output().ok();
+}
+
+#[cfg(not(unix))]
+pub fn kill_process_tree(pid: u32) {
+    if pid == 0 {
+        log::error!("[kill_tree] refusing to kill PID 0");
+        return;
+    }
+    use std::process::Command as Cmd;
+    log::info!("[kill_tree] taskkill /F /T /PID {pid}");
+    Cmd::new("taskkill")
+        .args(["/F", "/T", "/PID", &pid.to_string()])
+        .output()
+        .ok();
+}
+
+/// Removes stale lock files that dev servers leave behind.
+fn cleanup_dev_locks(repo_path: &str) {
+    let base = Path::new(repo_path);
+    let locks = [".next/dev/lock"];
+    for lock in &locks {
+        let lock_path = base.join(lock);
+        if lock_path.exists() {
+            log::info!("[cleanup] removing stale lock: {}", lock_path.display());
+            if lock_path.is_dir() {
+                std::fs::remove_dir_all(&lock_path).ok();
+            } else {
+                std::fs::remove_file(&lock_path).ok();
+            }
+        }
+    }
+}
 
 pub fn spawn_log_reader(
     state: Arc<AppRuntime>,
@@ -24,20 +73,26 @@ pub fn spawn_log_reader(
     repo: String,
     command: String,
     stream_name: String,
-) {
+) -> thread::JoinHandle<()> {
+    log::info!("[log_reader] starting {stream_name} reader for repo={repo} command={command}");
     thread::spawn(move || {
         let reader = BufReader::new(stream);
+        let mut line_count: usize = 0;
         for line in reader.lines().flatten() {
+            line_count += 1;
             {
                 let mut data = match state.data.lock() {
                     Ok(data) => data,
-                    Err(_) => return,
+                    Err(err) => {
+                        log::error!("[log_reader] {stream_name} mutex poisoned: {err}");
+                        return;
+                    }
                 };
-                if let Some(execution) = data
+                let found = data
                     .live_executions
                     .iter_mut()
-                    .find(|item| item.repo == repo && item.command == command)
-                {
+                    .find(|item| item.repo == repo && item.command == command);
+                if let Some(execution) = found {
                     execution.logs.push(ExecutionLogLine {
                         line: line.clone(),
                         stream: stream_name.clone(),
@@ -46,6 +101,10 @@ pub fn spawn_log_reader(
                         let overflow = execution.logs.len() - LOG_CAPACITY;
                         execution.logs.drain(0..overflow);
                     }
+                } else {
+                    log::warn!(
+                        "[log_reader] {stream_name} line {line_count}: live_execution not found for repo={repo} command={command} (already removed?)"
+                    );
                 }
             }
 
@@ -60,7 +119,8 @@ pub fn spawn_log_reader(
             )
             .ok();
         }
-    });
+        log::info!("[log_reader] {stream_name} finished for repo={repo} command={command}, total lines read: {line_count}");
+    })
 }
 
 pub fn start_execution(
@@ -86,6 +146,10 @@ pub fn start_execution(
     let command_type = request.command_type.clone().unwrap_or(CommandType::Run);
     let execution_id = state.next_execution_id();
 
+    if let Some(path) = &repo_path {
+        cleanup_dev_locks(path);
+    }
+
     let mut cmd = if cfg!(target_os = "windows") {
         let mut cmd = std::process::Command::new("cmd");
         cmd.arg("/C").arg(&request.command);
@@ -95,6 +159,12 @@ pub fn start_execution(
         cmd.arg("-lc").arg(&request.command);
         cmd
     };
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
 
     if let Some(path) = &repo_path {
         cmd.current_dir(path);
@@ -181,26 +251,28 @@ pub fn start_execution(
     )
     .ok();
 
+    let mut log_handles = Vec::new();
+
     if let Some(stdout) = stdout {
-        spawn_log_reader(
+        log_handles.push(spawn_log_reader(
             state.clone(),
             app.clone(),
             stdout,
             request.repo.clone(),
             display_name.clone(),
             "stdout".to_string(),
-        );
+        ));
     }
 
     if let Some(stderr) = stderr {
-        spawn_log_reader(
+        log_handles.push(spawn_log_reader(
             state.clone(),
             app.clone(),
             stderr,
             request.repo.clone(),
             display_name.clone(),
             "stderr".to_string(),
-        );
+        ));
     }
 
     spawn_waiter(
@@ -210,6 +282,7 @@ pub fn start_execution(
         request.repo,
         display_name,
         child,
+        log_handles,
     );
 
     Ok(())
@@ -222,6 +295,7 @@ pub fn spawn_waiter(
     repo: String,
     command: String,
     child: Arc<Mutex<std::process::Child>>,
+    log_handles: Vec<thread::JoinHandle<()>>,
 ) {
     thread::spawn(move || {
         let exit_status = loop {
@@ -243,6 +317,15 @@ pub fn spawn_waiter(
 
             thread::sleep(Duration::from_millis(250));
         };
+
+        log::info!("[waiter] process exited for repo={repo} command={command}, joining {} log reader handles", log_handles.len());
+        for (i, handle) in log_handles.into_iter().enumerate() {
+            match handle.join() {
+                Ok(()) => log::info!("[waiter] log reader handle {i} joined successfully"),
+                Err(_) => log::error!("[waiter] log reader handle {i} panicked"),
+            }
+        }
+        log::info!("[waiter] all log readers joined for repo={repo} command={command}");
 
         let duration = {
             let processes = match state.processes.lock() {
@@ -302,12 +385,24 @@ pub fn spawn_waiter(
                 repo_snapshot = Some(repo_entry.clone());
             }
 
-            if let Some(execution) = data
+            let live_count = data.live_executions.len();
+            let found_execution = data
                 .live_executions
                 .iter()
-                .find(|item| item.repo == repo && item.command == command)
-            {
+                .find(|item| item.repo == repo && item.command == command);
+            if let Some(execution) = found_execution {
+                log::info!(
+                    "[waiter] found live_execution for repo={repo} command={command}, logs count: {}",
+                    execution.logs.len()
+                );
                 log_snapshot = execution.logs.clone();
+            } else {
+                log::warn!(
+                    "[waiter] live_execution NOT FOUND for repo={repo} command={command}, live_executions count: {live_count}"
+                );
+                for (i, le) in data.live_executions.iter().enumerate() {
+                    log::warn!("[waiter]   live_executions[{i}]: repo={} command={}", le.repo, le.command);
+                }
             }
 
             data.live_executions
@@ -348,12 +443,21 @@ pub fn spawn_waiter(
                 log::error!("failed to persist repository: {error}");
             }
         }
+        log::info!(
+            "[waiter] persisting history_id={history_id} for repo={repo} command={command}, log_snapshot has {} lines",
+            log_snapshot.len()
+        );
         if let Err(error) = persist_history(&state.db_path, &history_item) {
-            log::error!("failed to persist history: {error}");
-        } else if let Err(error) =
-            persist_execution_logs(&state.db_path, history_id, &log_snapshot)
-        {
-            log::error!("failed to persist execution logs: {error}");
+            log::error!("[waiter] failed to persist history (id={history_id}): {error}");
+        } else {
+            log::info!("[waiter] history persisted ok, now persisting {} log lines for history_id={history_id}", log_snapshot.len());
+            if let Err(error) =
+                persist_execution_logs(&state.db_path, history_id, &log_snapshot)
+            {
+                log::error!("[waiter] failed to persist execution logs (history_id={history_id}): {error}");
+            } else {
+                log::info!("[waiter] execution logs persisted ok for history_id={history_id}, {} lines", log_snapshot.len());
+            }
         }
 
         if let Some((queue_id, request)) = queued_next {

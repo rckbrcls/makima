@@ -38,8 +38,9 @@ export function HistoryExecutionCard({
         if (!active) return
         setLogs(entries)
       })
-      .catch(() => {
+      .catch((err) => {
         if (!active) return
+        console.error("[HistoryExecutionCard] failed to load logs for execution", run.id, err)
         setLogs([])
       })
       .finally(() => {
