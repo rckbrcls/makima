@@ -21,6 +21,7 @@ interface CommandsTabProps {
   repositories: Repository[]
   onRunCommand?: (command: Command) => void
   onStopCommand?: (repo: string, commandName: string) => void
+  onDeleteCommand?: (command: Command) => void
 }
 
 export function CommandsTab({
@@ -29,6 +30,7 @@ export function CommandsTab({
   repositories,
   onRunCommand,
   onStopCommand,
+  onDeleteCommand,
 }: CommandsTabProps) {
   const groupedCommands = groupByRepo(commands)
 
@@ -78,6 +80,7 @@ export function CommandsTab({
                     command={command}
                     index={index}
                     onRun={onRunCommand}
+                    onDelete={onDeleteCommand}
                   />
                 ))}
               </div>
@@ -117,7 +120,7 @@ export function CommandsTab({
       <StatsCards stats={summaryStats} />
 
       {/* Commands grid */}
-      <Card className="flex flex-col border-border/60 bg-card/85 shadow-[0_18px_40px_var(--shadow-color)]">
+      <Card className="flex flex-col border-border/60 bg-card/85">
         <CardHeader className="border-b border-border/60">
           <CardTitle className="flex items-center gap-2 text-base">
             <Terminal className="size-4 text-primary" />
@@ -145,6 +148,7 @@ export function CommandsTab({
               command={command}
               index={index}
               onRun={onRunCommand}
+              onDelete={onDeleteCommand}
             />
           ))}
         </CardContent>

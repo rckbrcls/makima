@@ -27,7 +27,7 @@ export function HistoryList({
   const groupedHistory = groupByRepo(history)
 
   return (
-    <Card className="flex flex-col border-border/60 bg-card/85 shadow-[0_16px_30px_var(--shadow-color)]">
+    <Card className="flex flex-col border-border/60 bg-card/85">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <History className="size-4 text-primary" />

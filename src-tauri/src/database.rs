@@ -347,3 +347,28 @@ pub fn delete_pipeline_template(db_path: &Path, id: u32) -> Result<(), String> {
         Ok(())
     })
 }
+
+pub fn delete_command(db_path: &Path, repo: &str, name: &str) -> Result<(), String> {
+    with_db(db_path, |conn| {
+        conn.execute(
+            "DELETE FROM commands WHERE repo = ?1 AND name = ?2",
+            params![repo, name],
+        )?;
+        Ok(())
+    })
+}
+
+pub fn delete_repository(db_path: &Path, repo: &str) -> Result<(), String> {
+    with_db(db_path, |conn| {
+        conn.execute(
+            "DELETE FROM execution_history WHERE repo = ?1",
+            params![repo],
+        )?;
+        conn.execute(
+            "DELETE FROM pipeline_templates WHERE repo = ?1",
+            params![repo],
+        )?;
+        conn.execute("DELETE FROM repositories WHERE name = ?1", params![repo])?;
+        Ok(())
+    })
+}

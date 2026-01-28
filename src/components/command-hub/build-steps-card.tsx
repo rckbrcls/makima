@@ -24,7 +24,7 @@ export function BuildStepsCard({
   repositories,
 }: BuildStepsCardProps) {
   return (
-    <Card className="shrink-0 border-border/60 bg-card/85 shadow-[0_16px_28px_var(--shadow-color)]">
+    <Card className="shrink-0 border-border/60 bg-card/85">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="text-sm">Build steps</CardTitle>
         <CardDescription>Progress visualization per step.</CardDescription>

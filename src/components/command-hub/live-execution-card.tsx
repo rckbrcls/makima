@@ -19,7 +19,7 @@ interface LiveExecutionCardProps {
 
 export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps) {
   return (
-    <Card className="flex flex-col border-border/70 bg-card/85 shadow-[0_18px_36px_var(--shadow-color)]">
+    <Card className="flex flex-col border-border/70 bg-card/85">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Activity className="size-4 text-primary" />

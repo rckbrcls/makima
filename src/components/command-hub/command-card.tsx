@@ -1,6 +1,18 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Card,
   CardAction,
   CardContent,
@@ -9,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Clock, Play } from "lucide-react"
+import { AlertTriangle, Clock, Play, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { statusStyles, typeIcons } from "@/lib/command-hub/constants"
 import type { Command } from "./types"
@@ -18,16 +30,17 @@ interface CommandCardProps {
   command: Command
   index: number
   onRun?: (command: Command) => void
+  onDelete?: (command: Command) => void
 }
 
-export function CommandCard({ command, index, onRun }: CommandCardProps) {
+export function CommandCard({ command, index, onRun, onDelete }: CommandCardProps) {
   const Icon = typeIcons[command.type]
 
   return (
     <Card
       size="sm"
       className={cn(
-        "border-border/70 bg-card/80 shadow-[0_10px_20px_var(--shadow-color)] animate-in fade-in slide-in-from-bottom-8 duration-700",
+        "border-border/70 bg-card/80 animate-in fade-in slide-in-from-bottom-8 duration-700",
         index % 2 === 0 ? "delay-200" : "delay-300"
       )}
     >
@@ -39,12 +52,48 @@ export function CommandCard({ command, index, onRun }: CommandCardProps) {
           {command.name}
         </CardTitle>
         <CardAction>
-          <Badge
-            variant="outline"
-            className={cn("text-[0.6rem] uppercase", statusStyles[command.status])}
-          >
-            {command.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={cn("text-[0.6rem] uppercase", statusStyles[command.status])}
+            >
+              {command.status}
+            </Badge>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete ${command.name}`}
+                  disabled={command.status === "running" || !onDelete}
+                >
+                  <Trash2 className="size-3" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                  <AlertDialogMedia className="text-destructive">
+                    <AlertTriangle />
+                  </AlertDialogMedia>
+                  <AlertDialogTitle>Delete command?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes {command.name} from {command.repo}.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onDelete?.(command)}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardAction>
         <CardDescription className="text-[0.7rem] text-muted-foreground">
           {command.command}

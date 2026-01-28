@@ -23,7 +23,16 @@ import type { Command } from "./types"
 export function CommandHub() {
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { state, usingMock, runCommand, stopCommand } = useCommanderState()
+  const {
+    state,
+    usingMock,
+    runCommand,
+    stopCommand,
+    addRepository,
+    addCommand,
+    deleteCommand,
+    deleteRepository,
+  } = useCommanderState()
 
   const {
     commands,
@@ -72,6 +81,17 @@ export function CommandHub() {
     setMobileOpen(false)
   }
 
+  const handleDeleteCommand = (command: Command) => {
+    void deleteCommand(command.repo, command.name)
+  }
+
+  const handleDeleteRepository = async (repo: string) => {
+    const removed = await deleteRepository(repo)
+    if (removed && selectedRepo === repo) {
+      setSelectedRepo(null)
+    }
+  }
+
   return (
     <div className="relative h-full overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,var(--glow-1),transparent_45%),radial-gradient(circle_at_82%_8%,var(--glow-2),transparent_42%),radial-gradient(circle_at_72%_78%,var(--glow-3),transparent_45%)]" />
@@ -81,7 +101,10 @@ export function CommandHub() {
 
       <div className="relative mx-auto grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 py-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <CommandHubHeader onMenuClick={() => setMobileOpen(true)} />
+        <CommandHubHeader
+          onMenuClick={() => setMobileOpen(true)}
+          onAddRepository={addRepository}
+        />
 
         {/* Body: sidebar + main */}
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -92,6 +115,8 @@ export function CommandHub() {
               repositories={repositories}
               runningCounts={runningCounts}
               onSelectRepo={handleSelectRepo}
+              onAddRepository={addRepository}
+              onDeleteRepository={handleDeleteRepository}
             />
           </aside>
 
@@ -109,6 +134,8 @@ export function CommandHub() {
                 repositories={repositories}
                 runningCounts={runningCounts}
                 onSelectRepo={handleSelectRepo}
+                onAddRepository={addRepository}
+                onDeleteRepository={handleDeleteRepository}
               />
             </SheetContent>
           </Sheet>
@@ -118,7 +145,7 @@ export function CommandHub() {
             defaultValue="commands"
             className="flex min-h-0 flex-1 flex-col"
           >
-            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80 shadow-[0_8px_16px_var(--shadow-color)]">
+            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80">
               <TabsTrigger value="commands">Commands</TabsTrigger>
               <TabsTrigger value="execution">Execution</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
@@ -135,6 +162,7 @@ export function CommandHub() {
                     repositories={repositories}
                     onRunCommand={handleRunCommand}
                     onStopCommand={handleStopCommand}
+                    onDeleteCommand={handleDeleteCommand}
                   />
                 </TabsContent>
 
@@ -146,6 +174,7 @@ export function CommandHub() {
                     queue={filteredQueue}
                     pipelines={filteredPipelines}
                     repositories={repositories}
+                    executionHistory={filteredHistory}
                     onStopCommand={handleStopCommand}
                   />
                 </TabsContent>
@@ -167,6 +196,7 @@ export function CommandHub() {
                     selectedRepo={selectedRepo}
                     repositories={repositories}
                     onRunCommand={runCommand}
+                    onAddCommand={addCommand}
                   />
                 </TabsContent>
               </div>

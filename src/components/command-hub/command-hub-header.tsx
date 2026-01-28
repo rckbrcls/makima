@@ -2,12 +2,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Menu, Plus, Search, Sparkles, Terminal } from "lucide-react"
+import { AddRepositoryDialog } from "./add-repository-dialog"
+import type { NewRepositoryInput } from "./types"
 
 interface CommandHubHeaderProps {
   onMenuClick: () => void
+  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean
 }
 
-export function CommandHubHeader({ onMenuClick }: CommandHubHeaderProps) {
+export function CommandHubHeader({
+  onMenuClick,
+  onAddRepository,
+}: CommandHubHeaderProps) {
   return (
     <header className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -21,7 +27,7 @@ export function CommandHubHeader({ onMenuClick }: CommandHubHeaderProps) {
           >
             <Menu className="size-5" />
           </Button>
-          <div className="flex size-12 items-center justify-center border border-border/70 bg-card/70 shadow-[0_8px_20px_var(--shadow-color)]">
+          <div className="flex size-12 items-center justify-center border border-border/70 bg-card/70">
             <Terminal className="size-5 text-primary" />
           </div>
           <div>
@@ -39,7 +45,7 @@ export function CommandHubHeader({ onMenuClick }: CommandHubHeaderProps) {
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Search commands, repos or tags"
-              className="h-9 border-border bg-background/80 pl-8 text-xs shadow-sm"
+              className="h-9 border-border bg-background/80 pl-8 text-xs"
             />
           </div>
           <ModeToggle />
@@ -47,10 +53,12 @@ export function CommandHubHeader({ onMenuClick }: CommandHubHeaderProps) {
             <Sparkles data-icon="inline-start" />
             Auto-setup
           </Button>
-          <Button className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus data-icon="inline-start" />
-            New repo
-          </Button>
+          <AddRepositoryDialog onAddRepository={onAddRepository}>
+            <Button className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Plus data-icon="inline-start" />
+              New repo
+            </Button>
+          </AddRepositoryDialog>
         </div>
       </div>
     </header>

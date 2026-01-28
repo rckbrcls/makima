@@ -1,6 +1,18 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Card,
   CardContent,
   CardFooter,
@@ -8,16 +20,27 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { CircleDot, FolderGit2, GitBranch, Layers, Plus } from "lucide-react"
+import {
+  AlertTriangle,
+  CircleDot,
+  FolderGit2,
+  GitBranch,
+  Layers,
+  Plus,
+  Trash2,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { repoStatusColor } from "@/lib/command-hub/helpers"
-import type { Repository } from "./types"
+import { AddRepositoryDialog } from "./add-repository-dialog"
+import type { NewRepositoryInput, Repository } from "./types"
 
 interface RepositorySidebarProps {
   selectedRepo: string | null
   repositories: Repository[]
   runningCounts: Record<string, number>
   onSelectRepo: (repo: string | null) => void
+  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean
+  onDeleteRepository?: (repo: string) => void
 }
 
 export function RepositorySidebar({
@@ -25,9 +48,11 @@ export function RepositorySidebar({
   repositories,
   runningCounts,
   onSelectRepo,
+  onAddRepository,
+  onDeleteRepository,
 }: RepositorySidebarProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card/85 shadow-[0_14px_24px_var(--shadow-color)]">
+    <Card className="flex flex-col border-border/60 bg-card/85">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <FolderGit2 className="size-4 text-primary" />
@@ -60,47 +85,85 @@ export function RepositorySidebar({
         {repositories.map((repo) => {
           const running = runningCounts[repo.name] || 0
           return (
-            <button
-              key={repo.name}
-              onClick={() => onSelectRepo(repo.name)}
-              className={cn(
-                "flex w-full items-center justify-between rounded-none border px-3 py-2 text-left transition",
-                selectedRepo === repo.name
-                  ? "border-primary/40 bg-primary/10"
-                  : "border-transparent hover:bg-accent/60"
-              )}
-            >
-              <span className="flex items-center gap-2">
-                <CircleDot
-                  className={cn("size-3", repoStatusColor(repo.status))}
-                />
-                <span className="space-y-0.5">
-                  <span className="block text-xs font-medium text-foreground">
-                    {repo.name}
-                  </span>
-                  <span className="flex items-center gap-1 text-[0.6rem] text-muted-foreground">
-                    <GitBranch className="size-2.5" />
-                    {repo.branch}
+            <div key={repo.name} className="flex items-center gap-1">
+              <button
+                onClick={() => onSelectRepo(repo.name)}
+                className={cn(
+                  "flex w-full flex-1 items-center justify-between rounded-none border px-3 py-2 text-left transition",
+                  selectedRepo === repo.name
+                    ? "border-primary/40 bg-primary/10"
+                    : "border-transparent hover:bg-accent/60"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <CircleDot
+                    className={cn("size-3", repoStatusColor(repo.status))}
+                  />
+                  <span className="space-y-0.5">
+                    <span className="block text-xs font-medium text-foreground">
+                      {repo.name}
+                    </span>
+                    <span className="flex items-center gap-1 text-[0.6rem] text-muted-foreground">
+                      <GitBranch className="size-2.5" />
+                      {repo.branch}
+                    </span>
                   </span>
                 </span>
-              </span>
-              {running > 0 && (
-                <Badge
-                  variant="outline"
-                  className="border-chart-2/50 bg-chart-2/15 text-[0.55rem] text-chart-2"
-                >
-                  {running}
-                </Badge>
-              )}
-            </button>
+                {running > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="border-chart-2/50 bg-chart-2/15 text-[0.55rem] text-chart-2"
+                  >
+                    {running}
+                  </Badge>
+                )}
+              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label={`Delete ${repo.name}`}
+                    disabled={running > 0 || !onDeleteRepository}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent size="sm">
+                  <AlertDialogHeader>
+                    <AlertDialogMedia className="text-destructive">
+                      <AlertTriangle />
+                    </AlertDialogMedia>
+                    <AlertDialogTitle>Delete repository?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This removes {repo.name}, its commands, and history from
+                      Commander.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel size="sm">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDeleteRepository?.(repo.name)}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )
         })}
       </CardContent>
       <CardFooter>
-        <Button variant="outline" className="w-full border-border bg-card/70 text-xs">
-          <Plus data-icon="inline-start" />
-          Add repository
-        </Button>
+        <AddRepositoryDialog onAddRepository={onAddRepository}>
+          <Button variant="outline" className="w-full border-border bg-card/70 text-xs">
+            <Plus data-icon="inline-start" />
+            Add repository
+          </Button>
+        </AddRepositoryDialog>
       </CardFooter>
     </Card>
   )

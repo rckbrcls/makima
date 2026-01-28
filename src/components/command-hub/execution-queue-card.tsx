@@ -13,7 +13,7 @@ interface ExecutionQueueCardProps {
 
 export function ExecutionQueueCard({ queue }: ExecutionQueueCardProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card/85 shadow-[0_18px_36px_var(--shadow-color)]">
+    <Card className="flex flex-col border-border/60 bg-card/85">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="text-sm">Execution queue</CardTitle>
         <CardDescription>What comes next in the pipeline.</CardDescription>

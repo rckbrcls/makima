@@ -15,6 +15,13 @@ export interface Repository {
   running: string
 }
 
+export interface NewRepositoryInput {
+  name: string
+  path: string
+  branch: string
+  tech: string[]
+}
+
 export interface Command {
   name: string
   command: string

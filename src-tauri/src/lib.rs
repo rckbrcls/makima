@@ -2,24 +2,35 @@ mod commands;
 mod database;
 mod events;
 mod process;
+mod port_registry;
 mod runtime;
 mod seed;
 mod types;
 mod utils;
 
 use runtime::AppRuntime;
+use port_registry::PortRegistry;
 use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::commander_state,
             commands::commander_add_repository,
+            commands::commander_repo_branches,
+            commands::commander_import_commands,
             commands::commander_add_command,
             commands::commander_run_command,
-            commands::commander_stop_command
+            commands::commander_stop_command,
+            commands::commander_delete_command,
+            commands::commander_delete_repository,
+            port_registry::port_registry_lease_port,
+            port_registry::port_registry_release_port,
+            port_registry::port_registry_list_leases,
+            port_registry::port_registry_allocate_port_and_lease
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -66,6 +77,7 @@ pub fn run() {
             let runtime = AppRuntime::new(app.handle())
                 .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
             app.manage(runtime);
+            app.manage(PortRegistry::new());
             Ok(())
         })
         .run(tauri::generate_context!())
