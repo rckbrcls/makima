@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -238,113 +238,132 @@ export function QuickComposer({
 
   const content = (
     <Card>
-      <CardContent className="pt-6">
-        <div className="grid min-h-0 gap-4 sm:grid-cols-[1.2fr_1fr]">
-          <div className="space-y-3">
-            {!repoName && (
-              <div className="rounded-none border border-destructive/30 bg-destructive/10 p-2 text-[0.65rem] text-destructive">
-                No repository selected. Please select a repository to continue.
+      <CardContent>
+        <div className="space-y-4">
+          {!repoName && (
+            <div className="rounded-none border border-destructive/30 bg-destructive/10 p-2 text-[0.65rem] text-destructive">
+              No repository selected. Please select a repository to continue.
+            </div>
+          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Template</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                    language
+                  </label>
+                  <Select
+                    value={selectedLanguage}
+                    onValueChange={handleLanguageChange}
+                    disabled={!repoName}
+                  >
+                    <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                      <SelectValue placeholder="Select a language (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">Custom</SelectItem>
+                      {languages.map((language) => (
+                        <SelectItem key={language.id} value={language.id}>
+                          {language.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                    framework
+                  </label>
+                  <Select
+                    value={selectedFramework}
+                    onValueChange={handleFrameworkChange}
+                    disabled={!repoName || selectedLanguage === "custom"}
+                  >
+                    <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                      <SelectValue
+                        placeholder={
+                          selectedLanguage === "custom"
+                            ? "Select a language first"
+                            : "Select a framework (optional)"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">Custom</SelectItem>
+                      {availableFrameworks.map((framework) => (
+                        <SelectItem key={framework.id} value={framework.id}>
+                          {framework.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedFrameworkData?.requiresPackageManager ? (
+                  <div className="space-y-2">
+                    <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                      package manager
+                    </label>
+                    <Select
+                      value={selectedPackageManager}
+                      onValueChange={handlePackageManagerChange}
+                      disabled={!repoName || selectedFramework === "custom"}
+                    >
+                      <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pnpm">pnpm</SelectItem>
+                        <SelectItem value="npm">npm</SelectItem>
+                        <SelectItem value="yarn">yarn</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                      package manager
+                    </label>
+                    <div className="h-9 w-full border-border bg-background/80 text-xs flex items-center px-3 rounded-none border text-muted-foreground">
+                      Not required
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            <div className="space-y-2">
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                language
-              </label>
-              <Select
-                value={selectedLanguage}
-                onValueChange={handleLanguageChange}
-                disabled={!repoName}
-              >
-                <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
-                  <SelectValue placeholder="Select a language (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom</SelectItem>
-                  {languages.map((language) => (
-                    <SelectItem key={language.id} value={language.id}>
-                      {language.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                framework
-              </label>
-              <Select
-                value={selectedFramework}
-                onValueChange={handleFrameworkChange}
-                disabled={!repoName || selectedLanguage === "custom"}
-              >
-                <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
-                  <SelectValue
-                    placeholder={
-                      selectedLanguage === "custom"
-                        ? "Select a language first"
-                        : "Select a framework (optional)"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom</SelectItem>
-                  {availableFrameworks.map((framework) => (
-                    <SelectItem key={framework.id} value={framework.id}>
-                      {framework.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedFrameworkData?.requiresPackageManager && (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-4">
                 <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                  package manager
+                  command
                 </label>
                 <Select
-                  value={selectedPackageManager}
-                  onValueChange={handlePackageManagerChange}
+                  value={selectedCommand}
+                  onValueChange={handleCommandChange}
                   disabled={!repoName || selectedFramework === "custom"}
                 >
                   <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
-                    <SelectValue />
+                    <SelectValue
+                      placeholder={
+                        selectedFramework === "custom"
+                          ? "Select a framework first"
+                          : "Select a command (optional)"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pnpm">pnpm</SelectItem>
-                    <SelectItem value="npm">npm</SelectItem>
-                    <SelectItem value="yarn">yarn</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                    {availableCommands.map((command) => (
+                      <SelectItem key={command.id} value={command.id}>
+                        {command.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-            <div className="space-y-2">
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
-                command
-              </label>
-              <Select
-                value={selectedCommand}
-                onValueChange={handleCommandChange}
-                disabled={!repoName || selectedFramework === "custom"}
-              >
-                <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
-                  <SelectValue
-                    placeholder={
-                      selectedFramework === "custom"
-                        ? "Select a framework first"
-                        : "Select a command (optional)"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom</SelectItem>
-                  {availableCommands.map((command) => (
-                    <SelectItem key={command.id} value={command.id}>
-                      {command.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            </CardContent>
+          </Card>
+          <div className="grid min-h-0 gap-4 sm:grid-cols-[1.2fr_1fr]">
+            <div className="space-y-3">
             <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
               command name
             </label>
@@ -390,6 +409,7 @@ export function QuickComposer({
               Tip: use {"{{repo}}"} and {"{{branch}}"} to inject context in
               real-time.
             </div>
+          </div>
           </div>
         </div>
       </CardContent>
