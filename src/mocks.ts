@@ -5,7 +5,7 @@
 // Use these mocks during initial interface development before Rust integration.
 
 import type {
-  // Command Hub types
+  // Repos types (formerly Command Hub)
   Repository,
   Command,
   LiveExecution,
@@ -15,10 +15,10 @@ import type {
   HistoryStats,
   ExtendedStats,
   DashboardState,
-} from './components/command-hub/types'
+} from './components/repos/types'
 
 import type {
-  // Agent Hub types
+  // Agents types (formerly Agent Hub)
   Agent,
   Session,
   Action,
@@ -30,7 +30,7 @@ import type {
   AgentDashboardState,
   SessionWithDetails,
   AgentWithStats,
-} from './components/agent-hub/types'
+} from './components/agents/types'
 
 // =============================================================================
 // Command Hub Mocks

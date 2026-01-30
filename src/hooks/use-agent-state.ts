@@ -10,7 +10,7 @@ import type {
   Session,
   Action,
   AgentEvent,
-} from '@/components/agent-hub/types'
+} from '@/components/agents/types'
 import {
   mockAgentDashboard,
   mockEvents,

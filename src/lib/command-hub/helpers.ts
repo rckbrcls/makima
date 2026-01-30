@@ -5,7 +5,7 @@ import type {
   ExtendedStats,
   HistoryStats,
   Repository,
-} from "@/components/command-hub/types"
+} from "@/components/repos/types"
 
 export function repoStatusColor(status: string): string {
   if (status === "active") return "text-chart-1"

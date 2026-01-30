@@ -7,7 +7,7 @@ import type {
   RunCommandInput,
   StopCommandInput,
   ExecutionLogLine,
-} from '@/components/command-hub/types'
+} from '@/components/repos/types'
 import { toast } from '@/components/ui/sonner'
 import { mockCommandHubDashboard } from '@/mocks'
 

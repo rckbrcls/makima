@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import appCss from '../styles.css?url'
 import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from '@/components/ui/app-sidebar'
+import { GlobalApprovalDrawer } from '@/components/agents/global-approval-drawer'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -44,6 +45,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <AppSidebar />
             <main className="min-h-0 flex-1 overflow-hidden ml-16">{children}</main>
           </div>
+          {/* Global Approval Drawer - accessible from any page */}
+          <GlobalApprovalDrawer />
         </ThemeProvider>
         <TanStackDevtools
           config={{

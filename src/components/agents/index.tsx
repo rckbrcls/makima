@@ -38,13 +38,13 @@ import type {
   AgentEvent,
 } from "./types"
 
-// Command Hub components
-import { RepositorySidebar } from "@/components/command-hub/repository-sidebar"
-import { CommandsTab } from "@/components/command-hub/commands-tab"
-import { ExecutionTab } from "@/components/command-hub/execution-tab"
-import { HistoryTab } from "@/components/command-hub/history-tab"
+// Repos components (formerly Command Hub)
+import { RepositorySidebar } from "@/components/repos/repository-sidebar"
+import { CommandsTab } from "@/components/repos/commands-tab"
+import { ExecutionTab } from "@/components/repos/execution-tab"
+import { HistoryTab } from "@/components/repos/history-tab"
 import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
-import type { Command } from "@/components/command-hub/types"
+import type { Command } from "@/components/repos/types"
 
 // ============================================================================
 // Header Component

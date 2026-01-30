@@ -1,4 +1,4 @@
-import type { CommandType } from "@/components/command-hub/types"
+import type { CommandType } from "@/components/repos/types"
 
 export interface FrameworkCommand {
   id: string

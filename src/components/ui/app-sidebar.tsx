@@ -2,26 +2,32 @@ import { Link } from "@tanstack/react-router"
 import {
   Bot,
   Settings,
-  LayoutDashboard,
-  History,
+  ListChecks,
+  Activity,
+  FolderGit2,
   Info
 } from "lucide-react"
 
 const navItems = [
   {
-    name: "Dashboard",
-    icon: LayoutDashboard,
+    name: "Agents",
+    icon: Bot,
     to: "/",
   },
   {
-    name: "Agents",
-    icon: Bot,
-    to: "/agents",
+    name: "Sessions",
+    icon: ListChecks,
+    to: "/sessions",
   },
   {
-    name: "Execution",
-    icon: History,
-    to: "/execution",
+    name: "Actions",
+    icon: Activity,
+    to: "/actions",
+  },
+  {
+    name: "Repos",
+    icon: FolderGit2,
+    to: "/repos",
   },
   {
     name: "Settings",

@@ -9,12 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AgentsRouteImport } from './routes/agents'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SessionsRouteImport } from './routes/sessions'
+import { Route as ReposRouteImport } from './routes/repos'
+import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as IndexRouteImport } from './routes/index'
 
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsRoute = SessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReposRoute = ReposRouteImport.update({
+  id: '/repos',
+  path: '/repos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActionsRoute = ActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,37 +43,70 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
+  '/actions': typeof ActionsRoute
+  '/repos': typeof ReposRoute
+  '/sessions': typeof SessionsRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
+  '/actions': typeof ActionsRoute
+  '/repos': typeof ReposRoute
+  '/sessions': typeof SessionsRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
+  '/actions': typeof ActionsRoute
+  '/repos': typeof ReposRoute
+  '/sessions': typeof SessionsRoute
+  '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agents'
+  fullPaths: '/' | '/actions' | '/repos' | '/sessions' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agents'
-  id: '__root__' | '/' | '/agents'
+  to: '/' | '/actions' | '/repos' | '/sessions' | '/settings'
+  id: '__root__' | '/' | '/actions' | '/repos' | '/sessions' | '/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentsRoute: typeof AgentsRoute
+  ActionsRoute: typeof ActionsRoute
+  ReposRoute: typeof ReposRoute
+  SessionsRoute: typeof SessionsRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions': {
+      id: '/sessions'
+      path: '/sessions'
+      fullPath: '/sessions'
+      preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repos': {
+      id: '/repos'
+      path: '/repos'
+      fullPath: '/repos'
+      preLoaderRoute: typeof ReposRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/actions': {
+      id: '/actions'
+      path: '/actions'
+      fullPath: '/actions'
+      preLoaderRoute: typeof ActionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,7 +121,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentsRoute: AgentsRoute,
+  ActionsRoute: ActionsRoute,
+  ReposRoute: ReposRoute,
+  SessionsRoute: SessionsRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

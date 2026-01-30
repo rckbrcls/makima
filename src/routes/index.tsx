@@ -1,8 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { AgentHub } from "@/components/agent-hub"
+import { AgentsPage } from "@/pages/agents-page"
 
-export const Route = createFileRoute("/")({ component: App })
-
-function App() {
-  return <AgentHub />
-}
+export const Route = createFileRoute("/")({ component: AgentsPage })
