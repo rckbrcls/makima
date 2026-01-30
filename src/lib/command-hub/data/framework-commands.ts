@@ -1053,6 +1053,87 @@ export const languages: Language[] = [
       },
     ],
   },
+  {
+    id: "swift",
+    label: "Swift",
+    frameworks: [
+      {
+        id: "swiftui",
+        label: "SwiftUI",
+        requiresPackageManager: false,
+        commands: [
+          {
+            id: "build",
+            label: "Build",
+            commandName: "build",
+            baseCommand: "xcodebuild -scheme <SCHEME_NAME>",
+            args: "",
+            commandType: "build",
+            description: "Build SwiftUI app (set scheme)",
+          },
+          {
+            id: "run-simulator",
+            label: "Run Simulator",
+            commandName: "runSimulator",
+            baseCommand:
+              "xcodebuild -scheme <SCHEME_NAME> -destination 'platform=iOS Simulator,name=iPhone 15'",
+            args: "",
+            commandType: "run",
+            description: "Run on iOS Simulator (set scheme/device)",
+          },
+          {
+            id: "test",
+            label: "Test",
+            commandName: "test",
+            baseCommand: "xcodebuild test -scheme <SCHEME_NAME>",
+            args: "",
+            commandType: "test",
+            description: "Run tests (set scheme)",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kotlin",
+    label: "Kotlin",
+    frameworks: [
+      {
+        id: "gradle",
+        label: "Gradle",
+        requiresPackageManager: false,
+        commands: [
+          {
+            id: "run",
+            label: "Run",
+            commandName: "run",
+            baseCommand: "./gradlew run",
+            args: "",
+            commandType: "run",
+            description: "Run Kotlin app with Gradle",
+          },
+          {
+            id: "build",
+            label: "Build",
+            commandName: "build",
+            baseCommand: "./gradlew build",
+            args: "",
+            commandType: "build",
+            description: "Build project with Gradle",
+          },
+          {
+            id: "test",
+            label: "Test",
+            commandName: "test",
+            baseCommand: "./gradlew test",
+            args: "",
+            commandType: "test",
+            description: "Run tests with Gradle",
+          },
+        ],
+      },
+    ],
+  },
 ]
 
 // Helper function to replace package manager in command
