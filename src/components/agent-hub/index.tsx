@@ -3,14 +3,28 @@ import { useState, useEffect, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
 import {
   Bot,
   Plus,
   Shield,
   Zap,
   RefreshCw,
+  Menu,
+  Search,
+  Terminal,
 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ModeToggle } from "@/components/mode-toggle"
 import { useAgentState } from "@/hooks/use-agent-state"
+import { useCommanderState } from "@/hooks/use-commander-state"
 import { AgentCard } from "./agent-card"
 import { ApprovalDrawer } from "./approval-drawer"
 import { SessionPanel } from "./session-panel"
@@ -24,6 +38,14 @@ import type {
   AgentEvent,
 } from "./types"
 
+// Command Hub components
+import { RepositorySidebar } from "@/components/command-hub/repository-sidebar"
+import { CommandsTab } from "@/components/command-hub/commands-tab"
+import { ExecutionTab } from "@/components/command-hub/execution-tab"
+import { HistoryTab } from "@/components/command-hub/history-tab"
+import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
+import type { Command } from "@/components/command-hub/types"
+
 // ============================================================================
 // Header Component
 // ============================================================================
@@ -34,6 +56,7 @@ interface AgentHubHeaderProps {
   onToggleMode: () => void
   onOpenApprovals: () => void
   onRefresh: () => void
+  onMenuClick: () => void
 }
 
 function AgentHubHeader({
@@ -42,21 +65,40 @@ function AgentHubHeader({
   onToggleMode,
   onOpenApprovals,
   onRefresh,
+  onMenuClick,
 }: AgentHubHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
+        {/* Mobile menu trigger */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          onClick={onMenuClick}
+        >
+          <Menu className="size-5" />
+        </Button>
         <div className="flex size-10 items-center justify-center border border-border bg-card">
-          <Bot className="size-5 text-primary" />
+          <Terminal className="size-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Agent Hub</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Commander</h1>
           <p className="text-xs text-muted-foreground">
-            Manage AI agents and sessions
+            AI agents & command orchestration
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
+        {/* Search */}
+        <div className="relative hidden w-full min-w-[180px] max-w-xs sm:block">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search..."
+            className="h-9 border-border bg-background/80 pl-8 text-xs"
+          />
+        </div>
+
         {/* Mode Toggle */}
         <Button
           variant="outline"
@@ -67,12 +109,12 @@ function AgentHubHeader({
           {mode === "safe" ? (
             <>
               <Shield className="size-3.5 text-yellow-500" />
-              Safe Mode
+              <span className="hidden sm:inline">Safe</span>
             </>
           ) : (
             <>
               <Zap className="size-3.5 text-green-500" />
-              Auto Mode
+              <span className="hidden sm:inline">Auto</span>
             </>
           )}
         </Button>
@@ -85,13 +127,16 @@ function AgentHubHeader({
           onClick={onOpenApprovals}
         >
           <Shield className="size-3.5" />
-          Approvals
+          <span className="hidden sm:inline">Approvals</span>
           {pendingCount > 0 && (
             <Badge variant="destructive" className="text-[0.55rem] h-4 px-1">
               {pendingCount}
             </Badge>
           )}
         </Button>
+
+        {/* Theme toggle */}
+        <ModeToggle />
 
         {/* Refresh */}
         <Button
@@ -108,16 +153,116 @@ function AgentHubHeader({
 }
 
 // ============================================================================
+// Agents Tab Component
+// ============================================================================
+
+interface AgentsTabProps {
+  agents: Agent[]
+  approvalCardData: ApprovalCardData[]
+  selectedSession: Session | null
+  sessionActions: Action[]
+  sessionEvents: AgentEvent[]
+  onStartSession: (agent: Agent) => void
+  onDeleteAgent: (agent: Agent) => void
+  onSelectAgent: (agent: Agent) => void
+  onEndSession: (success: boolean) => void
+  onOpenCreateDialog: () => void
+}
+
+function AgentsTab({
+  agents,
+  approvalCardData,
+  selectedSession,
+  sessionActions,
+  sessionEvents,
+  onStartSession,
+  onDeleteAgent,
+  onSelectAgent,
+  onEndSession,
+  onOpenCreateDialog,
+}: AgentsTabProps) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1fr_350px]">
+      {/* Agents Grid */}
+      <Card className="overflow-hidden border-border/70 bg-card/80">
+        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+          <div>
+            <h2 className="text-sm font-medium">Agents</h2>
+            <p className="text-[0.65rem] text-muted-foreground">
+              {agents.length} agent(s) configured
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="h-7 gap-1"
+            onClick={onOpenCreateDialog}
+          >
+            <Plus className="size-3" />
+            Add Agent
+          </Button>
+        </div>
+        <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto max-h-[calc(100vh-320px)]">
+          {agents.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+              <Bot className="size-12 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">
+                No agents configured
+              </p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Add an agent to get started
+              </p>
+            </div>
+          ) : (
+            agents.map((agent, index) => (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                index={index}
+                pendingCount={
+                  approvalCardData.filter((d) => d.agent.id === agent.id).length
+                }
+                onStartSession={onStartSession}
+                onDelete={onDeleteAgent}
+                onClick={(a) => onSelectAgent(a)}
+              />
+            ))
+          )}
+        </div>
+      </Card>
+
+      {/* Session Panel */}
+      {selectedSession ? (
+        <SessionPanel
+          session={selectedSession}
+          actions={sessionActions}
+          events={sessionEvents}
+          onEndSession={onEndSession}
+        />
+      ) : (
+        <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card/80">
+          <Shield className="size-10 text-muted-foreground/30 mb-3" />
+          <p className="text-sm text-muted-foreground">No active session</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Start a session to see details here
+          </p>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
 export function AgentHub() {
+  // Agent state
   const {
-    state,
+    state: agentState,
     mode,
     agents,
     pendingApprovals,
-    refreshState,
+    refreshState: refreshAgentState,
     createAgent,
     deleteAgent,
     startSession,
@@ -131,6 +276,28 @@ export function AgentHub() {
     toggleMode,
   } = useAgentState()
 
+  // Commander state
+  const {
+    state: commanderState,
+    runCommand,
+    stopCommand,
+    addRepository,
+    addCommand,
+    updateCommand,
+    deleteCommand,
+    deleteRepository,
+    getExecutionLogs,
+  } = useCommanderState()
+
+  const {
+    commands,
+    executionHistory,
+    liveExecutions,
+    pipelines,
+    repositories,
+    runQueue,
+  } = commanderState
+
   // Local state
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
@@ -138,14 +305,29 @@ export function AgentHub() {
   const [sessionEvents, setSessionEvents] = useState<AgentEvent[]>([])
   const [approvalDrawerOpen, setApprovalDrawerOpen] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Filtered data for command-hub components
+  const filteredCommands = filterByRepo(commands, selectedRepo)
+  const filteredHistory = filterByRepo(executionHistory, selectedRepo)
+  const filteredQueue = filterByRepo(runQueue, selectedRepo)
+  const filteredLive = filterByRepo(liveExecutions, selectedRepo)
+  const filteredPipelines = selectedRepo
+    ? pipelines.filter((p) => p.repo === selectedRepo)
+    : pipelines
+
+  // Running counts for each repo
+  const runningCounts: Record<string, number> = {}
+  repositories.forEach((repo) => {
+    runningCounts[repo.name] = runningCount(repo.name, commands)
+  })
 
   // Build approval card data from ApprovalWithAction
   const approvalCardData: ApprovalCardData[] = useMemo(() => {
     return pendingApprovals.map((approvalWithAction: ApprovalWithAction) => {
-      // Find the session for this action
       const action = approvalWithAction.action
-      const session = state.sessions.find((s) => s.id === action?.sessionId)
-      // agents is AgentWithRepos[], get the base agent
+      const session = agentState.sessions.find((s) => s.id === action?.sessionId)
       const agentWithRepos = agents.find((a) => a.id === session?.agentId)
 
       return {
@@ -178,7 +360,7 @@ export function AgentHub() {
         },
       }
     })
-  }, [pendingApprovals, state.sessions, agents])
+  }, [pendingApprovals, agentState.sessions, agents])
 
   // Load session details when selected
   useEffect(() => {
@@ -195,7 +377,7 @@ export function AgentHub() {
     }
   }, [selectedSession, getActionsForSession, getEventsForSession])
 
-  // Handlers
+  // Agent handlers
   const handleStartSession = async (agent: Agent) => {
     const session = await startSession({
       agentId: agent.id,
@@ -244,6 +426,40 @@ export function AgentHub() {
     return toggleMode()
   }
 
+  const handleRefresh = () => {
+    refreshAgentState()
+  }
+
+  // Command handlers
+  const handleRunCommand = (command: Command) => {
+    void runCommand({
+      repo: command.repo,
+      name: command.name,
+      command: command.command,
+      commandType: command.type,
+    })
+  }
+
+  const handleStopCommand = (repo: string, commandName: string) => {
+    void stopCommand({ repo, command: commandName })
+  }
+
+  const handleSelectRepo = (repo: string | null) => {
+    setSelectedRepo(repo)
+    setMobileOpen(false)
+  }
+
+  const handleDeleteCommand = (command: Command) => {
+    void deleteCommand(command.repo, command.name)
+  }
+
+  const handleDeleteRepository = async (repo: string) => {
+    const removed = await deleteRepository(repo)
+    if (removed && selectedRepo === repo) {
+      setSelectedRepo(null)
+    }
+  }
+
   return (
     <div className="relative h-full overflow-hidden bg-background text-foreground">
       {/* Grid Background */}
@@ -256,75 +472,122 @@ export function AgentHub() {
           pendingCount={pendingApprovals.length}
           onToggleMode={handleToggleMode}
           onOpenApprovals={() => setApprovalDrawerOpen(true)}
-          onRefresh={refreshState}
+          onRefresh={handleRefresh}
+          onMenuClick={() => setMobileOpen(true)}
         />
 
-        {/* Main Content */}
-        <div className="grid gap-4 lg:grid-cols-[1fr_350px]">
-          {/* Agents Grid */}
-          <Card className="overflow-hidden border-border/70 bg-card/80">
-            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-              <div>
-                <h2 className="text-sm font-medium">Agents</h2>
-                <p className="text-[0.65rem] text-muted-foreground">
-                  {agents.length} agent(s) configured
-                </p>
-              </div>
-              <Button
-                size="sm"
-                className="h-7 gap-1"
-                onClick={() => setCreateDialogOpen(true)}
-              >
-                <Plus className="size-3" />
-                Add Agent
-              </Button>
-            </div>
-            <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto max-h-[calc(100vh-220px)]">
-              {agents.length === 0 ? (
-                <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                  <Bot className="size-12 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    No agents configured
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    Add an agent to get started
-                  </p>
-                </div>
-              ) : (
-                agents.map((agent, index) => (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    index={index}
-                    pendingCount={
-                      approvalCardData.filter((d) => d.agent.id === agent.id).length
-                    }
-                    onStartSession={handleStartSession}
-                    onDelete={handleDeleteAgent}
-                    onClick={(a) => setSelectedAgent(a)}
-                  />
-                ))
-              )}
-            </div>
-          </Card>
-
-          {/* Session Panel */}
-          {selectedSession ? (
-            <SessionPanel
-              session={selectedSession}
-              actions={sessionActions}
-              events={sessionEvents}
-              onEndSession={handleEndSession}
+        {/* Body: sidebar + main */}
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+          {/* Desktop sidebar */}
+          <aside className="hidden min-h-0 lg:flex lg:flex-col lg:sticky lg:top-4 lg:self-start">
+            <RepositorySidebar
+              selectedRepo={selectedRepo}
+              repositories={repositories}
+              runningCounts={runningCounts}
+              onSelectRepo={handleSelectRepo}
+              onAddRepository={addRepository}
+              onDeleteRepository={handleDeleteRepository}
             />
-          ) : (
-            <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card/80">
-              <Shield className="size-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">No active session</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Start a session to see details here
-              </p>
-            </Card>
-          )}
+          </aside>
+
+          {/* Mobile sidebar (Sheet) */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Repositories</SheetTitle>
+                <SheetDescription>
+                  Select a repository to filter commands.
+                </SheetDescription>
+              </SheetHeader>
+              <RepositorySidebar
+                selectedRepo={selectedRepo}
+                repositories={repositories}
+                runningCounts={runningCounts}
+                onSelectRepo={handleSelectRepo}
+                onAddRepository={addRepository}
+                onDeleteRepository={handleDeleteRepository}
+              />
+            </SheetContent>
+          </Sheet>
+
+          {/* Main area with tabs */}
+          <Tabs
+            defaultValue="agents"
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80">
+              <TabsTrigger value="agents">
+                <Bot className="size-3.5 mr-1.5" />
+                Agents
+              </TabsTrigger>
+              <TabsTrigger value="commands">
+                <Terminal className="size-3.5 mr-1.5" />
+                Commands
+              </TabsTrigger>
+              <TabsTrigger value="execution">Execution</TabsTrigger>
+              <TabsTrigger value="statistics">Statistics</TabsTrigger>
+            </TabsList>
+
+            {/* Tab: Agents */}
+            <TabsContent value="agents" className="flex-1 overflow-auto">
+              <AgentsTab
+                agents={agents}
+                approvalCardData={approvalCardData}
+                selectedSession={selectedSession}
+                sessionActions={sessionActions}
+                sessionEvents={sessionEvents}
+                onStartSession={handleStartSession}
+                onDeleteAgent={handleDeleteAgent}
+                onSelectAgent={(a) => setSelectedAgent(a)}
+                onEndSession={handleEndSession}
+                onOpenCreateDialog={() => setCreateDialogOpen(true)}
+              />
+            </TabsContent>
+
+            {/* Tab: Commands */}
+            <TabsContent value="commands" className="flex-1 overflow-auto">
+              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
+                  <CommandsTab
+                    selectedRepo={selectedRepo}
+                    commands={filteredCommands}
+                    repositories={repositories}
+                    onRunCommand={handleRunCommand}
+                    onStopCommand={handleStopCommand}
+                    onDeleteCommand={handleDeleteCommand}
+                    onAddCommand={addCommand}
+                    onUpdateCommand={updateCommand}
+                    onRunCommandInput={runCommand}
+                  />
+                </div>
+              </Card>
+            </TabsContent>
+
+            {/* Tab: Execution */}
+            <TabsContent value="execution" className="flex-1 overflow-auto">
+              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
+                  <ExecutionTab
+                    selectedRepo={selectedRepo}
+                    liveExecutions={filteredLive}
+                    repositories={repositories}
+                    executionHistory={filteredHistory}
+                    getExecutionLogs={getExecutionLogs}
+                    onStopCommand={handleStopCommand}
+                  />
+                </div>
+              </Card>
+            </TabsContent>
+
+            {/* Tab: Statistics */}
+            <TabsContent value="statistics" className="flex-1 overflow-auto">
+              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
+                  <HistoryTab state={commanderState} selectedRepo={selectedRepo} />
+                </div>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 

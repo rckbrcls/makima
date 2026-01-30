@@ -1,15 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
-import { invoke, isTauri } from '@tauri-apps/api/core'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { useCallback, useState } from 'react'
 import { toast } from '@/components/ui/sonner'
 import type {
   Agent,
   AgentDashboardState,
   Approval,
-  ApprovalRequestedEvent,
-  ApprovalResolvedEvent,
-  ActionFinishedEvent,
-  ModeChangedEvent,
   BridgeMode,
   CreateAgentRequest,
   StartSessionRequest,
@@ -17,30 +11,16 @@ import type {
   Action,
   AgentEvent,
 } from '@/components/agent-hub/types'
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const emptyState: AgentDashboardState = {
-  agents: [],
-  sessions: [],
-  pendingApprovals: [],
-  recentEvents: [],
-  globalMode: 'safe',
-}
+import {
+  mockAgentDashboard,
+  mockEvents,
+  mockActions,
+  mockSessions,
+} from '@/mocks'
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-const isTauriAvailable = () => {
-  try {
-    return isTauri()
-  } catch {
-    return false
-  }
-}
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message
@@ -53,138 +33,178 @@ const getErrorMessage = (error: unknown) => {
 // ============================================================================
 
 export function useAgentState() {
-  const [state, setState] = useState<AgentDashboardState>(emptyState)
-  const [isLoading, setIsLoading] = useState(true)
+  const [state, setState] = useState<AgentDashboardState>(mockAgentDashboard)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // --------------------------------------------------------------------------
-  // Refresh State
-  // --------------------------------------------------------------------------
-
+  // Simulation of state refresh
   const refreshState = useCallback(async () => {
-    if (!isTauriAvailable()) return
-    try {
-      const next = await invoke<AgentDashboardState>('agent_state')
-      setState(next)
-    } catch (error) {
-      console.error('[agent] failed to refresh state', error)
-    }
+    console.log('Refreshing agent state (mock)...')
   }, [])
 
   // --------------------------------------------------------------------------
   // Agent Management
   // --------------------------------------------------------------------------
 
-  const createAgent = useCallback(
-    async (request: CreateAgentRequest) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return null
-      }
+  const createAgent = useCallback(async (request: CreateAgentRequest) => {
+    const toastId = toast.loading('Creating agent...', {
+      description: request.name,
+    })
 
-      const toastId = toast.loading('Creating agent...', {
-        description: request.name,
-      })
-
-      try {
-        const agent = await invoke<Agent>('agent_create', { request })
-        await refreshState()
-        toast.success('Agent created', {
-          id: toastId,
-          description: agent.name,
-        })
-        return agent
-      } catch (error) {
-        toast.error('Failed to create agent', {
-          id: toastId,
-          description: getErrorMessage(error),
-        })
-        return null
-      }
-    },
-    [refreshState],
-  )
-
-  const deleteAgent = useCallback(
-    async (agentId: string) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return false
-      }
-
-      const toastId = toast.loading('Deleting agent...')
-
-      try {
-        await invoke('agent_delete', { agentId })
-        await refreshState()
-        toast.success('Agent deleted', { id: toastId })
-        return true
-      } catch (error) {
-        toast.error('Failed to delete agent', {
-          id: toastId,
-          description: getErrorMessage(error),
-        })
-        return false
-      }
-    },
-    [refreshState],
-  )
-
-  const getAgent = useCallback(async (agentId: string) => {
-    if (!isTauriAvailable()) return null
     try {
-      return await invoke<Agent | null>('agent_get', { agentId })
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      const newAgent: Agent = {
+        id: `agent-${Date.now()}`,
+        name: request.name,
+        provider: request.provider,
+        model: request.model,
+        status: 'idle',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      setState((prev) => ({
+        ...prev,
+        agents: [...prev.agents, { ...newAgent, repos: request.repos }],
+      }))
+
+      toast.success('Agent created', {
+        id: toastId,
+        description: newAgent.name,
+      })
+      return newAgent
     } catch (error) {
-      console.error('[agent] failed to get agent', error)
+      toast.error('Failed to create agent', {
+        id: toastId,
+        description: getErrorMessage(error),
+      })
       return null
     }
   }, [])
+
+  const deleteAgent = useCallback(async (agentId: string) => {
+    const toastId = toast.loading('Deleting agent...')
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      setState((prev) => ({
+        ...prev,
+        agents: prev.agents.filter((a) => a.id !== agentId),
+      }))
+
+      toast.success('Agent deleted', { id: toastId })
+      return true
+    } catch (error) {
+      toast.error('Failed to delete agent', {
+        id: toastId,
+        description: getErrorMessage(error),
+      })
+      return false
+    }
+  }, [])
+
+  const getAgent = useCallback(
+    async (agentId: string) => {
+      // Mock implementation
+      return state.agents.find((a) => a.id === agentId) || null
+    },
+    [state.agents],
+  )
 
   // --------------------------------------------------------------------------
   // Session Management
   // --------------------------------------------------------------------------
 
-  const startSession = useCallback(
-    async (request: StartSessionRequest) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return null
+  const startSession = useCallback(async (request: StartSessionRequest) => {
+    const toastId = toast.loading('Starting session...', {
+      description: request.goal ?? 'New session',
+    })
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      const newSession: Session = {
+        id: `session-${Date.now()}`,
+        agentId: request.agentId,
+        goal: request.goal,
+        state: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
 
-      const toastId = toast.loading('Starting session...', {
-        description: request.goal ?? 'New session',
+      setState((prev) => {
+        // Update global sessions
+        const nextSessions = [...prev.sessions, newSession]
+
+        // Update agent's current session
+        const nextAgents = prev.agents.map((a) => {
+          if (a.id === request.agentId) {
+            return {
+              ...a,
+              currentSession: newSession,
+              status: 'running' as const,
+            }
+          }
+          return a
+        })
+
+        return {
+          ...prev,
+          agents: nextAgents,
+          sessions: nextSessions,
+        }
       })
 
-      try {
-        const session = await invoke<Session>('session_start', { request })
-        await refreshState()
-        toast.success('Session started', {
-          id: toastId,
-          description: request.goal ?? `Session ${session.id.slice(0, 8)}`,
-        })
-        return session
-      } catch (error) {
-        toast.error('Failed to start session', {
-          id: toastId,
-          description: getErrorMessage(error),
-        })
-        return null
-      }
-    },
-    [refreshState],
-  )
+      toast.success('Session started', {
+        id: toastId,
+        description: request.goal ?? `Session ${newSession.id.slice(0, 8)}`,
+      })
+      return newSession
+    } catch (error) {
+      toast.error('Failed to start session', {
+        id: toastId,
+        description: getErrorMessage(error),
+      })
+      return null
+    }
+  }, [])
 
   const endSession = useCallback(
     async (sessionId: string, success: boolean) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return false
-      }
-
       const toastId = toast.loading('Ending session...')
 
       try {
-        await invoke('session_end', { sessionId, success })
-        await refreshState()
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        setState((prev) => {
+          // Update session status
+          const nextSessions = prev.sessions.map((s) => {
+            if (s.id === sessionId) {
+              return { ...s, state: success ? 'done' : 'failed' } as Session
+            }
+            return s
+          })
+
+          // Update agent status if this was their current session
+          const nextAgents = prev.agents.map((a) => {
+            if (a.currentSession?.id === sessionId) {
+              return {
+                ...a,
+                currentSession: undefined,
+                status: 'idle' as const,
+              }
+            }
+            return a
+          })
+
+          return {
+            ...prev,
+            sessions: nextSessions,
+            agents: nextAgents,
+          }
+        })
+
         toast.success(success ? 'Session completed' : 'Session failed', {
           id: toastId,
         })
@@ -197,51 +217,35 @@ export function useAgentState() {
         return false
       }
     },
-    [refreshState],
+    [],
   )
 
-  const getSession = useCallback(async (sessionId: string) => {
-    if (!isTauriAvailable()) return null
-    try {
-      return await invoke<Session | null>('session_get', { sessionId })
-    } catch (error) {
-      console.error('[agent] failed to get session', error)
-      return null
-    }
-  }, [])
+  const getSession = useCallback(
+    async (sessionId: string) => {
+      return state.sessions.find((s) => s.id === sessionId) || null
+    },
+    [state.sessions],
+  )
 
-  const getSessionsForAgent = useCallback(async (agentId: string) => {
-    if (!isTauriAvailable()) return []
-    try {
-      return await invoke<Session[]>('session_list_by_agent', { agentId })
-    } catch (error) {
-      console.error('[agent] failed to get sessions', error)
-      return []
-    }
-  }, [])
+  const getSessionsForAgent = useCallback(
+    async (agentId: string) => {
+      return state.sessions.filter((s) => s.agentId === agentId)
+    },
+    [state.sessions],
+  )
 
   // --------------------------------------------------------------------------
   // Action & Event Queries
   // --------------------------------------------------------------------------
 
   const getActionsForSession = useCallback(async (sessionId: string) => {
-    if (!isTauriAvailable()) return []
-    try {
-      return await invoke<Action[]>('action_list_by_session', { sessionId })
-    } catch (error) {
-      console.error('[agent] failed to get actions', error)
-      return []
-    }
+    // For mocks, we'll return static mock actions filtered by session
+    // In a real mock, we'd probably want to store these in state too if we're creating new ones
+    return mockActions.filter((a) => a.sessionId === sessionId)
   }, [])
 
   const getEventsForSession = useCallback(async (sessionId: string) => {
-    if (!isTauriAvailable()) return []
-    try {
-      return await invoke<AgentEvent[]>('event_list_by_session', { sessionId })
-    } catch (error) {
-      console.error('[agent] failed to get events', error)
-      return []
-    }
+    return mockEvents.filter((e) => e.sessionId === sessionId)
   }, [])
 
   // --------------------------------------------------------------------------
@@ -250,20 +254,26 @@ export function useAgentState() {
 
   const approveAction = useCallback(
     async (approvalId: string, reviewer: string, reason?: string) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return false
-      }
-
       const toastId = toast.loading('Approving action...')
 
       try {
-        await invoke('approval_approve_v2', {
-          approvalId,
-          reviewer,
-          reason,
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        setState((prev) => {
+          // Remove from pending approvals
+          const nextPending = prev.pendingApprovals.filter(
+            (ap) => ap.id !== approvalId,
+          )
+
+          // Ideally update action status too, but that's deep in mocks
+          // For UI purposes, removing from pending list is enough
+
+          return {
+            ...prev,
+            pendingApprovals: nextPending,
+          }
         })
-        await refreshState()
+
         toast.success('Action approved', { id: toastId })
         return true
       } catch (error) {
@@ -274,25 +284,27 @@ export function useAgentState() {
         return false
       }
     },
-    [refreshState],
+    [],
   )
 
   const rejectAction = useCallback(
     async (approvalId: string, reviewer: string, reason?: string) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return false
-      }
-
       const toastId = toast.loading('Rejecting action...')
 
       try {
-        await invoke('approval_reject_v2', {
-          approvalId,
-          reviewer,
-          reason,
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        setState((prev) => {
+          const nextPending = prev.pendingApprovals.filter(
+            (ap) => ap.id !== approvalId,
+          )
+
+          return {
+            ...prev,
+            pendingApprovals: nextPending,
+          }
         })
-        await refreshState()
+
         toast.success('Action rejected', { id: toastId })
         return true
       } catch (error) {
@@ -303,24 +315,33 @@ export function useAgentState() {
         return false
       }
     },
-    [refreshState],
+    [],
   )
 
   const approveAllPending = useCallback(
     async (sessionId: string, reviewer: string) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return 0
-      }
-
       const toastId = toast.loading('Approving all pending actions...')
 
       try {
-        const count = await invoke<number>('approval_approve_all', {
-          sessionId,
-          reviewer,
+        await new Promise((resolve) => setTimeout(resolve, 800))
+
+        let count = 0
+        setState((prev) => {
+          const toRemove = prev.pendingApprovals.filter(
+            (ap) => ap.action?.sessionId === sessionId,
+          )
+          count = toRemove.length
+
+          const nextPending = prev.pendingApprovals.filter(
+            (ap) => ap.action?.sessionId !== sessionId,
+          )
+
+          return {
+            ...prev,
+            pendingApprovals: nextPending,
+          }
         })
-        await refreshState()
+
         toast.success(`Approved ${count} action(s)`, { id: toastId })
         return count
       } catch (error) {
@@ -331,25 +352,33 @@ export function useAgentState() {
         return 0
       }
     },
-    [refreshState],
+    [],
   )
 
   const rejectAllPending = useCallback(
     async (sessionId: string, reviewer: string, reason?: string) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return 0
-      }
-
       const toastId = toast.loading('Rejecting all pending actions...')
 
       try {
-        const count = await invoke<number>('approval_reject_all', {
-          sessionId,
-          reviewer,
-          reason,
+        await new Promise((resolve) => setTimeout(resolve, 800))
+
+        let count = 0
+        setState((prev) => {
+          const toRemove = prev.pendingApprovals.filter(
+            (ap) => ap.action?.sessionId === sessionId,
+          )
+          count = toRemove.length
+
+          const nextPending = prev.pendingApprovals.filter(
+            (ap) => ap.action?.sessionId !== sessionId,
+          )
+
+          return {
+            ...prev,
+            pendingApprovals: nextPending,
+          }
         })
-        await refreshState()
+
         toast.success(`Rejected ${count} action(s)`, { id: toastId })
         return count
       } catch (error) {
@@ -360,81 +389,61 @@ export function useAgentState() {
         return 0
       }
     },
-    [refreshState],
+    [],
   )
 
   const getPendingCount = useCallback(async () => {
-    if (!isTauriAvailable()) return 0
-    try {
-      return await invoke<number>('approval_pending_count')
-    } catch (error) {
-      console.error('[agent] failed to get pending count', error)
-      return 0
-    }
-  }, [])
+    return state.pendingApprovals.length
+  }, [state])
 
-  const getPendingForSession = useCallback(async (sessionId: string) => {
-    if (!isTauriAvailable()) return []
-    try {
-      return await invoke<Approval[]>('approval_pending_for_session', {
-        sessionId,
-      })
-    } catch (error) {
-      console.error('[agent] failed to get pending approvals', error)
-      return []
-    }
-  }, [])
+  const getPendingForSession = useCallback(
+    async (sessionId: string) => {
+      // Return approvals filtered by session (mock)
+      // Needs access to full list, but we only have pending in state
+      return state.pendingApprovals.filter(
+        (ap) => ap.action?.sessionId === sessionId,
+      ) as Approval[]
+    },
+    [state],
+  )
 
   // --------------------------------------------------------------------------
   // Mode Management
   // --------------------------------------------------------------------------
 
   const getMode = useCallback(async () => {
-    if (!isTauriAvailable()) return 'safe' as BridgeMode
+    return state.globalMode
+  }, [state])
+
+  const setMode = useCallback(async (mode: BridgeMode) => {
+    const toastId = toast.loading(`Switching to ${mode} mode...`)
+
     try {
-      return await invoke<BridgeMode>('mode_get_v2')
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      setState((prev) => ({ ...prev, globalMode: mode }))
+      toast.success(`Mode set to ${mode}`, { id: toastId })
+      return true
     } catch (error) {
-      console.error('[agent] failed to get mode', error)
-      return 'safe' as BridgeMode
+      toast.error('Failed to set mode', {
+        id: toastId,
+        description: getErrorMessage(error),
+      })
+      return false
     }
   }, [])
 
-  const setMode = useCallback(
-    async (mode: BridgeMode) => {
-      if (!isTauriAvailable()) {
-        toast.error('Backend unavailable')
-        return false
-      }
-
-      const toastId = toast.loading(`Switching to ${mode} mode...`)
-
-      try {
-        await invoke('mode_set_v2', { mode })
-        await refreshState()
-        toast.success(`Mode set to ${mode}`, { id: toastId })
-        return true
-      } catch (error) {
-        toast.error('Failed to set mode', {
-          id: toastId,
-          description: getErrorMessage(error),
-        })
-        return false
-      }
-    },
-    [refreshState],
-  )
-
   const toggleMode = useCallback(async () => {
-    if (!isTauriAvailable()) {
-      toast.error('Backend unavailable')
-      return null
-    }
-
     const toastId = toast.loading('Toggling mode...')
 
     try {
-      const newMode = await invoke<BridgeMode>('mode_toggle')
-      await refreshState()
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      let newMode: BridgeMode = 'safe'
+
+      setState((prev) => {
+        newMode = prev.globalMode === 'safe' ? 'auto' : 'safe'
+        return { ...prev, globalMode: newMode }
+      })
+
       toast.success(`Mode set to ${newMode}`, { id: toastId })
       return newMode
     } catch (error) {
@@ -444,89 +453,9 @@ export function useAgentState() {
       })
       return null
     }
-  }, [refreshState])
-
-  // --------------------------------------------------------------------------
-  // Event Listeners
-  // --------------------------------------------------------------------------
-
-  useEffect(() => {
-    let active = true
-    const unlisteners: UnlistenFn[] = []
-
-    const setup = async () => {
-      if (!isTauriAvailable()) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const initial = await invoke<AgentDashboardState>('agent_state')
-        if (!active) return
-        setState(initial)
-        setIsLoading(false)
-
-        // Listen for approval requests
-        unlisteners.push(
-          await listen<ApprovalRequestedEvent>(
-            'approval://requested',
-            (event) => {
-              const { actionType, summary } = event.payload
-              toast.info('Approval Required', {
-                description: summary ?? `Action: ${actionType}`,
-                duration: 10000,
-              })
-              void refreshState()
-            },
-          ),
-        )
-
-        // Listen for approval resolutions
-        unlisteners.push(
-          await listen<ApprovalResolvedEvent>('approval://resolved', () => {
-            void refreshState()
-          }),
-        )
-
-        // Listen for action completions
-        unlisteners.push(
-          await listen<ActionFinishedEvent>('action://finished', (event) => {
-            const { status } = event.payload
-            if (status === 'failed') {
-              toast.error('Action failed')
-            }
-            void refreshState()
-          }),
-        )
-
-        // Listen for mode changes
-        unlisteners.push(
-          await listen<ModeChangedEvent>('mode://changed', (event) => {
-            const { mode } = event.payload
-            setState((prev) => ({ ...prev, globalMode: mode }))
-          }),
-        )
-      } catch (error) {
-        if (!active) return
-        console.warn('[agent] failed to connect to backend', error)
-        setIsLoading(false)
-      }
-    }
-
-    void setup()
-
-    return () => {
-      active = false
-      unlisteners.forEach((unlisten) => unlisten())
-    }
-  }, [refreshState])
-
-  // --------------------------------------------------------------------------
-  // Return
-  // --------------------------------------------------------------------------
+  }, [])
 
   return {
-    // State
     state,
     isLoading,
     mode: state.globalMode,
@@ -534,33 +463,22 @@ export function useAgentState() {
     sessions: state.sessions,
     pendingApprovals: state.pendingApprovals,
 
-    // Actions
     refreshState,
-
-    // Agent Management
     createAgent,
     deleteAgent,
     getAgent,
-
-    // Session Management
     startSession,
     endSession,
     getSession,
     getSessionsForAgent,
-
-    // Action & Event Queries
     getActionsForSession,
     getEventsForSession,
-
-    // Approval Management
     approveAction,
     rejectAction,
     approveAllPending,
     rejectAllPending,
     getPendingCount,
     getPendingForSession,
-
-    // Mode Management
     getMode,
     setMode,
     toggleMode,
