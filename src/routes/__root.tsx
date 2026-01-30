@@ -5,6 +5,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { ThemeProvider } from '@/components/theme-provider'
 import appCss from '../styles.css?url'
 import { Toaster } from '@/components/ui/sonner'
+import { AppSidebar } from '@/components/ui/app-sidebar'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -39,8 +40,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <div className="relative flex h-svh flex-col overflow-hidden">
-            <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+          <div className="relative flex h-svh flex-row overflow-hidden">
+            <AppSidebar />
+            <main className="min-h-0 flex-1 overflow-hidden ml-16">{children}</main>
           </div>
         </ThemeProvider>
         <TanStackDevtools

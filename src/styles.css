@@ -130,8 +130,6 @@
   *::before,
   *::after {
     @apply border-border outline-ring/50;
-    animation: none !important;
-    transition: none !important;
   }
   body {
     @apply font-sans bg-background text-foreground;

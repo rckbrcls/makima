@@ -86,7 +86,7 @@ export function AgentCard({
     <Card
       size="sm"
       className={cn(
-        "border-border/70 bg-card animate-in fade-in slide-in-from-bottom-8 duration-700 cursor-pointer hover:border-primary/50 transition-colors",
+        "border-border/70 bg-card flex flex-col justify-between animate-in fade-in slide-in-from-bottom-8 duration-700 cursor-pointer hover:border-primary/50 transition-colors",
         index % 2 === 0 ? "delay-200" : "delay-300"
       )}
       onClick={handleClick}

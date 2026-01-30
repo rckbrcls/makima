@@ -69,8 +69,7 @@ function AgentHubHeader({
 }: AgentHubHeaderProps) {
   return (
     <header className="flex items-center justify-between gap-4" data-tauri-drag-region>
-      <div className="flex items-center gap-3">
-        {/* Mobile menu trigger */}
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
@@ -79,17 +78,6 @@ function AgentHubHeader({
         >
           <Menu className="size-5" />
         </Button>
-        <div className="flex size-10 items-center justify-center border border-border bg-card">
-          <Terminal className="size-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">Commander</h1>
-          <p className="text-xs text-muted-foreground">
-            AI agents & command orchestration
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
         {/* Search */}
         <div className="relative hidden w-full min-w-[180px] max-w-xs sm:block">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
@@ -98,6 +86,10 @@ function AgentHubHeader({
             className="h-9 border-border bg-card pl-8 text-xs"
           />
         </div>
+
+      </div>
+
+      <div className="flex items-center gap-2">
 
         {/* Mode Toggle */}
         <Button
@@ -201,7 +193,7 @@ function AgentsTab({
             Add Agent
           </Button>
         </div>
-        <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto max-h-[calc(100vh-320px)]">
+        <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-2 overflow-y-auto max-h-[calc(100vh-320px)]">
           {agents.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
               <Bot className="size-12 text-muted-foreground/30 mb-3" />
