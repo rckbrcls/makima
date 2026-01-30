@@ -516,7 +516,7 @@ export function AgentHub() {
           {/* Main area with tabs */}
           <Tabs
             defaultValue="agents"
-            className="flex min-h-0 flex-1 flex-col"
+            className="flex min-h-0  flex-1 flex-col"
           >
             <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card">
               <TabsTrigger value="agents">
@@ -532,7 +532,7 @@ export function AgentHub() {
             </TabsList>
 
             {/* Tab: Agents */}
-            <TabsContent value="agents" className="flex-1 overflow-auto">
+            <TabsContent value="agents" className="flex-1 overflow-auto p-1">
               <AgentsTab
                 agents={agents}
                 approvalCardData={approvalCardData}
@@ -548,7 +548,7 @@ export function AgentHub() {
             </TabsContent>
 
             {/* Tab: Commands */}
-            <TabsContent value="commands" className="flex-1 overflow-auto">
+            <TabsContent value="commands" className="flex-1 overflow-auto p-1">
               <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                   <CommandsTab
@@ -567,7 +567,7 @@ export function AgentHub() {
             </TabsContent>
 
             {/* Tab: Execution */}
-            <TabsContent value="execution" className="flex-1 overflow-auto">
+            <TabsContent value="execution" className="flex-1 overflow-auto p-1">
               <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                   <ExecutionTab
@@ -583,7 +583,7 @@ export function AgentHub() {
             </TabsContent>
 
             {/* Tab: Statistics */}
-            <TabsContent value="statistics" className="flex-1 overflow-auto">
+            <TabsContent value="statistics" className="flex-1 overflow-auto p-1">
               <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                   <HistoryTab state={commanderState} selectedRepo={selectedRepo} />

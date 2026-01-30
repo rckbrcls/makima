@@ -64,7 +64,7 @@ export function RepositorySidebar({
         <button
           onClick={() => onSelectRepo(null)}
           className={cn(
-            "flex w-full items-center justify-between rounded-none border px-3 py-2 text-left transition",
+            "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition",
             selectedRepo === null
               ? "border-primary/40 bg-primary/10"
               : "border-transparent hover:bg-accent/60"
@@ -89,7 +89,7 @@ export function RepositorySidebar({
               <button
                 onClick={() => onSelectRepo(repo.name)}
                 className={cn(
-                  "flex w-full flex-1 items-center justify-between rounded-none border px-3 py-2 text-left transition",
+                  "flex w-full flex-1 items-center justify-between rounded-xl border px-3 py-2 text-left transition",
                   selectedRepo === repo.name
                     ? "border-primary/40 bg-primary/10"
                     : "border-transparent hover:bg-accent/60"
