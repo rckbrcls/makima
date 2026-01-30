@@ -24,7 +24,7 @@ export function BuildStepsCard({
   repositories,
 }: BuildStepsCardProps) {
   return (
-    <Card className="shrink-0 border-border/60 bg-card/85">
+    <Card className="shrink-0 border-border/60 bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="text-sm">Build steps</CardTitle>
         <CardDescription>Progress visualization per step.</CardDescription>
@@ -56,11 +56,11 @@ export function BuildStepsCard({
                   className={cn(
                     "text-[0.6rem] uppercase",
                     step.state === "done" &&
-                      "border-chart-1/50 bg-chart-1/15 text-chart-1",
+                    "border-chart-1/50 bg-chart-1/15 text-chart-1",
                     step.state === "running" &&
-                      "border-chart-4/50 bg-chart-4/15 text-chart-4",
+                    "border-chart-4/50 bg-chart-4/15 text-chart-4",
                     step.state === "pending" &&
-                      "border-border bg-card text-muted-foreground"
+                    "border-border bg-card text-muted-foreground"
                   )}
                 >
                   {step.state}

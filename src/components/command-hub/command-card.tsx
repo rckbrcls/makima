@@ -41,7 +41,7 @@ export function CommandCard({ command, index, onRun, onDelete, onEdit }: Command
     <Card
       size="sm"
       className={cn(
-        "border-border/70 bg-card/80 animate-in fade-in slide-in-from-bottom-8 duration-700",
+        "border-border/70 bg-card animate-in fade-in slide-in-from-bottom-8 duration-700",
         index % 2 === 0 ? "delay-200" : "delay-300"
       )}
     >
@@ -122,14 +122,14 @@ export function CommandCard({ command, index, onRun, onDelete, onEdit }: Command
               command.status === "running"
                 ? "w-3/4 bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1/80 bg-[length:200%_100%] animate-[shimmer_2.8s_linear_infinite]"
                 : command.status === "queued"
-                ? "w-1/3 bg-chart-4/80"
-                : command.status === "failed"
-                ? "w-full bg-destructive/70"
-                : command.status === "stopped"
-                ? "w-full bg-muted-foreground/70"
-                : command.status === "success"
-                ? "w-full bg-chart-1/70"
-                : "w-0"
+                  ? "w-1/3 bg-chart-4/80"
+                  : command.status === "failed"
+                    ? "w-full bg-destructive/70"
+                    : command.status === "stopped"
+                      ? "w-full bg-muted-foreground/70"
+                      : command.status === "success"
+                        ? "w-full bg-chart-1/70"
+                        : "w-0"
             )}
           />
         </div>

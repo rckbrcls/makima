@@ -19,7 +19,7 @@ interface RunDetailsPanelProps {
 
 export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card/85">
+    <Card className="flex flex-col border-border/60 bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <FileText className="size-4 text-primary" />
@@ -36,8 +36,8 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
             {run.status === "failed"
               ? "1"
               : run.status === "stopped"
-              ? "—"
-              : "0"}
+                ? "—"
+                : "0"}
           </span>
           <span>Duration: {run.duration}</span>
         </div>
@@ -48,8 +48,8 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
               run.status === "failed"
                 ? "bg-destructive/70"
                 : run.status === "stopped"
-                ? "bg-muted-foreground/70"
-                : "bg-chart-1/70"
+                  ? "bg-muted-foreground/70"
+                  : "bg-chart-1/70"
             )}
           />
         </div>
@@ -64,7 +64,7 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
                   entry.stream === "stderr" && "text-destructive",
                   (entry.line.includes("failed") ||
                     entry.line.includes("aborted")) &&
-                    "text-destructive",
+                  "text-destructive",
                   entry.line.includes("passed") && "text-chart-1"
                 )}
               >
@@ -75,7 +75,7 @@ export function RunDetailsPanel({ run, logs }: RunDetailsPanelProps) {
         </div>
       </CardContent>
       <CardFooter className="justify-between">
-        <Button variant="outline" size="sm" className="border-border bg-card/70">
+        <Button variant="outline" size="sm" className="border-border bg-card">
           <FileText data-icon="inline-start" />
           Full log
         </Button>

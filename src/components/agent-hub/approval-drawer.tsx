@@ -86,7 +86,7 @@ function ApprovalItem({ data, onApprove, onReject, isLoading }: ApprovalItemProp
   }
 
   return (
-    <div className="border border-border/60 bg-card/50 p-3 space-y-2">
+    <div className="border border-border/60 bg-card p-3 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span

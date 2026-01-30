@@ -13,7 +13,7 @@ interface ExecutionQueueCardProps {
 
 export function ExecutionQueueCard({ queue }: ExecutionQueueCardProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card/85">
+    <Card className="flex flex-col border-border/60 bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="text-sm">Execution queue</CardTitle>
         <CardDescription>What comes next in the pipeline.</CardDescription>
@@ -22,7 +22,7 @@ export function ExecutionQueueCard({ queue }: ExecutionQueueCardProps) {
         {queue.map((item) => (
           <div
             key={item.id}
-            className="space-y-1 border border-border bg-card/70 p-3"
+            className="space-y-1 border border-border bg-card p-3"
           >
             <div className="flex items-center justify-between text-xs font-medium text-foreground">
               <span>{item.name}</span>

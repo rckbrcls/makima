@@ -145,14 +145,14 @@ export function CommandHub() {
             defaultValue="commands"
             className="flex min-h-0 flex-1 flex-col"
           >
-            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80">
+            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card">
               <TabsTrigger value="commands">Commands</TabsTrigger>
               <TabsTrigger value="execution">Execution</TabsTrigger>
               <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
             </TabsList>
 
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
               <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                 {/* Tab: Commands */}
                 <TabsContent value="commands" className="flex flex-col">

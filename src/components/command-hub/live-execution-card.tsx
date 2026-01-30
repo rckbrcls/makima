@@ -20,7 +20,7 @@ interface LiveExecutionCardProps {
 
 export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps) {
   return (
-    <Card className="flex flex-col border-border/70 bg-card/85">
+    <Card className="flex flex-col border-border/70 bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Activity className="size-4 text-primary" />
@@ -66,7 +66,7 @@ export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps)
         <Button
           variant="outline"
           size="sm"
-          className="border-border bg-card/70"
+          className="border-border bg-card"
           onClick={() => onStop?.(execution.repo, execution.command)}
         >
           <Square data-icon="inline-start" />

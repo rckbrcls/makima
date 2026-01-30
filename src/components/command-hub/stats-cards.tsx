@@ -32,7 +32,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
           <Card
             key={item.label}
             className={cn(
-              "border-border/70 bg-card/80 backdrop-blur animate-in fade-in slide-in-from-bottom-6 duration-700",
+              "border-border/70 bg-card animate-in fade-in slide-in-from-bottom-6 duration-700",
               delayClass
             )}
           >

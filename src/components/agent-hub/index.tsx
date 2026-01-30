@@ -95,7 +95,7 @@ function AgentHubHeader({
           <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
             placeholder="Search..."
-            className="h-9 border-border bg-background/80 pl-8 text-xs"
+            className="h-9 border-border bg-card pl-8 text-xs"
           />
         </div>
 
@@ -184,7 +184,7 @@ function AgentsTab({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_350px]">
       {/* Agents Grid */}
-      <Card className="overflow-hidden border-border/70 bg-card/80">
+      <Card className="overflow-hidden border-border/70 bg-card">
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div>
             <h2 className="text-sm font-medium">Agents</h2>
@@ -239,7 +239,7 @@ function AgentsTab({
           onEndSession={onEndSession}
         />
       ) : (
-        <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card/80">
+        <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card">
           <Shield className="size-10 text-muted-foreground/30 mb-3" />
           <p className="text-sm text-muted-foreground">No active session</p>
           <p className="text-xs text-muted-foreground/70 mt-1">
@@ -515,7 +515,7 @@ export function AgentHub() {
             defaultValue="agents"
             className="flex min-h-0 flex-1 flex-col"
           >
-            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card/80">
+            <TabsList className="mb-4 shrink-0 self-start border border-border/60 bg-card">
               <TabsTrigger value="agents">
                 <Bot className="size-3.5 mr-1.5" />
                 Agents
@@ -546,7 +546,7 @@ export function AgentHub() {
 
             {/* Tab: Commands */}
             <TabsContent value="commands" className="flex-1 overflow-auto">
-              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                   <CommandsTab
                     selectedRepo={selectedRepo}
@@ -565,7 +565,7 @@ export function AgentHub() {
 
             {/* Tab: Execution */}
             <TabsContent value="execution" className="flex-1 overflow-auto">
-              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                   <ExecutionTab
                     selectedRepo={selectedRepo}
@@ -581,7 +581,7 @@ export function AgentHub() {
 
             {/* Tab: Statistics */}
             <TabsContent value="statistics" className="flex-1 overflow-auto">
-              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card/80 p-0">
+              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
                   <HistoryTab state={commanderState} selectedRepo={selectedRepo} />
                 </div>

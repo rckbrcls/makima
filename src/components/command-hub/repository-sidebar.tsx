@@ -52,7 +52,7 @@ export function RepositorySidebar({
   onDeleteRepository,
 }: RepositorySidebarProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card/85">
+    <Card className="flex flex-col border-border/60 bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <FolderGit2 className="size-4 text-primary" />
@@ -159,7 +159,7 @@ export function RepositorySidebar({
       </CardContent>
       <CardFooter>
         <AddRepositoryDialog onAddRepository={onAddRepository}>
-          <Button variant="outline" className="w-full border-border bg-card/70 text-xs">
+          <Button variant="outline" className="w-full border-border bg-card text-xs">
             <Plus data-icon="inline-start" />
             Add repository
           </Button>

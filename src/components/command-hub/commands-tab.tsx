@@ -99,7 +99,7 @@ export function CommandsTab({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-border bg-card/80"
+                  className="border-border bg-card"
                   onClick={() => stopAllForRepo(repoName)}
                 >
                   <Square data-icon="inline-start" />
@@ -164,7 +164,7 @@ export function CommandsTab({
       <StatsCards stats={summaryStats} />
 
       {/* Commands grid */}
-      <Card className="flex flex-col border-border/60 bg-card/85">
+      <Card className="flex flex-col border-border/60 bg-card">
         <CardHeader className="border-b border-border/60">
           <CardTitle className="flex items-center gap-2 text-base">
             <Terminal className="size-4 text-primary" />
@@ -178,7 +178,7 @@ export function CommandsTab({
               <Button
                 variant="outline"
                 size="sm"
-                className="border-border bg-card/80"
+                className="border-border bg-card"
                 onClick={() => {
                   setEditingCommand(undefined)
                   setDialogOpen(true)
@@ -190,7 +190,7 @@ export function CommandsTab({
               <Button
                 variant="outline"
                 size="sm"
-                className="border-border bg-card/80"
+                className="border-border bg-card"
                 onClick={() => stopAllForRepo(selectedRepo)}
               >
                 <Square data-icon="inline-start" />

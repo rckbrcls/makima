@@ -137,7 +137,7 @@ export function CommandForm({
                     onValueChange={handleLanguageChange}
                     disabled={!repoName}
                   >
-                    <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                    <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
                       <SelectValue placeholder="Select a language (optional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -159,7 +159,7 @@ export function CommandForm({
                     onValueChange={handleFrameworkChange}
                     disabled={!repoName || template.state.language === "custom"}
                   >
-                    <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                    <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
                       <SelectValue
                         placeholder={
                           template.state.language === "custom"
@@ -190,7 +190,7 @@ export function CommandForm({
                         !repoName || template.state.framework === "custom"
                       }
                     >
-                      <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                      <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -205,7 +205,7 @@ export function CommandForm({
                     <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
                       package manager
                     </label>
-                    <div className="h-9 w-full border-border bg-background/80 text-xs flex items-center px-3 rounded-none border text-muted-foreground">
+                    <div className="h-9 w-full border-border bg-card text-xs flex items-center px-3 rounded-none border text-muted-foreground">
                       Not required
                     </div>
                   </div>
@@ -220,7 +220,7 @@ export function CommandForm({
                   onValueChange={handleCommandChange}
                   disabled={!repoName || template.state.framework === "custom"}
                 >
-                  <SelectTrigger className="h-9 w-full border-border bg-background/80 text-xs">
+                  <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
                     <SelectValue
                       placeholder={
                         template.state.framework === "custom"
@@ -247,7 +247,7 @@ export function CommandForm({
                 command name
               </label>
               <Input
-                className="h-9 border-border bg-background/80 text-xs"
+                className="h-9 border-border bg-card text-xs"
                 placeholder="Optional: e.g., build-desktop"
                 value={commandName}
                 onChange={(event) =>
@@ -259,7 +259,7 @@ export function CommandForm({
                 base command
               </label>
               <Input
-                className="h-9 border-border bg-background/80 text-xs"
+                className="h-9 border-border bg-card text-xs"
                 value={baseCommand}
                 onChange={(event) =>
                   handleFieldChange("baseCommand", event.target.value)
@@ -270,7 +270,7 @@ export function CommandForm({
                 arguments
               </label>
               <Input
-                className="h-9 border-border bg-background/80 text-xs"
+                className="h-9 border-border bg-card text-xs"
                 placeholder="build --filter=desktop"
                 value={args}
                 onChange={(event) =>
@@ -284,7 +284,7 @@ export function CommandForm({
                 notes and variables
               </label>
               <Textarea
-                className="min-h-[124px] border-border bg-background/80 text-xs"
+                className="min-h-[124px] border-border bg-card text-xs"
                 placeholder="ENV=production\nCACHE=false\n"
                 value={notes}
                 onChange={(event) => onNotesChange(event.target.value)}

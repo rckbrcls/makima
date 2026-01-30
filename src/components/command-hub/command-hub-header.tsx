@@ -70,7 +70,7 @@ export function CommandHubHeader({
             >
               <Menu className="size-5" />
             </Button>
-            <div className="flex size-12 items-center justify-center border border-border/70 bg-card/70">
+            <div className="flex size-12 items-center justify-center border border-border/70 bg-card">
               <Terminal className="size-5 text-primary" />
             </div>
             <div>
@@ -88,11 +88,11 @@ export function CommandHubHeader({
               <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
               <Input
                 placeholder="Search commands, repos or tags"
-                className="h-9 border-border bg-background/80 pl-8 text-xs"
+                className="h-9 border-border bg-card pl-8 text-xs"
               />
             </div>
             <ModeToggle />
-            <Button variant="outline" className="h-9 border-border bg-card/70 text-xs">
+            <Button variant="outline" className="h-9 border-border bg-card text-xs">
               <Sparkles data-icon="inline-start" />
               Auto-setup
             </Button>
@@ -100,7 +100,7 @@ export function CommandHubHeader({
               className="h-9 border-border text-xs"
               onClick={() => setComposeDialogOpen(true)}
             >
-               <Plus data-icon="inline-start" />
+              <Plus data-icon="inline-start" />
               New command
             </Button>
           </div>
@@ -129,7 +129,7 @@ export function CommandHubHeader({
                   Repository:
                 </label>
                 <Select value={composeRepo} onValueChange={setComposeRepo}>
-                  <SelectTrigger className="w-full border-border bg-background/80">
+                  <SelectTrigger className="w-full border-border bg-card">
                     <SelectValue placeholder="Select repository" />
                   </SelectTrigger>
                   <SelectContent>
