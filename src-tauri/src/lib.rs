@@ -83,14 +83,14 @@ pub fn run() {
             }
 
             let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                .title("commander")
+                .title("")
                 .inner_size(800.0, 600.0)
                 .resizable(true)
                 .min_inner_size(400.0, 400.0);
 
             // set transparent title bar only when building for macOS
             #[cfg(target_os = "macos")]
-            let win_builder = win_builder.title_bar_style(TitleBarStyle::Transparent);
+            let win_builder = win_builder.title_bar_style(TitleBarStyle::Overlay);
 
             let window = win_builder.build().unwrap();
 
@@ -102,16 +102,8 @@ pub fn run() {
 
                 let ns_window = window.ns_window().unwrap() as id;
                 unsafe {
-                    // primary color (cyan): oklch(0.5 0.15 200) ≈ RGB(60, 150, 180) for light mode
-                    // primary color (cyan): oklch(0.68 0.12 200) ≈ RGB(100, 180, 210) for dark mode
-                    // Using light mode primary color (cyan)
-                    let bg_color = NSColor::colorWithRed_green_blue_alpha_(
-                        nil,
-                        60.0 / 255.0,
-                        150.0 / 255.0,
-                        180.0 / 255.0,
-                        1.0,
-                    );
+                    ns_window.setOpaque_(false);
+                    let bg_color = NSColor::clearColor(nil);
                     ns_window.setBackgroundColor_(bg_color);
                 }
             }
