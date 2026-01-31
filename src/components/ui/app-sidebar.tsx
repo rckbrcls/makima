@@ -38,26 +38,8 @@ const navItems = [
 
 export function AppSidebar() {
   return (
-    <aside className="group  fixed top-0 left-0 z-[100] flex h-full w-14 flex-col border-r border-border/40 bg-card text-card-foreground transition-all duration-300 ease-in-out hover:w-60">
-      <div className="flex h-24 shrink-0 items-end px-3 pb-4">
-        <div className="flex size-7 items-center justify-center shrink-0 overflow-hidden">
-          <img
-            src="/white-logo.png"
-            alt="Logo"
-            className="hidden h-full w-auto object-contain dark:block"
-          />
-          <img
-            src="/black-logo.png"
-            alt="Logo"
-            className="block h-full w-auto object-contain dark:hidden"
-          />
-        </div>
-        <span className="ml-3 text-lg tracking-tight opacity-0 transition-opacity duration-300 group-hover:opacity-100 whitespace-nowrap overflow-hidden leading-none">
-          Commander
-        </span>
-      </div>
-
-      <nav className="flex flex-1 flex-col gap-1.5 p-2 pt-6">
+    <aside className="group fixed top-0 left-0 z-[40] flex h-full w-14 flex-col border-r border-border/40 bg-card text-card-foreground transition-all duration-300 ease-in-out hover:w-60">
+      <nav className="flex flex-1 flex-col gap-1.5 p-2 pt-20">
         {navItems.map((item) => (
           <Link
             key={item.to}

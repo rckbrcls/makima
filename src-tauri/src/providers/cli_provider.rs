@@ -1,7 +1,7 @@
 //! CLI Provider - Controls CLI agents via process/PTY
 //!
 //! This provider manages AI CLI tools (Claude Code, Codex, Gemini Code) as child processes,
-//! communicating via the Commander Agent Bridge (CAB) protocol using NDJSON.
+//! communicating via the Company Agent Bridge (CAB) protocol using NDJSON.
 
 use super::Provider;
 use crate::database;

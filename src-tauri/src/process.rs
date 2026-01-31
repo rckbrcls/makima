@@ -8,7 +8,9 @@ use crate::types::{
     Command, CommandStatus, CommandType, ExecutionHistoryItem, ExecutionLogLine, LiveExecution,
     ProcessEntry, RepositoryStatus, RunCommandRequest, LOG_CAPACITY,
 };
-use crate::utils::{current_timestamp, format_duration, recompute_history_stats, recompute_pipelines};
+use crate::utils::{
+    current_timestamp, format_duration, recompute_history_stats, recompute_pipelines,
+};
 use std::{
     io::{BufRead, BufReader},
     path::Path,
@@ -223,7 +225,7 @@ pub fn spawn_log_reader(
             }
 
             app.emit(
-                "commander://execution-log",
+                "company://execution-log",
                 ExecutionLogEvent {
                     repo: repo.clone(),
                     command: command.clone(),
@@ -268,16 +270,17 @@ pub fn start_execution(
     // occupied, pick the next available one.  The chosen port is
     // injected via the PORT environment variable so frameworks like
     // Next.js, Nuxt, Remix, etc. pick it up automatically.
-    let allocated_port = detect_command_port(&request.command, repo_path.as_deref()).map(|default| {
-        let port = find_available_port(default);
-        if port != default {
-            log::info!(
-                "[start] port {default} busy, using {port} for command={}",
-                request.command
-            );
-        }
-        port
-    });
+    let allocated_port =
+        detect_command_port(&request.command, repo_path.as_deref()).map(|default| {
+            let port = find_available_port(default);
+            if port != default {
+                log::info!(
+                    "[start] port {default} busy, using {port} for command={}",
+                    request.command
+                );
+            }
+            port
+        });
 
     let mut cmd = if cfg!(target_os = "windows") {
         let mut cmd = std::process::Command::new("cmd");
@@ -375,7 +378,7 @@ pub fn start_execution(
     }
 
     app.emit(
-        "commander://execution-started",
+        "company://execution-started",
         ExecutionStartedEvent {
             repo: request.repo.clone(),
             command: display_name.clone(),
@@ -537,7 +540,11 @@ pub fn spawn_waiter(
                     "[waiter] live_execution NOT FOUND for repo={repo} command={command}, live_executions count: {live_count}"
                 );
                 for (i, le) in data.live_executions.iter().enumerate() {
-                    log::warn!("[waiter]   live_executions[{i}]: repo={} command={}", le.repo, le.command);
+                    log::warn!(
+                        "[waiter]   live_executions[{i}]: repo={} command={}",
+                        le.repo,
+                        le.command
+                    );
                 }
             }
 
@@ -587,12 +594,15 @@ pub fn spawn_waiter(
             log::error!("[waiter] failed to persist history (id={history_id}): {error}");
         } else {
             log::info!("[waiter] history persisted ok, now persisting {} log lines for history_id={history_id}", log_snapshot.len());
-            if let Err(error) =
-                persist_execution_logs(&state.db_path, history_id, &log_snapshot)
-            {
-                log::error!("[waiter] failed to persist execution logs (history_id={history_id}): {error}");
+            if let Err(error) = persist_execution_logs(&state.db_path, history_id, &log_snapshot) {
+                log::error!(
+                    "[waiter] failed to persist execution logs (history_id={history_id}): {error}"
+                );
             } else {
-                log::info!("[waiter] execution logs persisted ok for history_id={history_id}, {} lines", log_snapshot.len());
+                log::info!(
+                    "[waiter] execution logs persisted ok for history_id={history_id}, {} lines",
+                    log_snapshot.len()
+                );
             }
         }
 
@@ -614,7 +624,7 @@ pub fn spawn_waiter(
         }
 
         app.emit(
-            "commander://execution-finished",
+            "company://execution-finished",
             ExecutionFinishedEvent {
                 repo,
                 command,

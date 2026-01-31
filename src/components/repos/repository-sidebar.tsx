@@ -138,7 +138,7 @@ export function RepositorySidebar({
                     <AlertDialogTitle>Delete repository?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This removes {repo.name}, its commands, and history from
-                      Commander.
+                      Company.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sheet"
 import { Terminal, History, BarChart3 } from "lucide-react"
 import { useAgentState } from "@/hooks/use-agent-state"
-import { useCommanderState } from "@/hooks/use-commander-state"
+import { useCompanyState } from "@/hooks/use-company-state"
 import { useUIStore } from "@/stores/ui-store"
 import { PageHeader } from "@/components/shared/page-header"
 import { RepositorySidebar } from "@/components/repos/repository-sidebar"
@@ -28,7 +28,7 @@ export function ReposPage() {
   } = useAgentState()
 
   const {
-    state: commanderState,
+    state: companyState,
     runCommand,
     stopCommand,
     addRepository,
@@ -37,7 +37,7 @@ export function ReposPage() {
     deleteCommand,
     deleteRepository,
     getExecutionLogs,
-  } = useCommanderState()
+  } = useCompanyState()
 
   const {
     selectedRepo,
@@ -52,7 +52,7 @@ export function ReposPage() {
     executionHistory,
     liveExecutions,
     repositories,
-  } = commanderState
+  } = companyState
 
   // Filtered data for repos components
   const filteredCommands = filterByRepo(commands, selectedRepo)
@@ -210,7 +210,7 @@ export function ReposPage() {
             <TabsContent value="statistics" className="flex-1 overflow-auto p-1">
               <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
-                  <HistoryTab state={commanderState} selectedRepo={selectedRepo} />
+                  <HistoryTab state={companyState} selectedRepo={selectedRepo} />
                 </div>
               </Card>
             </TabsContent>

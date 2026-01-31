@@ -2,8 +2,8 @@ use crate::database;
 use crate::process::{kill_process_tree, start_execution};
 use crate::runtime::AppRuntime;
 use crate::types::{
-  Command, CommandStatus, CommandType, DashboardState, ExecutionLogLine, RepoBranches,
-  Repository, RunCommandRequest, RunQueueItem, StopCommandRequest,
+    Command, CommandStatus, CommandType, DashboardState, ExecutionLogLine, RepoBranches,
+    Repository, RunCommandRequest, RunQueueItem, StopCommandRequest,
 };
 use crate::utils::{current_timestamp, recompute_history_stats, recompute_pipelines};
 use std::process::Command as ProcessCommand;
@@ -12,12 +12,12 @@ use std::{collections::HashSet, fs, path::Path};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
-pub fn commander_state(state: State<'_, Arc<AppRuntime>>) -> DashboardState {
+pub fn company_state(state: State<'_, Arc<AppRuntime>>) -> DashboardState {
     state.data.lock().expect("state poisoned").clone()
 }
 
 #[tauri::command]
-pub fn commander_add_repository(
+pub fn company_add_repository(
     state: State<'_, Arc<AppRuntime>>,
     repo: Repository,
 ) -> Result<(), String> {
@@ -39,7 +39,7 @@ pub fn commander_add_repository(
 }
 
 #[tauri::command]
-pub fn commander_repo_branches(path: String) -> Result<RepoBranches, String> {
+pub fn company_repo_branches(path: String) -> Result<RepoBranches, String> {
     let repo_path = Path::new(&path);
     if !repo_path.exists() {
         return Err("path not found".to_string());
@@ -92,7 +92,9 @@ pub fn commander_repo_branches(path: String) -> Result<RepoBranches, String> {
         .map_err(|error| error.to_string())?;
 
     let current = if current_output.status.success() {
-        let value = String::from_utf8_lossy(&current_output.stdout).trim().to_string();
+        let value = String::from_utf8_lossy(&current_output.stdout)
+            .trim()
+            .to_string();
         if value.is_empty() {
             None
         } else {
@@ -231,7 +233,7 @@ fn add_command_if_missing(
 }
 
 #[tauri::command]
-pub fn commander_import_commands(
+pub fn company_import_commands(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,
 ) -> Result<usize, String> {
@@ -257,7 +259,7 @@ pub fn commander_import_commands(
 }
 
 #[tauri::command]
-pub fn commander_add_command(
+pub fn company_add_command(
     state: State<'_, Arc<AppRuntime>>,
     command: Command,
 ) -> Result<(), String> {
@@ -287,14 +289,18 @@ pub fn commander_add_command(
 }
 
 #[tauri::command]
-pub fn commander_run_command(
+pub fn company_run_command(
     app: AppHandle,
     state: State<'_, Arc<AppRuntime>>,
     request: RunCommandRequest,
 ) -> Result<(), String> {
     {
         let data = state.data.lock().map_err(|_| "state poisoned")?;
-        if !data.repositories.iter().any(|repo| repo.name == request.repo) {
+        if !data
+            .repositories
+            .iter()
+            .any(|repo| repo.name == request.repo)
+        {
             return Err("repository not found".to_string());
         }
     }
@@ -366,7 +372,10 @@ pub fn commander_run_command(
             queued_at,
         };
         let queue_id = database::enqueue_run_queue_item(&state.db_path, &queue_item)?;
-        data.run_queue.push(RunQueueItem { id: queue_id, ..queue_item });
+        data.run_queue.push(RunQueueItem {
+            id: queue_id,
+            ..queue_item
+        });
         data.pipelines = recompute_pipelines(&data.live_executions, &data.run_queue);
         return Ok(());
     }
@@ -375,7 +384,7 @@ pub fn commander_run_command(
 }
 
 #[tauri::command]
-pub fn commander_stop_command(
+pub fn company_stop_command(
     state: State<'_, Arc<AppRuntime>>,
     request: StopCommandRequest,
 ) -> Result<(), String> {
@@ -396,7 +405,7 @@ pub fn commander_stop_command(
 }
 
 #[tauri::command]
-pub fn commander_update_command(
+pub fn company_update_command(
     state: State<'_, Arc<AppRuntime>>,
     command: Command,
 ) -> Result<(), String> {
@@ -434,7 +443,7 @@ pub fn commander_update_command(
 }
 
 #[tauri::command]
-pub fn commander_delete_command(
+pub fn company_delete_command(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,
     name: String,
@@ -471,7 +480,7 @@ pub fn commander_delete_command(
 }
 
 #[tauri::command]
-pub fn commander_delete_repository(
+pub fn company_delete_repository(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,
 ) -> Result<(), String> {
@@ -499,7 +508,7 @@ pub fn commander_delete_repository(
 }
 
 #[tauri::command]
-pub fn commander_get_execution_logs(
+pub fn company_get_execution_logs(
     state: State<'_, Arc<AppRuntime>>,
     execution_id: u32,
 ) -> Result<Vec<ExecutionLogLine>, String> {

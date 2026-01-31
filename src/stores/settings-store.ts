@@ -54,14 +54,14 @@ interface SettingsActions {
   // Preferences
   setPreference: <K extends keyof SettingsState['preferences']>(
     key: K,
-    value: SettingsState['preferences'][K]
+    value: SettingsState['preferences'][K],
   ) => void
   setPreferences: (prefs: Partial<SettingsState['preferences']>) => void
 
   // Providers
   setProviderConfig: <K extends keyof SettingsState['providers']>(
     provider: K,
-    config: Partial<SettingsState['providers'][K]>
+    config: Partial<SettingsState['providers'][K]>,
   ) => void
 
   // Reset
@@ -97,12 +97,17 @@ const tauriStorage = {
   getItem: async (name: string): Promise<string | null> => {
     try {
       if (!tauriStorage.store) {
-        tauriStorage.store = await Store.load('settings.json', { autoSave: true })
+        tauriStorage.store = await Store.load('settings.json', {
+          autoSave: true,
+        })
       }
       const value = await tauriStorage.store.get<string>(name)
       return value ?? null
     } catch (error) {
-      console.warn('Failed to load from Tauri store, using localStorage fallback:', error)
+      console.warn(
+        'Failed to load from Tauri store, using localStorage fallback:',
+        error,
+      )
       return localStorage.getItem(name)
     }
   },
@@ -110,12 +115,17 @@ const tauriStorage = {
   setItem: async (name: string, value: string): Promise<void> => {
     try {
       if (!tauriStorage.store) {
-        tauriStorage.store = await Store.load('settings.json', { autoSave: true })
+        tauriStorage.store = await Store.load('settings.json', {
+          autoSave: true,
+        })
       }
       await tauriStorage.store.set(name, value)
       await tauriStorage.store.save()
     } catch (error) {
-      console.warn('Failed to save to Tauri store, using localStorage fallback:', error)
+      console.warn(
+        'Failed to save to Tauri store, using localStorage fallback:',
+        error,
+      )
       localStorage.setItem(name, value)
     }
   },
@@ -123,12 +133,17 @@ const tauriStorage = {
   removeItem: async (name: string): Promise<void> => {
     try {
       if (!tauriStorage.store) {
-        tauriStorage.store = await Store.load('settings.json', { autoSave: true })
+        tauriStorage.store = await Store.load('settings.json', {
+          autoSave: true,
+        })
       }
       await tauriStorage.store.delete(name)
       await tauriStorage.store.save()
     } catch (error) {
-      console.warn('Failed to remove from Tauri store, using localStorage fallback:', error)
+      console.warn(
+        'Failed to remove from Tauri store, using localStorage fallback:',
+        error,
+      )
       localStorage.removeItem(name)
     }
   },
@@ -142,9 +157,10 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Mode
       setMode: (mode) => set({ mode }),
-      toggleMode: () => set((state) => ({
-        mode: state.mode === 'safe' ? 'auto' : 'safe'
-      })),
+      toggleMode: () =>
+        set((state) => ({
+          mode: state.mode === 'safe' ? 'auto' : 'safe',
+        })),
 
       // Preferences
       setPreference: (key, value) =>
@@ -172,7 +188,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
-      name: 'commander-settings',
+      name: 'company-settings',
       storage: createJSONStorage(() => tauriStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true)
@@ -182,9 +198,10 @@ export const useSettingsStore = create<SettingsStore>()(
         preferences: state.preferences,
         providers: state.providers,
       }),
-    }
-  )
+    },
+  ),
 )
 
 // Hook to wait for hydration
-export const useSettingsHydrated = () => useSettingsStore((state) => state._hasHydrated)
+export const useSettingsHydrated = () =>
+  useSettingsStore((state) => state._hasHydrated)

@@ -38,8 +38,8 @@ import type {
 
 export const mockRepositories: Repository[] = [
   {
-    name: 'commander',
-    path: '/Users/dev/codes/commander',
+    name: 'company',
+    path: '/Users/dev/codes/company',
     branch: 'main',
     status: 'active',
     tech: ['TypeScript', 'React', 'Tauri', 'Rust'],
@@ -83,7 +83,7 @@ export const mockCommands: Command[] = [
     status: 'running',
     duration: '15:32',
     lastRun: 'now',
-    repo: 'commander',
+    repo: 'company',
   },
   {
     name: 'Build',
@@ -92,7 +92,7 @@ export const mockCommands: Command[] = [
     status: 'success',
     duration: '45s',
     lastRun: '2 hours ago',
-    repo: 'commander',
+    repo: 'company',
   },
   {
     name: 'Type Check',
@@ -101,7 +101,7 @@ export const mockCommands: Command[] = [
     status: 'success',
     duration: '12s',
     lastRun: '30 min ago',
-    repo: 'commander',
+    repo: 'company',
   },
   {
     name: 'Lint',
@@ -134,7 +134,7 @@ export const mockCommands: Command[] = [
 
 export const mockLiveExecutions: LiveExecution[] = [
   {
-    repo: 'commander',
+    repo: 'company',
     command: 'pnpm dev',
     pid: 12345,
     cpu: '2.5%',
@@ -174,7 +174,7 @@ export const mockRunQueue: RunQueueItem[] = [
   {
     id: 2,
     name: 'Build Production',
-    repo: 'commander',
+    repo: 'company',
     command: 'pnpm build:prod',
     commandType: 'build',
     queuedAt: '5 min ago',
@@ -191,7 +191,7 @@ export const mockRunQueue: RunQueueItem[] = [
 
 export const mockPipelines: Pipeline[] = [
   {
-    repo: 'commander',
+    repo: 'company',
     steps: [
       { label: 'Install', state: 'done' },
       { label: 'Lint', state: 'done' },
@@ -216,7 +216,7 @@ export const mockExecutionHistory: ExecutionHistoryItem[] = [
   {
     id: 1,
     name: 'Build',
-    repo: 'commander',
+    repo: 'company',
     status: 'success',
     duration: '45s',
     timestamp: '2026-01-30T14:30:00Z',
@@ -240,7 +240,7 @@ export const mockExecutionHistory: ExecutionHistoryItem[] = [
   {
     id: 4,
     name: 'Dev Server',
-    repo: 'commander',
+    repo: 'company',
     status: 'stopped',
     duration: '1h 15m',
     timestamp: '2026-01-30T13:00:00Z',
@@ -595,7 +595,7 @@ export const mockArtifacts: Artifact[] = [
 export const mockAgentsWithRepos: AgentWithRepos[] = [
   {
     ...mockAgents[0],
-    repos: ['commander', 'api-server'],
+    repos: ['company', 'api-server'],
     currentSession: mockSessions[0],
   },
   {
@@ -610,7 +610,7 @@ export const mockAgentsWithRepos: AgentWithRepos[] = [
   },
   {
     ...mockAgents[3],
-    repos: ['commander', 'mobile-app', 'docs-site'],
+    repos: ['company', 'mobile-app', 'docs-site'],
     currentSession: mockSessions[3],
   },
 ]

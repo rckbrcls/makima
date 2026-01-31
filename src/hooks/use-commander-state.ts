@@ -25,7 +25,7 @@ const getErrorMessage = (error: unknown) => {
 // Hook
 // ============================================================================
 
-export function useCommanderState() {
+export function useCompanyState() {
   const [state, setState] = useState<DashboardState>(mockCommandHubDashboard)
 
   const refreshState = useCallback(async () => {

@@ -1,13 +1,15 @@
-# Commander — Executor de Agentes de IA (Visão e Arquitetura)
+# Company — Executor de Agentes de IA (Visão e Arquitetura)
 
 ## Visão geral
-O Commander deixa de ser apenas um executor de comandos e passa a ser um **orquestrador de agentes de IA**, com observabilidade total do que cada agente faz (comandos, edições, pesquisas) e com **modo seguro** (aprovação manual) ou **modo automático**.
+
+O Company deixa de ser apenas um executor de comandos e passa a ser um **orquestrador de agentes de IA**, com observabilidade total do que cada agente faz (comandos, edições, pesquisas) e com **modo seguro** (aprovação manual) ou **modo automático**.
 
 A home vira um **painel de agentes**, com vários cards mostrando agentes rodando em paralelo, status e logs em tempo real.
 
 ---
 
 ## Objetivos do produto
+
 - **Controlar CLIs de IA pelo app** (Codex CLI, Claude Code, Gemini Code etc.)
 - **Suportar agentes locais e via API**
 - **Permitir aprovações manuais por ação** (modo seguro)
@@ -19,7 +21,9 @@ A home vira um **painel de agentes**, com vários cards mostrando agentes rodand
 ## Conceitos principais
 
 ### Agent
+
 Representa um “worker” de IA.
+
 - id, name
 - provider (cli, local, api)
 - model/config
@@ -27,32 +31,41 @@ Representa um “worker” de IA.
 - repos vinculados (relação N–N)
 
 ### Session
+
 Uma sessão é um objetivo/execução completa.
+
 - id, agent_id
 - goal
 - state (active, done, failed)
 - timestamps
 
 ### Action
+
 Tudo que o agente faz vira uma ação.
+
 - id, session_id
 - type (run_command, edit_file, read_file, search_web, start_dev_server, etc.)
 - status (pending, running, done, failed, blocked)
 - payload (params da ação)
 
 ### Approval
+
 Quando em modo seguro, ações ficam bloqueadas até aprovação.
+
 - id, action_id
 - state (pending, approved, rejected)
 - reviewer, timestamp
 
 ### Event
+
 Linha de tempo de tudo que acontece.
+
 - id, agent_id, session_id
 - level, message, timestamp
 - source (tool, cli, system)
 
 ### Artifact
+
 Logs, diffs, outputs, anexos.
 
 ---
@@ -60,29 +73,33 @@ Logs, diffs, outputs, anexos.
 ## Providers de IA
 
 ### 1) CLI Provider (controle via app)
-Objetivo: rodar CLIs (Codex, Claude Code, Gemini Code) **sob controle do Commander**.
+
+Objetivo: rodar CLIs (Codex, Claude Code, Gemini Code) **sob controle do Company**.
 
 **Estratégia:**
-- O Commander inicia o CLI como processo filho (PTY).
+
+- O Company inicia o CLI como processo filho (PTY).
 - Toda entrada/saída passa pelo app (stdin/stdout).
 - O CLI não executa comandos diretamente: ele **pede ações**.
-- O Commander executa as ações e responde ao CLI.
+- O Company executa as ações e responde ao CLI.
 
 **Resultado:**
-- O Commander controla cada passo.
+
+- O Company controla cada passo.
 - Modo seguro funciona (aprovação antes de executar).
 
 > Se o CLI não suporta tool-proxy nativamente, podemos usar um wrapper/bridge que interpreta a conversa e converte em ações.
 
 ---
 
-## Protocolo do CLI Bridge (Commander Agent Bridge)
+## Protocolo do CLI Bridge (Company Agent Bridge)
 
 Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e debuggável: **JSON por linha** (NDJSON) via stdin/stdout.
 
 ### Nomes finais das mensagens
 
-**Direção CLI → Commander**
+**Direção CLI → Company**
+
 - `hello`
 - `log`
 - `plan`
@@ -91,7 +108,8 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 - `session.end`
 - `ping`
 
-**Direção Commander → CLI**
+**Direção Company → CLI**
+
 - `hello.ack`
 - `action.result`
 - `approval.requested`
@@ -100,6 +118,7 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 - `pong`
 
 ### Campos padrão (todas as mensagens)
+
 - `type`: string (nome da mensagem)
 - `id`: string (id da mensagem)
 - `sessionId`: string
@@ -108,67 +127,98 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 
 ### Campos por tipo
 
-**hello (CLI → Commander)**
+**hello (CLI → Company)**
+
 - `cli`: string
 - `version`: string
 - `capabilities`: string[] (ex: `["actions","plan","stream"]`)
 
-**hello.ack (Commander → CLI)**
+**hello.ack (Company → CLI)**
+
 - `protocol`: string (ex: `cab/1.0`)
 - `mode`: `safe | auto`
 - `workspace`: string (path)
 
-**log (CLI → Commander)**
+**log (CLI → Company)**
+
 - `level`: `debug | info | warn | error`
 - `message`: string
 
-**plan (CLI → Commander)**
+**plan (CLI → Company)**
+
 - `items`: string[]
 
-**action.request (CLI → Commander)**
+**action.request (CLI → Company)**
+
 - `action`: `{ type: string, payload: object, summary?: string }`
 
-**action.cancel (CLI → Commander)**
+**action.cancel (CLI → Company)**
+
 - `actionId`: string
 - `reason?`: string
 
-**action.result (Commander → CLI)**
+**action.result (Company → CLI)**
+
 - `actionId`: string
 - `status`: `ok | failed | blocked | rejected`
 - `output?`: string
 - `error?`: string
 
-**approval.requested (Commander → CLI)**
+**approval.requested (Company → CLI)**
+
 - `approvalId`: string
 - `actionId`: string
 - `summary`: string
 
-**approval.result (Commander → CLI)**
+**approval.result (Company → CLI)**
+
 - `approvalId`: string
 - `state`: `approved | rejected`
 - `reason?`: string
 
-**session.set_mode (Commander → CLI)**
+**session.set_mode (Company → CLI)**
+
 - `mode`: `safe | auto`
 
-**session.end (CLI → Commander)**
+**session.end (CLI → Company)**
+
 - `state`: `done | failed | aborted`
 - `summary?`: string
 
 **ping/pong**
-- `ping` (CLI → Commander) / `pong` (Commander → CLI)
+
+- `ping` (CLI → Company) / `pong` (Company → CLI)
 
 ### Handshake
-O Commander inicia o processo e envia:
+
+O Company inicia o processo e envia:
 
 ```json
-{"type":"hello","id":"m-1","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:00Z","cli":"claude-code","version":"1.2.0","capabilities":["actions","plan","stream"]}
+{
+  "type": "hello",
+  "id": "m-1",
+  "sessionId": "s-123",
+  "agentId": "a-1",
+  "timestamp": "2026-01-30T12:00:00Z",
+  "cli": "claude-code",
+  "version": "1.2.0",
+  "capabilities": ["actions", "plan", "stream"]
+}
 ```
 
 O CLI responde:
 
 ```json
-{"type":"hello.ack","id":"m-2","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:01Z","protocol":"cab/1.0","mode":"safe","workspace":"/path"}
+{
+  "type": "hello.ack",
+  "id": "m-2",
+  "sessionId": "s-123",
+  "agentId": "a-1",
+  "timestamp": "2026-01-30T12:00:01Z",
+  "protocol": "cab/1.0",
+  "mode": "safe",
+  "workspace": "/path"
+}
 ```
 
 ### Mensagens principais
@@ -181,7 +231,7 @@ O CLI responde:
 {"type":"action.request","id":"m-7","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:14Z","action":{"type":"search_web","payload":{"query":"..."},"summary":"Pesquisar dependência"}}
 ```
 
-### Respostas do Commander
+### Respostas do Company
 
 ```json
 {"type":"action.result","id":"m-8","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:20Z","actionId":"act-1","status":"ok","output":"..."}
@@ -197,6 +247,7 @@ O CLI responde:
 ```
 
 ### Observações
+
 - **Modo seguro**: `request_action` vira `approval_requested` e fica bloqueado até o usuário aprovar.
 - **Modo automático**: `request_action` executa direto.
 - **Fallback**: se o CLI não suportar o protocolo, usamos um **wrapper** que interpreta texto e transforma em ações, mas com menos precisão.
@@ -204,9 +255,11 @@ O CLI responde:
 ---
 
 ### 2) Local Model Provider
+
 Ex: Ollama, LM Studio. O modelo chama tools internos do app.
 
 ### 3) API Provider
+
 Ex: OpenAI, Anthropic, Google. Mesmo fluxo de tools.
 
 ---
@@ -214,7 +267,9 @@ Ex: OpenAI, Anthropic, Google. Mesmo fluxo de tools.
 ## Modo seguro vs automático
 
 ### Modo seguro (manual)
+
 Exige aprovação para:
+
 - comandos no terminal
 - edições de código
 - pesquisa na internet
@@ -223,6 +278,7 @@ Exige aprovação para:
 UI oferece botões de **Approve/Reject** e histórico do que foi pedido.
 
 ### Modo automático
+
 Ações executam direto, mas tudo fica registrado na timeline.
 
 ---
@@ -230,6 +286,7 @@ Ações executam direto, mas tudo fica registrado na timeline.
 ## Fluxo de approvals (UI + estados)
 
 ### Estados de Approval
+
 - `pending`: aguardando decisão do usuário
 - `approved`: aprovado
 - `rejected`: rejeitado
@@ -237,6 +294,7 @@ Ações executam direto, mas tudo fica registrado na timeline.
 - `canceled`: cancelado pelo agente (opcional)
 
 ### Estados de Action (relacionados)
+
 - `pending`: aguardando execução
 - `blocked`: aguardando approval
 - `running`: em execução
@@ -245,15 +303,18 @@ Ações executam direto, mas tudo fica registrado na timeline.
 - `rejected`: reprovado pelo usuário
 
 ### Regras de criação
+
 - Em modo **safe**, qualquer `action.request` gera `Approval` com estado `pending` e `Action` vai para `blocked`.
 - Em modo **auto**, `Action` vai direto para `running`.
 
 ### UI: onde aprovar
-**1) AgentCard (rápido)**  
+
+**1) AgentCard (rápido)**
 Badge “Waiting approval” + botões **Approve / Reject** para a última ação pendente.
 
-**2) Approval Drawer (detalhado)**  
+**2) Approval Drawer (detalhado)**
 Lista de approvals com:
+
 - tipo da ação (`run_command`, `edit_file`, `search_web`…)
 - resumo + preview do payload
 - diffs (quando edit_file)
@@ -261,25 +322,28 @@ Lista de approvals com:
 - botões Approve / Reject / Edit & Approve (opcional)
 
 ### Fluxo detalhado (safe mode)
+
 1. CLI envia `action.request`.
-2. Commander cria `Action` (`blocked`) e `Approval` (`pending`).
+2. Company cria `Action` (`blocked`) e `Approval` (`pending`).
 3. UI mostra badge “Waiting approval”.
 4. Usuário **Approve**:
    - `Approval` → `approved`
    - `Action` → `running` → `done/failed`
-   - Commander envia `approval.result` para o CLI.
+   - Company envia `approval.result` para o CLI.
 5. Usuário **Reject**:
    - `Approval` → `rejected`
    - `Action` → `rejected`
-   - Commander envia `approval.result` para o CLI.
+   - Company envia `approval.result` para o CLI.
 
 ### Fluxo automático
+
 1. CLI envia `action.request`.
-2. Commander cria `Action` (`running`).
+2. Company cria `Action` (`running`).
 3. Executa imediatamente.
 4. Envia `action.result` para o CLI.
 
 ### UX sugerida (micro)
+
 - Pending approval mostra preview do impacto.
 - Se `edit_file`, mostrar diff + botão “Abrir arquivo”.
 - Se `run_command`, mostrar o comando e cwd.
@@ -290,12 +354,15 @@ Lista de approvals com:
 ## Actions permitidas (type) e payloads padrão
 
 ### Lista consolidada de `action.type`
+
 **Execução**
+
 - `run_command`
 - `start_dev_server`
 - `stop_dev_server`
 
 **Arquivos**
+
 - `read_file`
 - `write_file`
 - `edit_file`
@@ -303,16 +370,19 @@ Lista de approvals com:
 - `delete_file`
 
 **Pesquisa / Navegação**
+
 - `search_web`
 - `open_url`
 
 **Git (opcional)**
+
 - `git_status`
 - `git_diff`
 - `git_checkout`
 - `git_commit`
 
 **Utilidades**
+
 - `sleep`
 - `notify`
 
@@ -321,6 +391,7 @@ Lista de approvals com:
 ### Payloads padrão (schema sugerido)
 
 #### `run_command`
+
 ```json
 {
   "repo": "app",
@@ -331,6 +402,7 @@ Lista de approvals com:
 ```
 
 #### `start_dev_server`
+
 ```json
 {
   "repo": "app",
@@ -342,6 +414,7 @@ Lista de approvals com:
 ```
 
 #### `stop_dev_server`
+
 ```json
 {
   "repo": "app",
@@ -352,6 +425,7 @@ Lista de approvals com:
 ```
 
 #### `read_file`
+
 ```json
 {
   "path": "src/app.tsx",
@@ -361,6 +435,7 @@ Lista de approvals com:
 ```
 
 #### `write_file`
+
 ```json
 {
   "path": "src/app.tsx",
@@ -370,6 +445,7 @@ Lista de approvals com:
 ```
 
 #### `edit_file`
+
 ```json
 {
   "path": "src/app.tsx",
@@ -379,6 +455,7 @@ Lista de approvals com:
 ```
 
 #### `list_files`
+
 ```json
 {
   "path": ".",
@@ -389,6 +466,7 @@ Lista de approvals com:
 ```
 
 #### `delete_file`
+
 ```json
 {
   "path": "src/old.ts"
@@ -396,6 +474,7 @@ Lista de approvals com:
 ```
 
 #### `search_web`
+
 ```json
 {
   "query": "tauri event emit example",
@@ -404,6 +483,7 @@ Lista de approvals com:
 ```
 
 #### `open_url`
+
 ```json
 {
   "url": "https://example.com",
@@ -412,6 +492,7 @@ Lista de approvals com:
 ```
 
 #### `git_status`
+
 ```json
 {
   "repo": "app"
@@ -419,6 +500,7 @@ Lista de approvals com:
 ```
 
 #### `git_diff`
+
 ```json
 {
   "repo": "app",
@@ -428,6 +510,7 @@ Lista de approvals com:
 ```
 
 #### `git_checkout`
+
 ```json
 {
   "repo": "app",
@@ -436,6 +519,7 @@ Lista de approvals com:
 ```
 
 #### `git_commit`
+
 ```json
 {
   "repo": "app",
@@ -444,6 +528,7 @@ Lista de approvals com:
 ```
 
 #### `sleep`
+
 ```json
 {
   "ms": 1000
@@ -451,6 +536,7 @@ Lista de approvals com:
 ```
 
 #### `notify`
+
 ```json
 {
   "level": "info",
@@ -459,6 +545,7 @@ Lista de approvals com:
 ```
 
 ### Regras gerais
+
 - `repo` é obrigatório quando a ação afeta um repositório.
 - `cwd` é opcional e deve sobrescrever o path do repo quando informado.
 - `env` sempre mergeia com o ambiente padrão (não substitui tudo).
@@ -469,7 +556,9 @@ Lista de approvals com:
 ## UI (refatoração completa)
 
 ### Home = Agents
+
 Grid de cards (1 por agente). Cada card mostra:
+
 - Nome do agente
 - Repo + branch atual
 - Status badges (planning/running/waiting_approval/error)
@@ -478,6 +567,7 @@ Grid de cards (1 por agente). Cada card mostra:
 - Botões: Approve / Reject / Pause / Stop
 
 ### Outras telas
+
 - **Sessions**: histórico de objetivos e execuções
 - **Runs**: timeline global de ações
 - **Repos**: cadastro e presets de execução
@@ -489,7 +579,7 @@ Grid de cards (1 por agente). Cada card mostra:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Commander · Agents                               [Safe Mode ☐]        │
+│ Company · Agents                               [Safe Mode ☐]        │
 │ [New Agent] [New Session] [Settings]                                │
 └──────────────────────────────────────────────────────────────────────┘
 
@@ -509,6 +599,7 @@ Lateral (opcional): Timeline global com filtros por agente/repo.
 ```
 
 **Componentes-chave:**
+
 - **AgentCard**: badges, task, repo/branch, actions e collapsible de logs.
 - **ApprovalDrawer**: lista de ações pendentes com diff/command preview.
 - **SessionPanel**: objetivos, progresso e etapas.
@@ -518,10 +609,12 @@ Lateral (opcional): Timeline global com filtros por agente/repo.
 ## Subir projetos (dev server local)
 
 Ações específicas:
+
 - `start_dev_server`
 - `stop_dev_server`
 
 Recursos:
+
 - detecção de porta (já existe)
 - status do server
 - botão “Open in browser”
@@ -532,6 +625,7 @@ Recursos:
 ## Modelagem de dados (sugestão)
 
 Entidades básicas:
+
 - Agent
 - Session
 - Action
@@ -541,6 +635,7 @@ Entidades básicas:
 - Repo
 
 Relações:
+
 - Agent N–N Repo
 - Agent 1–N Session
 - Session 1–N Action
@@ -552,6 +647,7 @@ Relações:
 ## Eventos em tempo real
 
 Manter um canal de eventos (Tauri events):
+
 - agent://status
 - action://queued
 - action://running
@@ -641,6 +737,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
 ```
 
 ### Integração com o schema atual
+
 - `repositories` continuam a existir como base.
 - `agent_repos` cria a relação N–N entre agente e repo.
 - `execution_history` permanece para execuções de comandos (e pode referenciar `session_id` no futuro, se quisermos).
@@ -651,16 +748,17 @@ CREATE TABLE IF NOT EXISTS artifacts (
 
 ## Roadmap sugerido
 
-1) Criar entidades Agent/Session/Action no backend
-2) Eventos em tempo real no Tauri
-3) Refatorar UI para Home = Agents
-4) Implementar sistema de aprovação
-5) Integrar provider CLI com controle via app
-6) Integrar provider API
+1. Criar entidades Agent/Session/Action no backend
+2. Eventos em tempo real no Tauri
+3. Refatorar UI para Home = Agents
+4. Implementar sistema de aprovação
+5. Integrar provider CLI com controle via app
+6. Integrar provider API
 
 ---
 
 ## Decisões já confirmadas
+
 - CLI controlado pelo app (tool-proxy/bridge)
 - Relação N–N entre agentes e repos
 - Documentação em PT‑BR
@@ -669,6 +767,7 @@ CREATE TABLE IF NOT EXISTS artifacts (
 ---
 
 ## Próximos passos
+
 - Definir protocolo do CLI bridge (mensagens e actions)
 - Desenhar o layout final dos cards
 - Mapear APIs de providers (CLI/local/API)

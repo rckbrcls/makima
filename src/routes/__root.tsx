@@ -19,7 +19,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Commander',
+        title: 'Company',
       },
     ],
     links: [
@@ -43,7 +43,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
           <div className="relative flex h-svh flex-row overflow-hidden">
             <AppSidebar />
-            <main className="min-h-0 flex-1 overflow-hidden ml-16">{children}</main>
+            <main className="min-h-0 flex-1 overflow-hidden ml-14 mt-10">{children}</main>
           </div>
           {/* Global Approval Drawer - accessible from any page */}
           <GlobalApprovalDrawer />

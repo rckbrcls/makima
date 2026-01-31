@@ -2728,11 +2728,11 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
-  commander@11.1.0:
+  company@11.1.0:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
 
-  commander@14.0.2:
+  company@14.0.2:
     resolution: {integrity: sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==}
     engines: {node: '>=20'}
 
@@ -5122,7 +5122,7 @@ snapshots:
 
   '@dotenvx/dotenvx@1.52.0':
     dependencies:
-      commander: 11.1.0
+      company: 11.1.0
       dotenv: 17.2.3
       eciesjs: 0.4.17
       execa: 5.1.1
@@ -7404,9 +7404,9 @@ snapshots:
 
   color-name@1.1.4: {}
 
-  commander@11.1.0: {}
+  company@11.1.0: {}
 
-  commander@14.0.2: {}
+  company@14.0.2: {}
 
   comment-parser@1.4.5: {}
 
@@ -8906,7 +8906,7 @@ snapshots:
       '@modelcontextprotocol/sdk': 1.25.3(hono@4.11.7)(zod@3.25.76)
       '@types/validate-npm-package-name': 4.0.2
       browserslist: 4.28.1
-      commander: 14.0.2
+      company: 14.0.2
       cosmiconfig: 9.0.0(typescript@5.9.3)
       dedent: 1.7.1
       deepmerge: 4.3.1

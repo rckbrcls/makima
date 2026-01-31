@@ -1,10 +1,10 @@
-# Commander
+# Company
 
 Aplicacao desktop para orquestracao e gerenciamento de comandos de desenvolvimento. Permite gerenciar, executar e monitorar comandos de build, test e deploy de multiplos repositorios em uma unica interface.
 
 ## Sobre o Projeto
 
-Commander e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Commander centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
+Company e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Company centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
 
 ### Funcionalidades
 
@@ -21,38 +21,38 @@ Commander e um painel de controle para desenvolvedores que trabalham com multipl
 
 ### Frontend
 
-| Tecnologia | Versao | Uso |
-|---|---|---|
-| React | 19.2 | Biblioteca de UI |
-| TypeScript | 5.7 | Tipagem estatica |
-| TanStack Start | 1.132 | Framework com file-based routing e SSR |
-| Tailwind CSS | 4.0 | Estilizacao utility-first |
-| Vite | 7.1 | Build tool e dev server |
-| shadcn/ui | 3.7 | Componentes de interface |
-| Radix UI | 1.4 | Primitivos acessiveis |
-| Lucide React | 0.563 | Icones |
+| Tecnologia     | Versao | Uso                                    |
+| -------------- | ------ | -------------------------------------- |
+| React          | 19.2   | Biblioteca de UI                       |
+| TypeScript     | 5.7    | Tipagem estatica                       |
+| TanStack Start | 1.132  | Framework com file-based routing e SSR |
+| Tailwind CSS   | 4.0    | Estilizacao utility-first              |
+| Vite           | 7.1    | Build tool e dev server                |
+| shadcn/ui      | 3.7    | Componentes de interface               |
+| Radix UI       | 1.4    | Primitivos acessiveis                  |
+| Lucide React   | 0.563  | Icones                                 |
 
 ### Desktop
 
-| Tecnologia | Versao | Uso |
-|---|---|---|
-| Tauri | 2.9 | Framework desktop (Rust) |
-| Serde | 1.0 | Serializacao JSON (Rust) |
+| Tecnologia | Versao | Uso                      |
+| ---------- | ------ | ------------------------ |
+| Tauri      | 2.9    | Framework desktop (Rust) |
+| Serde      | 1.0    | Serializacao JSON (Rust) |
 
 ### Ferramentas de Desenvolvimento
 
-| Tecnologia | Uso |
-|---|---|
-| Vitest | Testes unitarios |
-| Testing Library | Testes de componentes |
-| ESLint | Linting |
-| Prettier | Formatacao de codigo |
-| pnpm | Gerenciador de pacotes |
+| Tecnologia      | Uso                    |
+| --------------- | ---------------------- |
+| Vitest          | Testes unitarios       |
+| Testing Library | Testes de componentes  |
+| ESLint          | Linting                |
+| Prettier        | Formatacao de codigo   |
+| pnpm            | Gerenciador de pacotes |
 
 ## Estrutura do Projeto
 
 ```
-commander/
+company/
 ├── src/
 │   ├── components/
 │   │   ├── command-hub/          # Componentes principais da aplicacao
@@ -167,14 +167,14 @@ pnpm check         # Formatar + corrigir tudo
 
 ```typescript
 // Status de um repositorio
-type RepositoryStatus = "active" | "idle" | "warn"
+type RepositoryStatus = 'active' | 'idle' | 'warn'
 
 // Tipos de comando suportados
-type CommandType = "run" | "build" | "test" | "lint" | "check" | "bundle"
+type CommandType = 'run' | 'build' | 'test' | 'lint' | 'check' | 'bundle'
 
 // Status de execucao de um comando
-type CommandStatus = "running" | "queued" | "success" | "failed" | "idle"
+type CommandStatus = 'running' | 'queued' | 'success' | 'failed' | 'idle'
 
 // Estados de um step do pipeline
-type StepState = "done" | "running" | "pending"
+type StepState = 'done' | 'running' | 'pending'
 ```
