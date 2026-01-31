@@ -86,20 +86,17 @@ export function AgentCard({
     <Card
       size="sm"
       className={cn(
-        "border-border/70 bg-card flex flex-col justify-between animate-in fade-in slide-in-from-bottom-8 duration-700 cursor-pointer hover:border-primary/50 transition-colors",
-        index % 2 === 0 ? "delay-200" : "delay-300"
+        "border-border/70 bg-card flex flex-col justify-between animate-in fade-in slide-in-from-bottom-8 cursor-pointer hover:border-primary/50",
       )}
       onClick={handleClick}
     >
-      <CardHeader className="border-b border-border/60">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <span className="flex size-7 items-center justify-center border border-border bg-muted text-foreground/80">
+      <CardHeader className="border-b flex items-start gap-4 flex-col border-border/60">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="flex size-8 rounded-md items-center justify-center border border-border bg-muted text-foreground/80">
             <Bot className="size-4" />
           </span>
           {agent.name}
-        </CardTitle>
-        <CardAction>
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 justify-end w-full" onClick={(e) => e.stopPropagation()}>
             <Badge
               variant="outline"
               className={cn("text-[0.6rem] uppercase", statusStyles[agent.status])}
@@ -156,10 +153,11 @@ export function AgentCard({
               </AlertDialogContent>
             </AlertDialog>
           </div>
-        </CardAction>
-        <CardDescription className="text-[0.7rem] text-muted-foreground">
-          {agent.model ?? agent.provider} · {agent.id.slice(0, 8)}
-        </CardDescription>
+        </div>
+        <div className="flex items-center gap-2 text-[0.7rem] flex-row w-full text-nowrap text-muted-foreground">
+          {agent.model ?? agent.provider}
+          <span className="text-foreground/80">· {agent.id.slice(0, 8)}</span>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-[0.65rem] text-muted-foreground">
