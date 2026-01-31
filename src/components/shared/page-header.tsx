@@ -35,9 +35,9 @@ export function PageHeader({
   onSearch,
 }: PageHeaderProps) {
   return (
-    <header className="flex items-center fixed top-0 left-0 right-0 justify-end gap-4 p-2 border-b z-50 border-border/40 h-14 bg-card" data-tauri-drag-region>
-      {/* <div className="flex items-center">
-        <div className="flex size-6 items-center justify-center shrink-0 overflow-hidden">
+    <header className="flex items-center fixed top-0 left-0 right-0 justify-between gap-4 p-2 border-b z-50 border-border/40 h-14 bg-card" data-tauri-drag-region>
+      <div className="flex items-center ml-20 bg-secondary p-1 rounded px-2.5">
+        {/* <div className="flex size-6 items-center justify-center shrink-0 overflow-hidden">
           <img
             src="/white-logo.png"
             alt="Logo"
@@ -48,11 +48,11 @@ export function PageHeader({
             alt="Logo"
             className="block h-full w-auto object-contain dark:hidden"
           />
-        </div>
-        <span className="ml-3 text-lg tracking-tight whitespace-nowrap overflow-hidden">
+        </div> */}
+        <span className="text-lg tracking-0 whitespace-nowrap text-primary font-serif font-bold">
           Company
         </span>
-      </div> */}
+      </div>
 
       <div className="flex items-center gap-2">
         {onMenuClick && (
