@@ -165,10 +165,6 @@ export function ReposPage() {
                 <History className="size-3.5 mr-1.5" />
                 Execution
               </TabsTrigger>
-              <TabsTrigger value="statistics">
-                <BarChart3 className="size-3.5 mr-1.5" />
-                Statistics
-              </TabsTrigger>
             </TabsList>
 
             {/* Tab: Commands */}
@@ -202,15 +198,6 @@ export function ReposPage() {
                     getExecutionLogs={getExecutionLogs}
                     onStopCommand={handleStopCommand}
                   />
-                </div>
-              </Card>
-            </TabsContent>
-
-            {/* Tab: Statistics */}
-            <TabsContent value="statistics" className="flex-1 overflow-auto p-1">
-              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
-                <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
-                  <HistoryTab state={companyState} selectedRepo={selectedRepo} />
                 </div>
               </Card>
             </TabsContent>
