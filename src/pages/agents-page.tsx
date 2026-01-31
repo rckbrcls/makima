@@ -57,9 +57,9 @@ function AgentsGrid({
           Add Agent
         </Button>
       </div>
-      <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto max-h-[calc(100vh-280px)]">
+      <div className="p-4 flex flex-col overflow-y-scroll gap-4">
         {agents.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
             <Bot className="size-12 text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
               No agents configured
@@ -220,10 +220,8 @@ export function AgentsPage() {
       />
 
       <div className="relative mx-auto grid mt-10 min-h-0 flex-1 w-full grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 pb-4 sm:px-6 lg:px-8">
-
-
         {/* Body: agents grid + session panel */}
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_350px]">
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_3fr]">
           {/* Agents Grid */}
           <AgentsGrid
             agents={agents}

@@ -84,9 +84,8 @@ export function AgentCard({
 
   return (
     <Card
-      size="sm"
       className={cn(
-        "border-border/70 bg-card flex flex-col justify-between animate-in fade-in slide-in-from-bottom-8 cursor-pointer hover:border-primary/50",
+        "border-border/70 bg-card flex flex-col justify-between animate-in fade-in slide-in-from-bottom-8 cursor-pointer hover:border-primary/50 shrink-0",
       )}
       onClick={handleClick}
     >
