@@ -35,8 +35,8 @@ export function PageHeader({
   onSearch,
 }: PageHeaderProps) {
   return (
-    <header className="flex items-center fixed top-0 left-0 right-0 justify-between gap-4 p-2 border-b z-50 border-border/40 h-14 bg-card" data-tauri-drag-region>
-      <div className="flex items-center ml-20 bg-secondary p-1 rounded px-2.5">
+    <header className="flex items-center px-4 fixed top-0 left-0 right-0 justify-between gap-4 border-b z-50 border-border/40 h-14 bg-card" data-tauri-drag-region>
+      <div className="flex items-center ml-22">
         {/* <div className="flex size-6 items-center justify-center shrink-0 overflow-hidden">
           <img
             src="/white-logo.png"
@@ -49,7 +49,7 @@ export function PageHeader({
             className="block h-full w-auto object-contain dark:hidden"
           />
         </div> */}
-        <span className="text-lg tracking-0 whitespace-nowrap text-primary font-serif font-bold">
+        <span className="text-xl tracking-0 whitespace-nowrap text-primary font-serif font-bold">
           Company
         </span>
       </div>
@@ -70,7 +70,7 @@ export function PageHeader({
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
-              className="h-9 border-border bg-card pl-8 text-xs"
+              className="h-9 rounded-full border-border bg-card pl-8 text-xs"
               onChange={(e) => onSearch?.(e.target.value)}
             />
           </div>

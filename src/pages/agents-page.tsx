@@ -40,8 +40,8 @@ function AgentsGrid({
   onOpenCreateDialog,
 }: AgentsGridProps) {
   return (
-    <Card className="overflow-hidden border-border/70 bg-card">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+    <Card className="rounded-none overflow-hidden border-border/70 bg-card">
+      <div className="flex items-center justify-between px-4">
         <div>
           <h2 className="text-sm font-medium">Agents</h2>
           <p className="text-[0.65rem] text-muted-foreground">
@@ -57,7 +57,7 @@ function AgentsGrid({
           Add Agent
         </Button>
       </div>
-      <div className="p-4 flex flex-col overflow-y-scroll gap-4">
+      <div className="p-4 border-t border-border/60 flex flex-col overflow-y-scroll gap-4">
         {agents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Bot className="size-12 text-muted-foreground/30 mb-3" />
@@ -219,19 +219,21 @@ export function AgentsPage() {
         onRefresh={handleRefresh}
       />
 
-      <div className="relative mx-auto grid mt-10 min-h-0 flex-1 w-full grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 pb-4 sm:px-6 lg:px-8">
-        {/* Body: agents grid + session panel */}
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_3fr]">
-          {/* Agents Grid */}
-          <AgentsGrid
-            agents={agents}
-            approvalCardData={approvalCardData}
-            onStartSession={handleStartSession}
-            onDeleteAgent={handleDeleteAgent}
-            onSelectAgent={() => { }}
-            onOpenCreateDialog={openCreateAgentDialog}
-          />
 
+
+      {/* Body: agents grid + session panel */}
+      <div className="grid relative  w-full min-h-0 flex-1 lg:grid-cols-[1fr_3fr]">
+        {/* Agents Grid */}
+        <AgentsGrid
+          agents={agents}
+          approvalCardData={approvalCardData}
+          onStartSession={handleStartSession}
+          onDeleteAgent={handleDeleteAgent}
+          onSelectAgent={() => { }}
+          onOpenCreateDialog={openCreateAgentDialog}
+        />
+
+        <div className="p-4 flex-1 h-full">
           {/* Session Panel */}
           {selectedSession ? (
             <SessionPanel
@@ -241,7 +243,7 @@ export function AgentsPage() {
               onEndSession={handleEndSession}
             />
           ) : (
-            <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card">
+            <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card h-full w-full">
               <Shield className="size-10 text-muted-foreground/30 mb-3" />
               <p className="text-sm text-muted-foreground">No active session</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
@@ -251,6 +253,7 @@ export function AgentsPage() {
           )}
         </div>
       </div>
+
 
       {/* Create Agent Dialog */}
       <CreateAgentDialog
