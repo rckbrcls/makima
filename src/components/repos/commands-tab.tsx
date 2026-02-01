@@ -13,6 +13,7 @@ import { CommandCard } from "./command-card"
 import { QuickComposer } from "./quick-composer"
 import { StatsCards } from "./stats-cards"
 import type { Command, Repository, RunCommandInput, StatCard } from "./types"
+import { DirectionAwareTabs } from "../ui/direction-aware-tabs"
 
 interface CommandsTabProps {
   selectedRepo: string | null
@@ -53,85 +54,123 @@ export function CommandsTab({
     )
   }
 
-  // Single repo: summary + grid + Quick Composer
-  const runningCount = commands.filter((c) => c.status === "running").length
-  const successCount = commands.filter((c) => c.status === "success").length
-
-  const summaryStats: StatCard[] = [
+  const tabs = [
     {
-      label: "Total commands",
-      value: String(commands.length),
-      note: `in ${selectedRepo} `,
-    },
-    {
-      label: "Running",
-      value: String(runningCount),
-      note: "active now",
-    },
-    {
-      label: "Last passed",
-      value: String(successCount),
-      note: "succeeded",
-    },
-  ]
+      id: 0,
+      label: "commands",
+      content: (
+        <Card className="flex flex-col border-border bg-card">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Terminal className="size-4 text-primary" />
+              {selectedRepo}
+            </CardTitle>
+            <CardAction>
+              <div className="flex gap-2">
+                <QuickComposer
+                  repoName={selectedRepo}
+                  onRunCommand={onRunCommandInput}
+                  onAddCommand={onAddCommand}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border bg-card"
+                  >
+                    <Plus data-icon="inline-start" />
+                    Add command
+                  </Button>
+                </QuickComposer>
 
-  return (
-    <div className="flex flex-col gap-4 h-full p-4 pl-3 pr-1 overflow-y-auto">
-      {/* Summary cards */}
-      <StatsCards stats={summaryStats} />
-
-      {/* Commands grid */}
-      <Card className="flex flex-col border-border bg-card">
-        <CardHeader className="border-b border-border">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Terminal className="size-4 text-primary" />
-            {selectedRepo} | commands
-          </CardTitle>
-          <CardDescription>
-            Every command runs in background with live feedback.
-          </CardDescription>
-          <CardAction>
-            <div className="flex gap-2">
-              <QuickComposer
-                repoName={selectedRepo}
-                onRunCommand={onRunCommandInput}
-                onAddCommand={onAddCommand}
-              >
                 <Button
                   variant="outline"
                   size="sm"
                   className="border-border bg-card"
+                  onClick={() => stopAllForRepo(selectedRepo)}
                 >
-                  <Plus data-icon="inline-start" />
-                  Add command
+                  <Square data-icon="inline-start" />
+                  Stop all
                 </Button>
-              </QuickComposer>
+              </div>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 py-4 ">
+            {commands.map((command, index) => (
+              <CommandCard
+                key={`${command.repo} -${command.name} `}
+                command={command}
+                index={index}
+                onRun={onRunCommand}
+                onDelete={onDeleteCommand}
+                onUpdateCommand={onUpdateCommand}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      ),
+    },
+    {
+      id: 1,
+      label: "pipelines",
+      content: (
+        <Card className="flex flex-col border-border bg-card">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Terminal className="size-4 text-primary" />
+              {selectedRepo}
+            </CardTitle>
+            <CardAction>
+              <div className="flex gap-2">
+                <QuickComposer
+                  repoName={selectedRepo}
+                  onRunCommand={onRunCommandInput}
+                  onAddCommand={onAddCommand}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border bg-card"
+                  >
+                    <Plus data-icon="inline-start" />
+                    Add command
+                  </Button>
+                </QuickComposer>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-border bg-card"
-                onClick={() => stopAllForRepo(selectedRepo)}
-              >
-                <Square data-icon="inline-start" />
-                Stop all
-              </Button>
-            </div>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 py-4 ">
-          {commands.map((command, index) => (
-            <CommandCard
-              key={`${command.repo} -${command.name} `}
-              command={command}
-              index={index}
-              onRun={onRunCommand}
-              onDelete={onDeleteCommand}
-              onUpdateCommand={onUpdateCommand}
-            />
-          ))}
-        </CardContent>
-      </Card>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border bg-card"
+                  onClick={() => stopAllForRepo(selectedRepo)}
+                >
+                  <Square data-icon="inline-start" />
+                  Stop all
+                </Button>
+              </div>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 py-4 ">
+            {commands.map((command, index) => (
+              <CommandCard
+                key={`${command.repo} -${command.name} `}
+                command={command}
+                index={index}
+                onRun={onRunCommand}
+                onDelete={onDeleteCommand}
+                onUpdateCommand={onUpdateCommand}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      ),
+    },
+  ]
+
+
+  return (
+    <div className="flex flex-col gap-4 h-full p-4 pl-3 pr-1 overflow-y-auto">
+
+      <DirectionAwareTabs tabs={tabs} />
+
     </div>
   )
 }

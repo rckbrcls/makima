@@ -16,7 +16,7 @@ export function ModeToggle() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="secondary"
+          variant="outline"
           size="icon"
           className="h-9 w-9 border-border rounded-full bg-card text-foreground"
         >

@@ -6,21 +6,27 @@ import {
   Info,
   Code,
   BarChart2,
+  Zap,
 } from "lucide-react"
 
 const navItems = [
   {
-    name: "Coding",
+    name: "Workspace",
     icon: Code,
     to: "/",
   },
   {
-    name: "Agents",
+    name: "Jarvis",
     icon: Bot,
-    to: "/agents",
+    to: "/jarvis",
   },
   {
-    name: "Commands",
+    name: "Skills",
+    icon: Zap,
+    to: "/skills",
+  },
+  {
+    name: "Executions",
     icon: Terminal,
     to: "/repos",
   },

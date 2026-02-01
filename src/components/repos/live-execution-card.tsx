@@ -23,8 +23,7 @@ export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps)
     <Card className="flex flex-col border-border/70 bg-card shrink-0">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <Activity className="size-4 text-primary" />
-          Live execution
+          {execution.command}
         </CardTitle>
         <CardAction>
           <Badge
@@ -34,9 +33,6 @@ export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps)
             running
           </Badge>
         </CardAction>
-        <CardDescription>
-          {execution.repo} | {execution.command}
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-[0.65rem] text-muted-foreground">
@@ -48,7 +44,7 @@ export function LiveExecutionCard({ execution, onStop }: LiveExecutionCardProps)
         <div className="h-1 w-full overflow-hidden border border-border bg-muted">
           <div className="h-full w-2/3 bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1/80 bg-[length:200%_100%] animate-[shimmer_2.6s_linear_infinite]" />
         </div>
-        <div className="space-y-1 rounded-none border font-mono  border-border bg-muted/80 p-3 text-[0.65rem] text-foreground">
+        <div className="space-y-1 rounded-md border font-mono  border-border bg-muted/80 p-3 text-[0.65rem] text-foreground">
           {execution.logs.map((entry, i) => (
             <div
               key={i}

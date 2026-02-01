@@ -61,10 +61,10 @@ function DirectionAwareTabs({
   }
 
   return (
-    <div className=" flex flex-col items-center w-full">
+    <div className=" flex flex-col items-start w-full">
       <div
         className={cn(
-          "flex space-x-1 border border-none rounded-full cursor-pointer bg-neutral-600 px-[3px] py-[3.2px] shadow-inner-shadow",
+          "flex space-x-1 rounded-full cursor-pointer bg-card border-border border px-[3px] py-[3.2px] shadow-inner-shadow",
           className,
           rounded
         )}
@@ -85,7 +85,7 @@ function DirectionAwareTabs({
             {activeTab === tab.id && (
               <motion.span
                 layoutId="bubble"
-                className="absolute  inset-0 z-10 bg-neutral-700 mix-blend-difference shadow-inner-shadow border border-white/10"
+                className="absolute  inset-0 z-10 bg-primary mix-blend-difference shadow-inner-shadow border border-border"
                 style={rounded ? { borderRadius: 9 } : { borderRadius: 9999 }}
                 transition={{ type: "spring", bounce: 0.19, duration: 0.4 }}
               />
@@ -97,7 +97,7 @@ function DirectionAwareTabs({
       </div>
       <MotionConfig transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}>
         <motion.div
-          className="relative mx-auto w-full h-full overflow-hidden"
+          className="relative mx-auto w-full h-full overflow-hidden mt-2"
           initial={false}
           animate={{ height: bounds.height }}
         >

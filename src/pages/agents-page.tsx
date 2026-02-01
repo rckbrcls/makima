@@ -49,8 +49,7 @@ function AgentsGrid({
           </p>
         </div>
         <Button
-          size="sm"
-          className="h-7 gap-1"
+          className="gap-1"
           onClick={onOpenCreateDialog}
         >
           <Plus className="size-3" />

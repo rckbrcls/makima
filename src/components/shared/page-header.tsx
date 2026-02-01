@@ -80,7 +80,7 @@ export function PageHeader({
 
         {/* Approvals Button */}
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           className="h-8 gap-2"
           onClick={onOpenApprovals}
@@ -122,7 +122,7 @@ interface ModeToggleSafeProps {
 export function ModeToggleSafe({ mode, onToggle }: ModeToggleSafeProps) {
   return (
     <Button
-      variant="secondary"
+      variant="outline"
       size="sm"
       className="h-8 gap-2"
       onClick={onToggle}

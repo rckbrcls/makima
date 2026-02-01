@@ -1,0 +1,3 @@
+- transformar commands em skills
+- pensar em pipeline
+- colocar executions na tela de workspace

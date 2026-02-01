@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -56,18 +57,16 @@ export function HistoryExecutionCard({
     <Card className="flex flex-col border-border/60 bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <Activity className="size-4 text-primary" />
-          Execution
+          {run.name}
         </CardTitle>
-        <Badge
-          variant="outline"
-          className={cn("text-[0.6rem] uppercase", statusStyles[run.status])}
-        >
-          {run.status}
-        </Badge>
-        <CardDescription>
-          {run.repo} | {run.name}
-        </CardDescription>
+        <CardAction>
+          <Badge
+            variant="outline"
+            className={cn("text-[0.6rem] uppercase", statusStyles[run.status])}
+          >
+            {run.status}
+          </Badge>
+        </CardAction>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between text-[0.65rem] text-muted-foreground">
@@ -86,7 +85,7 @@ export function HistoryExecutionCard({
             )}
           />
         </div>
-        <div className="space-y-1 rounded-none border border-border bg-muted/80 p-3 text-[0.65rem] text-foreground">
+        <div className="space-y-1 rounded-md border border-border bg-muted/80 p-3 text-[0.65rem] text-foreground">
           {loading ? (
             <div className="text-muted-foreground">Loading logs...</div>
           ) : logs.length === 0 ? (
