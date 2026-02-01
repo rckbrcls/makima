@@ -30,6 +30,7 @@ import type {
   AgentDashboardState,
   SessionWithDetails,
   AgentWithStats,
+  AgentQuestion,
 } from "./components/agents/types";
 
 // =============================================================================
@@ -296,6 +297,7 @@ export const mockAgents: Agent[] = [
     provider: "cli",
     model: "claude-sonnet-4-20250514",
     status: "running",
+    skills: ["file_read", "file_write", "file_edit", "bash", "git", "code_analysis"],
     createdAt: "2026-01-30T10:00:00Z",
     updatedAt: "2026-01-30T16:00:00Z",
   },
@@ -305,6 +307,7 @@ export const mockAgents: Agent[] = [
     provider: "api",
     model: "gpt-4o",
     status: "idle",
+    skills: ["file_read", "file_write", "bash", "testing", "web_search"],
     createdAt: "2026-01-25T08:00:00Z",
     updatedAt: "2026-01-30T14:00:00Z",
   },
@@ -314,6 +317,7 @@ export const mockAgents: Agent[] = [
     provider: "local",
     model: "codellama:13b",
     status: "error",
+    skills: ["file_read", "code_analysis"],
     createdAt: "2026-01-20T12:00:00Z",
     updatedAt: "2026-01-30T15:30:00Z",
   },
@@ -323,43 +327,78 @@ export const mockAgents: Agent[] = [
     provider: "cli",
     model: "gemini-2.0-flash",
     status: "active",
+    skills: ["file_read", "file_write", "file_edit", "bash", "git", "browser", "deployment"],
     createdAt: "2026-01-28T09:00:00Z",
     updatedAt: "2026-01-30T16:05:00Z",
   },
 ];
 
 export const mockSessions: Session[] = [
+  // Sessions no repo makima
   {
     id: "session-1",
     agentId: "agent-1",
+    repoName: "makima",
     goal: "Refactor authentication system to use OAuth 2.0",
     state: "active",
     createdAt: "2026-01-30T14:00:00Z",
     updatedAt: "2026-01-30T16:00:00Z",
   },
   {
+    id: "session-4",
+    agentId: "agent-4",
+    repoName: "makima",
+    goal: "Implement dark mode support across all components",
+    state: "active",
+    createdAt: "2026-01-30T15:00:00Z",
+    updatedAt: "2026-01-30T16:05:00Z",
+  },
+  {
+    id: "session-5",
+    agentId: "agent-1",
+    repoName: "makima",
+    goal: "Setup CI/CD pipeline with GitHub Actions",
+    state: "done",
+    createdAt: "2026-01-29T09:00:00Z",
+    updatedAt: "2026-01-29T12:00:00Z",
+  },
+  // Sessions no repo api-server
+  {
     id: "session-2",
     agentId: "agent-2",
+    repoName: "api-server",
     goal: "Add unit tests for user service",
     state: "done",
     createdAt: "2026-01-30T10:00:00Z",
     updatedAt: "2026-01-30T12:00:00Z",
   },
   {
+    id: "session-6",
+    agentId: "agent-2",
+    repoName: "api-server",
+    goal: "Implement rate limiting middleware",
+    state: "active",
+    createdAt: "2026-01-30T15:30:00Z",
+    updatedAt: "2026-01-30T16:00:00Z",
+  },
+  // Sessions no repo mobile-app
+  {
     id: "session-3",
     agentId: "agent-3",
+    repoName: "mobile-app",
     goal: "Fix memory leak in data processing pipeline",
     state: "failed",
     createdAt: "2026-01-30T13:00:00Z",
     updatedAt: "2026-01-30T15:30:00Z",
   },
   {
-    id: "session-4",
+    id: "session-7",
     agentId: "agent-4",
-    goal: "Implement dark mode support across all components",
+    repoName: "mobile-app",
+    goal: "Add biometric authentication support",
     state: "active",
-    createdAt: "2026-01-30T15:00:00Z",
-    updatedAt: "2026-01-30T16:05:00Z",
+    createdAt: "2026-01-30T14:00:00Z",
+    updatedAt: "2026-01-30T16:10:00Z",
   },
 ];
 
@@ -541,6 +580,36 @@ export const mockEvents: AgentEvent[] = [
     message: "Agent Kai is now idle",
     source: "system",
     createdAt: "2026-01-30T12:00:00Z",
+  },
+];
+
+export const mockAgentQuestions: AgentQuestion[] = [
+  {
+    id: "question-1",
+    sessionId: "session-1",
+    question: "Which authentication method should I implement?",
+    options: [
+      { label: "OAuth 2.0", value: "oauth2", description: "Recommended for third-party integrations" },
+      { label: "JWT", value: "jwt", description: "Stateless authentication with tokens" },
+      { label: "Session-based", value: "session", description: "Traditional server-side sessions" },
+    ],
+    multiSelect: false,
+    answered: false,
+    createdAt: "2026-01-30T14:12:00Z",
+  },
+  {
+    id: "question-2",
+    sessionId: "session-4",
+    question: "Which components should include dark mode support?",
+    options: [
+      { label: "All components", value: "all", description: "Apply dark mode everywhere" },
+      { label: "Only UI primitives", value: "primitives", description: "Buttons, inputs, cards" },
+      { label: "Custom selection", value: "custom", description: "Let me specify which ones" },
+    ],
+    multiSelect: false,
+    answered: true,
+    answer: "all",
+    createdAt: "2026-01-30T15:08:00Z",
   },
 ];
 
@@ -744,3 +813,34 @@ export const getMockCommandsByRepo = (repo: string): Command[] =>
 export const getMockLiveExecutionByRepo = (
   repo: string,
 ): LiveExecution | undefined => mockLiveExecutions.find((e) => e.repo === repo);
+
+/**
+ * Get sessions by repository name
+ */
+export const getMockSessionsByRepoName = (repoName: string): Session[] =>
+  mockSessions.filter((s) => s.repoName === repoName);
+
+/**
+ * Get active sessions by repository name
+ */
+export const getMockActiveSessionsByRepoName = (repoName: string): Session[] =>
+  mockSessions.filter((s) => s.repoName === repoName && s.state === "active");
+
+/**
+ * Get session count per repository
+ */
+export const getMockSessionCountByRepo = (): Record<string, { active: number; total: number }> => {
+  const counts: Record<string, { active: number; total: number }> = {};
+
+  mockSessions.forEach((session) => {
+    if (!counts[session.repoName]) {
+      counts[session.repoName] = { active: 0, total: 0 };
+    }
+    counts[session.repoName].total++;
+    if (session.state === "active") {
+      counts[session.repoName].active++;
+    }
+  });
+
+  return counts;
+};

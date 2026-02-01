@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReposRouteImport } from './routes/repos'
+import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as IndexRouteImport } from './routes/index'
 
 const StatisticsRoute = StatisticsRouteImport.update({
@@ -29,6 +30,11 @@ const ReposRoute = ReposRouteImport.update({
   path: '/repos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/repos': typeof ReposRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/repos': typeof ReposRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/repos': typeof ReposRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/repos' | '/settings' | '/statistics'
+  fullPaths: '/' | '/agents' | '/repos' | '/settings' | '/statistics'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/repos' | '/settings' | '/statistics'
-  id: '__root__' | '/' | '/repos' | '/settings' | '/statistics'
+  to: '/' | '/agents' | '/repos' | '/settings' | '/statistics'
+  id: '__root__' | '/' | '/agents' | '/repos' | '/settings' | '/statistics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentsRoute: typeof AgentsRoute
   ReposRoute: typeof ReposRoute
   SettingsRoute: typeof SettingsRoute
   StatisticsRoute: typeof StatisticsRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReposRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentsRoute: AgentsRoute,
   ReposRoute: ReposRoute,
   SettingsRoute: SettingsRoute,
   StatisticsRoute: StatisticsRoute,

@@ -42,12 +42,25 @@ export type ActionType =
 // Core Models (matching Rust structs)
 // ============================================================================
 
+export type AgentSkill =
+  | "file_read"
+  | "file_write"
+  | "file_edit"
+  | "bash"
+  | "git"
+  | "web_search"
+  | "browser"
+  | "code_analysis"
+  | "testing"
+  | "deployment";
+
 export interface Agent {
   id: string;
   name: string;
   provider: AgentProvider;
   model?: string;
   status: AgentStatus;
+  skills: AgentSkill[];
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +73,7 @@ export interface AgentRepo {
 export interface Session {
   id: string;
   agentId: string;
+  repoName: string;
   goal: string;
   state: SessionState;
   createdAt: string;
@@ -134,11 +148,13 @@ export interface CreateAgentRequest {
   name: string;
   provider: AgentProvider;
   model?: string;
+  skills: AgentSkill[];
   repos: string[];
 }
 
 export interface StartSessionRequest {
   agentId: string;
+  repoName: string;
   goal: string;
 }
 
@@ -168,6 +184,12 @@ export interface SessionWithDetails extends Session {
   agent: Agent;
   actions: Action[];
   events: AgentEvent[];
+}
+
+export interface SessionWithAgents extends Session {
+  agents: Agent[];
+  actionCount: number;
+  pendingCount: number;
 }
 
 export interface AgentWithStats extends Agent {
@@ -227,6 +249,24 @@ export interface GitPayload {
 export interface NotifyPayload {
   message: string;
   level?: EventLevel;
+}
+
+// Agent question with options (like Claude's AskUserQuestion)
+export interface AgentQuestionOption {
+  label: string;
+  value: string;
+  description?: string;
+}
+
+export interface AgentQuestion {
+  id: string;
+  sessionId: string;
+  question: string;
+  options?: AgentQuestionOption[];
+  multiSelect?: boolean;
+  answered: boolean;
+  answer?: string | string[];
+  createdAt: string;
 }
 
 export interface SleepPayload {

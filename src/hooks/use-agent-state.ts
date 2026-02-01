@@ -59,6 +59,7 @@ export function useAgentState() {
         provider: request.provider,
         model: request.model,
         status: 'idle',
+        skills: request.skills ?? [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -127,6 +128,7 @@ export function useAgentState() {
       const newSession: Session = {
         id: `session-${Date.now()}`,
         agentId: request.agentId,
+        repoName: request.repoName,
         goal: request.goal,
         state: 'active',
         createdAt: new Date().toISOString(),

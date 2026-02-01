@@ -43,6 +43,8 @@ const providerOptions: { value: AgentProvider; label: string }[] = [
 
 interface CreateAgentDialogProps {
   children?: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onCreateAgent: (request: CreateAgentRequest) => Promise<Agent | null>
 }
 
@@ -119,6 +121,7 @@ function CreateAgentForm({
       name: name.trim(),
       provider,
       model: model !== "custom" ? model : undefined,
+      skills: [], // TODO: Add skills selection in the builder page
       repos,
     }
 

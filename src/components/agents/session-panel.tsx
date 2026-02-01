@@ -2,26 +2,23 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  CheckCircle2,
-  Clock,
   Loader2,
-  Play,
   Square,
   Terminal,
-  XCircle,
   ArrowDown,
   Send,
+  Cpu,
+  Check,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type {
   Action,
   AgentEvent,
   Session,
+  AgentQuestion,
 } from "./types"
-import { getStatusColor } from "./types"
 import { ActionMessage, EventMessage } from "./session-chat-items"
 
 // ============================================================================
@@ -31,6 +28,137 @@ import { ActionMessage, EventMessage } from "./session-chat-items"
 type TimelineItem =
   | { type: "action"; data: Action; date: Date }
   | { type: "event"; data: AgentEvent; date: Date }
+  | { type: "question"; data: AgentQuestion; date: Date }
+
+// ============================================================================
+// Question Options Component
+// ============================================================================
+
+interface QuestionOptionsProps {
+  question: AgentQuestion
+  onAnswer: (questionId: string, answer: string | string[]) => void
+}
+
+function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
+  const [selected, setSelected] = useState<string | string[]>(
+    question.multiSelect ? [] : ""
+  )
+
+  const handleSelect = (value: string) => {
+    if (question.multiSelect) {
+      setSelected((prev) => {
+        const arr = prev as string[]
+        return arr.includes(value)
+          ? arr.filter((v) => v !== value)
+          : [...arr, value]
+      })
+    } else {
+      setSelected(value)
+    }
+  }
+
+  const handleSubmit = () => {
+    if (question.multiSelect) {
+      if ((selected as string[]).length > 0) {
+        onAnswer(question.id, selected)
+      }
+    } else if (selected) {
+      onAnswer(question.id, selected as string)
+    }
+  }
+
+  const isSelected = (value: string) => {
+    if (question.multiSelect) {
+      return (selected as string[]).includes(value)
+    }
+    return selected === value
+  }
+
+  if (question.answered) {
+    const answerLabels = question.options
+      ?.filter((opt) =>
+        Array.isArray(question.answer)
+          ? question.answer.includes(opt.value)
+          : question.answer === opt.value
+      )
+      .map((opt) => opt.label)
+      .join(", ")
+
+    return (
+      <div className="flex justify-end px-4 py-2">
+        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg rounded-tr-none max-w-[80%]">
+          <p className="text-sm">{answerLabels || question.answer}</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 py-3">
+      <div className="bg-muted/30 border border-border rounded-lg p-4 max-w-md">
+        <p className="text-sm font-medium mb-3">{question.question}</p>
+
+        <div className="space-y-2">
+          {question.options?.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={cn(
+                "w-full text-left px-3 py-2.5 rounded-md border transition-all",
+                "hover:border-primary/50 hover:bg-primary/5",
+                isSelected(option.value)
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "size-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                    isSelected(option.value)
+                      ? "border-primary bg-primary"
+                      : "border-muted-foreground/30"
+                  )}
+                >
+                  {isSelected(option.value) && (
+                    <Check className="size-2.5 text-primary-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{option.label}</p>
+                  {option.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {option.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={
+              question.multiSelect
+                ? (selected as string[]).length === 0
+                : !selected
+            }
+            className="flex-1"
+          >
+            Confirm
+          </Button>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+          Or type a custom response below
+        </p>
+      </div>
+    </div>
+  )
+}
 
 // ============================================================================
 // Main Component
@@ -40,8 +168,11 @@ interface SessionPanelProps {
   session: Session
   actions: Action[]
   events: AgentEvent[]
+  questions?: AgentQuestion[]
+  agentName?: string
   onEndSession?: (success: boolean) => void
   onSendMessage?: (message: string) => void
+  onAnswerQuestion?: (questionId: string, answer: string | string[]) => void
   isLoading?: boolean
 }
 
@@ -49,40 +180,55 @@ export function SessionPanel({
   session,
   actions,
   events,
+  questions = [],
+  agentName = "Agent",
   onEndSession,
   onSendMessage,
+  onAnswerQuestion,
   isLoading,
 }: SessionPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [message, setMessage] = useState("")
 
   const isActive = session.state === "active"
-  const pendingActions = actions.filter((a) => a.status === "pending" || a.status === "blocked")
-  const completedActions = actions.filter((a) => a.status === "done")
-  const failedActions = actions.filter((a) => a.status === "failed" || a.status === "rejected")
 
   // Combine and sort items for the timeline
   const timelineItems = useMemo(() => {
     const items: TimelineItem[] = [
-      ...actions.map((a) => ({ type: "action" as const, data: a, date: new Date(a.createdAt) })),
-      ...events.map((e) => ({ type: "event" as const, data: e, date: new Date(e.createdAt) })),
+      ...actions.map((a) => ({
+        type: "action" as const,
+        data: a,
+        date: new Date(a.createdAt),
+      })),
+      ...events.map((e) => ({
+        type: "event" as const,
+        data: e,
+        date: new Date(e.createdAt),
+      })),
+      ...questions.map((q) => ({
+        type: "question" as const,
+        data: q,
+        date: new Date(q.createdAt),
+      })),
     ]
     return items.sort((a, b) => a.date.getTime() - b.date.getTime())
-  }, [actions, events])
+  }, [actions, events, questions])
+
+  // Find unanswered question
+  const pendingQuestion = questions.find((q) => !q.answered)
 
   // Auto-scroll logic
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
-      const scrollElement = scrollRef.current
-      scrollElement.scrollTo({
-        top: scrollElement.scrollHeight,
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
         behavior: "smooth",
       })
     }
   }, [timelineItems, autoScroll])
 
-  // Handle manual scroll to disable auto-scroll
   const handleScroll = () => {
     if (scrollRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
@@ -95,113 +241,116 @@ export function SessionPanel({
 
   const handleSendMessage = () => {
     if (!message.trim() || !onSendMessage) return
-    onSendMessage(message)
+    onSendMessage(message.trim())
     setMessage("")
     setAutoScroll(true)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
     }
   }
 
+  const handleAnswerQuestion = (questionId: string, answer: string | string[]) => {
+    onAnswerQuestion?.(questionId, answer)
+  }
+
   return (
-    <Card className="h-full flex flex-col shadow-none border-0 bg-transparent">
-      {/* Header */}
-      <div className="flex-none px-4 py-3 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Play className="size-3.5 text-primary" />
-              Session {session.id.slice(0, 8)}
-            </h3>
+    <Card className="h-full flex flex-col overflow-hidden border-border">
+      {/* Minimal Header */}
+      <div className="flex-none px-4 py-2.5 border-b border-border bg-card flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <Cpu className="size-3.5 text-primary" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">{agentName}</p>
+          </div>
+          {isActive && (
             <Badge
               variant="outline"
-              className={cn("text-[0.6rem] uppercase h-5", getStatusColor(session.state))}
+              className="text-[10px] h-5 border-green-500/30 text-green-500"
             >
-              {session.state === "active" ? (
-                <Loader2 className="size-3 mr-1 animate-spin" />
-              ) : session.state === "done" ? (
-                <CheckCircle2 className="size-3 mr-1" />
-              ) : (
-                <XCircle className="size-3 mr-1" />
-              )}
-              {session.state}
+              <span className="size-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" />
+              Active
             </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground truncate max-w-[300px]" title={session.goal}>
-            {session.goal}
-          </p>
+          )}
         </div>
 
-        {/* Mini Stats */}
-        <div className="flex items-center gap-3 text-[0.65rem] text-muted-foreground bg-muted/30 px-2 py-1 rounded-full border">
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="size-3 text-green-500" />
-            {completedActions.length}
-          </span>
-          <Separator orientation="vertical" className="h-3" />
-          <span className="flex items-center gap-1.5">
-            <Clock className="size-3 text-yellow-500" />
-            {pendingActions.length}
-          </span>
-          <Separator orientation="vertical" className="h-3" />
-          <span className="flex items-center gap-1.5">
-            <XCircle className="size-3 text-destructive" />
-            {failedActions.length}
-          </span>
-        </div>
+        {isActive && onEndSession && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+            onClick={() => onEndSession(false)}
+          >
+            <Square className="size-3 mr-1 fill-current" />
+            Stop
+          </Button>
+        )}
+      </div>
+
+      {/* Goal Banner */}
+      <div className="flex-none px-4 py-2 bg-muted/30 border-b border-border">
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium">Goal:</span> {session.goal}
+        </p>
       </div>
 
       {/* Chat Content */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto min-h-0 bg-background/20 relative"
+        className="flex-1 overflow-y-auto min-h-0 bg-background"
       >
         {timelineItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
-            <Terminal className="size-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm text-muted-foreground">Session initialized</p>
-            <p className="text-xs text-muted-foreground mt-1">Waiting for agent activity...</p>
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <Terminal className="size-10 text-muted-foreground/20 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Session started
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              {agentName} is analyzing your request...
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col py-4">
-            {/* Initial System Message */}
-            <div className="px-4 py-2 flex justify-center mb-4">
-              <div className="text-[0.65rem] text-muted-foreground bg-muted/30 px-3 py-1 rounded-full border">
-                Session started at {new Date(session.createdAt).toLocaleString()}
-              </div>
-            </div>
-
-            {timelineItems.map((item, index) => {
-              // Add a simple date separator if day changes (unlikely for single session but good practice)
-              const prevItem = timelineItems[index - 1]
-              const showDateSeparator = prevItem && item.date.toDateString() !== prevItem.date.toDateString()
-
-              return (
-                <div key={`${item.type}-${item.data.id}`}>
-                  {showDateSeparator && (
-                    <div className="flex items-center justify-center my-4">
-                      <div className="text-xs text-muted-foreground bg-background px-2">
-                        {item.date.toDateString()}
-                      </div>
-                    </div>
-                  )}
-
-                  {item.type === 'action' ? (
-                    <ActionMessage action={item.data} />
-                  ) : (
-                    <EventMessage event={item.data} />
-                  )}
-                </div>
-              )
+          <div className="flex flex-col py-2">
+            {timelineItems.map((item) => {
+              if (item.type === "action") {
+                return <ActionMessage key={item.data.id} action={item.data} />
+              }
+              if (item.type === "event") {
+                return <EventMessage key={item.data.id} event={item.data} />
+              }
+              if (item.type === "question") {
+                return (
+                  <QuestionOptions
+                    key={item.data.id}
+                    question={item.data}
+                    onAnswer={handleAnswerQuestion}
+                  />
+                )
+              }
+              return null
             })}
 
-            {/* Scroll Anchor/padding */}
-            <div className="h-4" />
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="flex gap-3 px-4 py-3">
+                <div className="size-8 rounded-full bg-muted flex items-center justify-center">
+                  <Loader2 className="size-4 text-muted-foreground animate-spin" />
+                </div>
+                <div className="flex items-center">
+                  <span className="text-sm text-muted-foreground">
+                    {agentName} is working...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="h-2" />
           </div>
         )}
 
@@ -210,10 +359,13 @@ export function SessionPanel({
           <Button
             variant="outline"
             size="icon"
-            className="absolute bottom-4 right-4 rounded-full shadow-md size-8 bg-background/80 backdrop-blur hover:bg-background transition-all animate-in fade-in zoom-in duration-200"
+            className="absolute bottom-20 right-6 rounded-full shadow-lg size-8 bg-background"
             onClick={() => {
               setAutoScroll(true)
-              scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+              scrollRef.current?.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: "smooth",
+              })
             }}
           >
             <ArrowDown className="size-4" />
@@ -221,54 +373,47 @@ export function SessionPanel({
         )}
       </div>
 
-      {/* Footer Controls */}
-      <div className="flex-none p-3 border-t bg-background/50 backdrop-blur-sm flex flex-col gap-3">
-        {/* Input Area */}
-        {isActive && onSendMessage && (
-          <div className="relative">
+      {/* Input Area - Always visible when active */}
+      {isActive && (
+        <div className="flex-none p-3 border-t border-border bg-card">
+          <div className="flex gap-2 items-end">
             <Textarea
+              ref={inputRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message agent..."
-              className="min-h-[80px] pr-12 resize-none bg-background/80"
+              placeholder={
+                pendingQuestion
+                  ? "Type a custom response or select an option above..."
+                  : "Type a message..."
+              }
+              className="min-h-[44px] max-h-[120px] resize-none text-sm"
+              rows={1}
             />
             <Button
               size="icon"
-              className="absolute bottom-2 right-2 size-8"
+              className="size-[44px] shrink-0"
               disabled={!message.trim() || isLoading}
               onClick={handleSendMessage}
             >
               <Send className="size-4" />
             </Button>
           </div>
-        )}
+          <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+            Press Enter to send, Shift+Enter for new line
+          </p>
+        </div>
+      )}
 
-        {isActive && onEndSession && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-600 h-8 text-xs"
-              onClick={() => onEndSession(true)}
-              disabled={isLoading}
-            >
-              <CheckCircle2 className="size-3.5 mr-2" />
-              Complete Session
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive h-8 text-xs"
-              onClick={() => onEndSession(false)}
-              disabled={isLoading}
-            >
-              <Square className="size-3.5 mr-2 fill-current" />
-              Stop Session
-            </Button>
-          </div>
-        )}
-      </div>
+      {/* Completed/Failed state */}
+      {!isActive && (
+        <div className="flex-none p-3 border-t border-border bg-muted/30">
+          <p className="text-xs text-center text-muted-foreground">
+            Session {session.state === "done" ? "completed" : "ended"} at{" "}
+            {new Date(session.updatedAt).toLocaleString()}
+          </p>
+        </div>
+      )}
     </Card>
   )
 }

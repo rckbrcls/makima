@@ -44,6 +44,7 @@ export function GlobalApprovalDrawer() {
         session: session ?? {
           id: "",
           agentId: "",
+          repoName: "",
           goal: "",
           state: "active" as const,
           createdAt: new Date().toISOString(),
@@ -54,6 +55,7 @@ export function GlobalApprovalDrawer() {
           name: "Unknown",
           provider: "cli" as const,
           status: "idle" as const,
+          skills: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           repos: [],
