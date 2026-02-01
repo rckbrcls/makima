@@ -95,7 +95,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
 
   return (
     <div className="px-4 py-3">
-      <div className="bg-muted/30 border border-border rounded-lg p-4 max-w-md">
+      <div className="bg-muted border border-border rounded-lg p-4 max-w-md">
         <p className="text-sm font-medium mb-3">{question.question}</p>
 
         <div className="space-y-2">
@@ -105,9 +105,9 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
               onClick={() => handleSelect(option.value)}
               className={cn(
                 "w-full text-left px-3 py-2.5 rounded-md border transition-all",
-                "hover:border-primary/50 hover:bg-primary/5",
+                "hover:border-primary hover:bg-accent",
                 isSelected(option.value)
-                  ? "border-primary bg-primary/10 text-primary"
+                  ? "border-primary bg-accent text-primary"
                   : "border-border bg-background"
               )}
             >
@@ -117,7 +117,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
                     "size-4 rounded-full border-2 flex items-center justify-center shrink-0",
                     isSelected(option.value)
                       ? "border-primary bg-primary"
-                      : "border-muted-foreground/30"
+                      : "border-muted"
                   )}
                 >
                   {isSelected(option.value) && (
@@ -262,7 +262,7 @@ export function SessionPanel({
       {/* Minimal Header */}
       <div className="flex-none px-4 py-2.5 border-b border-border bg-card flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="size-6 rounded-full bg-muted flex items-center justify-center">
             <Cpu className="size-3.5 text-primary" />
           </div>
           <div>
@@ -271,7 +271,7 @@ export function SessionPanel({
           {isActive && (
             <Badge
               variant="outline"
-              className="text-[10px] h-5 border-green-500/30 text-green-500"
+              className="text-[10px] h-5 border-green-500 text-green-500"
             >
               <span className="size-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse" />
               Active
@@ -293,7 +293,7 @@ export function SessionPanel({
       </div>
 
       {/* Goal Banner */}
-      <div className="flex-none px-4 py-2 bg-muted/30 border-b border-border">
+      <div className="flex-none px-4 py-2 bg-muted border-b border-border">
         <p className="text-xs text-muted-foreground">
           <span className="font-medium">Goal:</span> {session.goal}
         </p>
@@ -307,11 +307,11 @@ export function SessionPanel({
       >
         {timelineItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <Terminal className="size-10 text-muted-foreground/20 mb-3" />
+            <Terminal className="size-10 text-muted mb-3" />
             <p className="text-sm text-muted-foreground">
               Session started
             </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {agentName} is analyzing your request...
             </p>
           </div>
@@ -407,7 +407,7 @@ export function SessionPanel({
 
       {/* Completed/Failed state */}
       {!isActive && (
-        <div className="flex-none p-3 border-t border-border bg-muted/30">
+        <div className="flex-none p-3 border-t border-border bg-muted">
           <p className="text-xs text-center text-muted-foreground">
             Session {session.state === "done" ? "completed" : "ended"} at{" "}
             {new Date(session.updatedAt).toLocaleString()}

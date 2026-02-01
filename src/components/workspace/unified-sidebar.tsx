@@ -83,7 +83,7 @@ function SessionItem({ session, agent, isSelected, onClick, pendingCount }: Sess
           className={cn(
             "w-full text-left px-3 py-2 rounded-md transition-all text-sm",
             "hover:bg-muted",
-            isSelected && "bg-primary/10 text-primary"
+            isSelected && "bg-accent text-primary"
           )}
         >
           <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ function SessionItem({ session, agent, isSelected, onClick, pendingCount }: Sess
             />
             <span className="flex-1 truncate">{session.goal}</span>
             {pendingCount > 0 && (
-              <Badge className="text-[9px] h-4 px-1 bg-yellow-500/20 text-yellow-600">
+              <Badge className="text-[9px] h-4 px-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
                 {pendingCount}
               </Badge>
             )}
@@ -213,7 +213,7 @@ function RepoGroup({
                   </Badge>
                 )}
                 {runningCount > 0 && (
-                  <Badge className="text-[10px] h-5 bg-green-500/20 text-green-600 border-green-500/30">
+                  <Badge className="text-[10px] h-5 bg-green-100 text-green-700 border-green-500 dark:bg-green-900 dark:text-green-300">
                     {runningCount}
                   </Badge>
                 )}
@@ -260,8 +260,8 @@ function RepoGroup({
               onClick={onNewSession}
               className={cn(
                 "w-full flex items-center gap-2 px-3 py-2 rounded-md transition-all text-sm",
-                "hover:bg-primary/10 text-primary",
-                isCreatingNewSession && isSelected && "bg-primary/10"
+                "hover:bg-accent text-primary",
+                isCreatingNewSession && isSelected && "bg-accent"
               )}
             >
               <MessageSquarePlus className="size-3.5" />
@@ -402,9 +402,9 @@ export function UnifiedSidebar({
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {repositories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center px-4">
-            <FolderGit2 className="size-10 text-muted-foreground/20 mb-2" />
+            <FolderGit2 className="size-10 text-muted mb-2" />
             <p className="text-sm text-muted-foreground">No repositories</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Add a repository to get started
             </p>
           </div>

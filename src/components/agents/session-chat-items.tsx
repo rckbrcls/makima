@@ -106,7 +106,7 @@ export function EventMessage({ event }: EventMessageProps) {
       <div className="flex justify-end px-4 py-3">
         <div className="max-w-[80%] bg-primary text-primary-foreground px-3 py-2 rounded-lg rounded-tr-none shadow-sm">
           <p className="text-sm break-words whitespace-pre-wrap">{event.message}</p>
-          <div className="text-[0.6rem] text-primary-foreground/70 mt-1 flex justify-end">
+          <div className="text-[0.6rem] text-primary-foreground mt-1 flex justify-end opacity-70">
             {formatTime(event.createdAt)}
           </div>
         </div>
@@ -115,7 +115,7 @@ export function EventMessage({ event }: EventMessageProps) {
   }
 
   return (
-    <div className="flex gap-3 px-4 py-2 opacity-80 hover:opacity-100 transition-opacity">
+    <div className="flex gap-3 px-4 py-2 hover:bg-muted transition-colors">
       <div className={cn("mt-1 shrink-0", eventLevelColors[event.level])}>
         <Icon className="size-4" />
       </div>
@@ -123,7 +123,7 @@ export function EventMessage({ event }: EventMessageProps) {
         <div className="text-xs text-muted-foreground mb-0.5">
           System • {formatTime(event.createdAt)}
         </div>
-        <p className="text-sm text-foreground/90 whitespace-pre-wrap">{event.message}</p>
+        <p className="text-sm text-foreground whitespace-pre-wrap">{event.message}</p>
       </div>
     </div>
   )
@@ -164,7 +164,7 @@ export function ActionMessage({ action }: ActionMessageProps) {
       title = "Executing Command"
       text = payload.command
       content = (
-        <div className="mt-2 text-xs font-mono bg-black/40 p-2.5 rounded border border-border/50 text-green-400 overflow-x-auto whitespace-pre-wrap">
+        <div className="mt-2 text-xs font-mono bg-zinc-900 dark:bg-black p-2.5 rounded border border-border text-green-400 overflow-x-auto whitespace-pre-wrap">
           $ {payload.command}
         </div>
       )
@@ -176,7 +176,7 @@ export function ActionMessage({ action }: ActionMessageProps) {
       title = action.actionType.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
       text = payload.path
       content = (
-        <div className="mt-2 text-xs font-mono bg-muted/40 p-2 rounded border border-border/50 text-foreground/80 break-all">
+        <div className="mt-2 text-xs font-mono bg-muted p-2 rounded border border-border text-foreground break-all">
           {payload.path}
         </div>
       )
@@ -185,7 +185,7 @@ export function ActionMessage({ action }: ActionMessageProps) {
       title = "Agent Says"
       text = payload.message
       content = (
-        <div className="mt-2 text-sm text-foreground border-l-2 border-primary/50 pl-3 py-1">
+        <div className="mt-2 text-sm text-foreground border-l-2 border-primary pl-3 py-1">
           {payload.message}
         </div>
       )
@@ -198,17 +198,14 @@ export function ActionMessage({ action }: ActionMessageProps) {
   return (
     <div className={cn(
       "flex gap-3 px-4 py-3 group",
-      isFocussedAction(action) && "bg-muted/10"
+      isFocussedAction(action) && "bg-muted"
     )}>
       <div className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full border shadow-sm mt-0.5",
-        isDone
-          ? "border-green-500/30 bg-green-500/10 text-green-500"
-          : isFailed
-            ? "border-destructive/30 bg-destructive/10 text-destructive"
-            : action.status === "blocked"
-              ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
-              : "border-border bg-background text-muted-foreground"
+        "flex size-8 shrink-0 items-center justify-center rounded-full border shadow-sm mt-0.5 bg-muted",
+        isDone && "border-green-500 text-green-500",
+        isFailed && "border-destructive text-destructive",
+        action.status === "blocked" && "border-yellow-500 text-yellow-500",
+        !isDone && !isFailed && action.status !== "blocked" && "border-border text-muted-foreground"
       )}>
         {isRunning ? <Loader2 className="size-4 animate-spin" /> : <TypeIcon className="size-4" />}
       </div>
@@ -264,13 +261,13 @@ function CollapsibleDetails({ payload, action }: { payload: any, action: Action 
       </CollapsibleTrigger>
       <CollapsibleContent>
         {isCodeChange && codeContent ? (
-          <div className="mt-2 relative rounded-md border border-border bg-muted/30 p-3 overflow-hidden">
+          <div className="mt-2 relative rounded-md border border-border bg-muted p-3 overflow-hidden">
             <pre className="text-xs font-mono overflow-x-auto">
               <code>{codeContent}</code>
             </pre>
           </div>
         ) : (
-          <div className="mt-2 rounded-md border border-border bg-muted/30 p-3 overflow-hidden">
+          <div className="mt-2 rounded-md border border-border bg-muted p-3 overflow-hidden">
             <pre className="text-xs font-mono overflow-x-auto text-muted-foreground">
               {JSON.stringify(payload, null, 2)}
             </pre>

@@ -85,8 +85,8 @@ function SkillToggle({ skill, selected, onToggle }: SkillToggleProps) {
       className={cn(
         "flex items-center gap-2 px-3 py-2 rounded-md border transition-all text-left",
         selected
-          ? "bg-primary/10 border-primary text-primary"
-          : "bg-muted/30 border-border text-muted-foreground hover:bg-muted/50"
+          ? "bg-accent border-primary text-primary"
+          : "bg-muted border-border text-muted-foreground hover:bg-accent"
       )}
     >
       <Icon className="size-4 shrink-0" />
@@ -108,8 +108,8 @@ function AgentCardBuilder({ agent, isSelected, onSelect, onDelete }: AgentCardBu
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-all hover:border-primary/50",
-        isSelected && "border-primary bg-primary/5"
+        "cursor-pointer transition-all hover:border-primary",
+        isSelected && "border-primary bg-accent"
       )}
       onClick={onSelect}
     >
@@ -117,10 +117,10 @@ function AgentCardBuilder({ agent, isSelected, onSelect, onDelete }: AgentCardBu
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "size-10 rounded-lg flex items-center justify-center",
-              agent.status === "running" ? "bg-green-500/10 text-green-500" :
-              agent.status === "error" ? "bg-red-500/10 text-red-500" :
-              "bg-muted text-muted-foreground"
+              "size-10 rounded-lg flex items-center justify-center bg-muted",
+              agent.status === "running" && "text-green-500",
+              agent.status === "error" && "text-red-500",
+              agent.status !== "running" && agent.status !== "error" && "text-muted-foreground"
             )}>
               <Cpu className="size-5" />
             </div>
@@ -252,12 +252,12 @@ export function AgentsBuilderPage() {
 
   return (
     <div className="relative h-full overflow-hidden bg-background text-foreground flex flex-col">
-      <TextureOverlay texture="noise" className="mix-blend-overlay" />
+      <TextureOverlay texture="noise" className="z-0 opacity-[0.03]" />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
+      <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-border bg-card">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="size-10 rounded-lg bg-muted flex items-center justify-center">
             <Cpu className="size-5 text-primary" />
           </div>
           <div>
@@ -274,9 +274,9 @@ export function AgentsBuilderPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 grid grid-cols-[320px_1fr] min-h-0 overflow-hidden">
+      <div className="relative z-10 flex-1 grid grid-cols-[320px_1fr] min-h-0 overflow-hidden">
         {/* Agents List */}
-        <div className="border-r border-border overflow-y-auto p-4 space-y-3">
+        <div className="border-r border-border bg-card overflow-y-auto p-4 space-y-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-medium text-muted-foreground">
               Your Agents ({agents.length})
@@ -285,9 +285,9 @@ export function AgentsBuilderPage() {
 
           {agents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Cpu className="size-12 text-muted-foreground/30 mb-3" />
+              <Cpu className="size-12 text-muted mb-3" />
               <p className="text-sm text-muted-foreground">No agents configured</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Create your first agent to get started
               </p>
             </div>
@@ -305,14 +305,14 @@ export function AgentsBuilderPage() {
         </div>
 
         {/* Agent Editor */}
-        <div className="overflow-y-auto p-6">
+        <div className="overflow-y-auto p-6 bg-background">
           {!selectedAgent && !isCreating ? (
             <div className="h-full flex flex-col items-center justify-center text-center">
-              <Settings2 className="size-16 text-muted-foreground/20 mb-4" />
+              <Settings2 className="size-16 text-muted mb-4" />
               <h3 className="text-lg font-medium text-muted-foreground">
                 Select an agent to configure
               </h3>
-              <p className="text-sm text-muted-foreground/70 mt-1 max-w-md">
+              <p className="text-sm text-muted-foreground mt-1 max-w-md">
                 Choose an agent from the list or create a new one to configure its skills, model, and capabilities.
               </p>
               <Button onClick={handleNewAgent} variant="outline" className="mt-4 gap-2">

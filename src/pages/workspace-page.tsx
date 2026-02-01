@@ -62,7 +62,7 @@ function NewSessionChat({ repoName, agents, onCreateSession, onCancel }: NewSess
       {/* Header */}
       <div className="flex-none px-4 py-3 border-b border-border bg-card flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="size-8 rounded-full bg-muted flex items-center justify-center">
             <MessageSquarePlus className="size-4 text-primary" />
           </div>
           <div>
@@ -76,7 +76,7 @@ function NewSessionChat({ repoName, agents, onCreateSession, onCancel }: NewSess
       </div>
 
       {/* Agent Selection */}
-      <div className="flex-none p-4 border-b border-border bg-muted/30">
+      <div className="flex-none p-4 border-b border-border bg-muted">
         <label className="text-xs font-medium text-muted-foreground mb-2 block">
           Select an agent to work with
         </label>
@@ -88,8 +88,8 @@ function NewSessionChat({ repoName, agents, onCreateSession, onCancel }: NewSess
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all",
                 selectedAgentId === agent.id
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-background hover:border-primary/50"
+                  ? "border-primary bg-accent text-primary"
+                  : "border-border bg-background hover:border-primary"
               )}
             >
               <Cpu className="size-4" />
@@ -107,7 +107,7 @@ function NewSessionChat({ repoName, agents, onCreateSession, onCancel }: NewSess
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center">
         <div className="max-w-md">
-          <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <div className="size-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
             <Sparkles className="size-8 text-primary" />
           </div>
           <h3 className="text-lg font-semibold mb-2">
@@ -327,9 +327,8 @@ export function WorkspacePage() {
 
       <TextureOverlay texture="noise" className="mix-blend-overlay" />
 
-
       {/* Body: 3-column layout */}
-      <div className="grid relative w-full min-h-0 flex-1 lg:grid-cols-[300px_1fr_320px]">
+      <div className="relative z-10 grid w-full min-h-0 flex-1 lg:grid-cols-[300px_1fr_320px]">
         {/* 1. Unified Sidebar (Repos + Sessions) */}
         <UnifiedSidebar
           repositories={repositories}
@@ -367,12 +366,12 @@ export function WorkspacePage() {
               onAnswerQuestion={handleAnswerQuestion}
             />
           ) : (
-            <Card className="flex flex-col items-center justify-center text-center p-6 h-full border-dashed">
-              <MessageSquarePlus className="size-12 text-muted-foreground/20 mb-4" />
+            <Card className="flex flex-col items-center justify-center text-center p-6 h-full border-dashed bg-card">
+              <MessageSquarePlus className="size-12 text-muted mb-4" />
               <h3 className="text-lg font-medium text-muted-foreground">
                 {selectedRepo ? "Start a new session" : "Select a repository"}
               </h3>
-              <p className="text-sm text-muted-foreground/70 mt-1 max-w-sm">
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm">
                 {selectedRepo
                   ? "Click \"New Session\" in the sidebar to start working with an AI agent"
                   : "Expand a repository in the sidebar to see its sessions"
@@ -401,9 +400,9 @@ export function WorkspacePage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="size-10 text-muted-foreground/20 mb-3" />
+              <AlertCircle className="size-10 text-muted mb-3" />
               <p className="text-sm text-muted-foreground">No active executions</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Running processes will appear here
               </p>
             </div>
