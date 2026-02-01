@@ -25,17 +25,28 @@ import { AlertTriangle, Clock, Pencil, Play, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { statusStyles, typeIcons } from "@/lib/command-hub/constants"
 import type { Command } from "./types"
+import { QuickComposer } from "./quick-composer"
 
 interface CommandCardProps {
   command: Command
   index: number
   onRun?: (command: Command) => void
   onDelete?: (command: Command) => void
-  onEdit?: (command: Command) => void
+  onUpdateCommand?: (command: Command) => void | Promise<void>
 }
 
-export function CommandCard({ command, index, onRun, onDelete, onEdit }: CommandCardProps) {
+export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }: CommandCardProps) {
   const Icon = typeIcons[command.type]
+
+  // If command is running, editing should be disabled.
+  // We can condition the rendering of QuickComposer or pass disabled state to it.
+  // QuickComposer wrapper (ExpandableScreenTrigger) doesn't support disabled prop directly on it?
+  // We should conditionally wrap or render disabled button.
+  // If disabled, just render disabled button.
+  // If enabled, wrap with QuickComposer.
+
+  const isRunning = command.status === "running"
+  const canEdit = !isRunning && !!onUpdateCommand
 
   return (
     <Card
@@ -60,16 +71,35 @@ export function CommandCard({ command, index, onRun, onDelete, onEdit }: Command
             >
               {command.status}
             </Badge>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground hover:text-primary"
-              aria-label={`Edit ${command.name}`}
-              disabled={command.status === "running" || !onEdit}
-              onClick={() => onEdit?.(command)}
-            >
-              <Pencil className="size-3" />
-            </Button>
+
+            {canEdit ? (
+              <QuickComposer
+                repoName={command.repo}
+                editingCommand={command}
+                onUpdateCommand={onUpdateCommand}
+              // onRunCommand is likely not needed here for editing config, or we can add it if needed.
+              >
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground hover:text-primary"
+                  aria-label={`Edit ${command.name}`}
+                >
+                  <Pencil className="size-3" />
+                </Button>
+              </QuickComposer>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="text-muted-foreground hover:text-primary"
+                aria-label={`Edit ${command.name}`}
+                disabled
+              >
+                <Pencil className="size-3" />
+              </Button>
+            )}
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button

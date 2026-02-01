@@ -1,18 +1,16 @@
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ExpandableScreen,
+  ExpandableScreenContent,
+  ExpandableScreenTrigger,
+  useExpandableScreen,
+} from "@/components/ui/expandable-screen"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { type ReactNode } from "react"
 
 interface SaveCommandDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  children?: ReactNode
   commandName: string
   onCommandNameChange: (value: string) => void
   composedCommand: string
@@ -22,8 +20,7 @@ interface SaveCommandDialogProps {
 }
 
 export function SaveCommandDialog({
-  open,
-  onOpenChange,
+  children,
   commandName,
   onCommandNameChange,
   composedCommand,
@@ -32,55 +29,87 @@ export function SaveCommandDialog({
   onSave,
 }: SaveCommandDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {editingCommand ? "Update Command" : "Save Command"}
-          </DialogTitle>
-          <DialogDescription>
-            {editingCommand
-              ? "Update the command details."
-              : "Enter a name for this command to save it for future use."}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="command-name">Command Name</Label>
-            <Input
-              id="command-name"
-              value={commandName}
-              onChange={(event) => onCommandNameChange(event.target.value)}
-              placeholder="e.g., build-desktop"
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && commandName.trim()) {
-                  onSave()
-                }
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Command</Label>
-            <div className="rounded-none border border-border/70 bg-muted/30 p-2 text-xs font-mono">
-              {composedCommand || "(empty)"}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Repository</Label>
-            <div className="rounded-none border border-border/70 bg-muted/30 p-2 text-xs">
-              {repoName}
-            </div>
+    <ExpandableScreen>
+      <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
+      <ExpandableScreenContent className="bg-background border border-border p-0 sm:max-w-md">
+        <SaveCommandForm
+          commandName={commandName}
+          onCommandNameChange={onCommandNameChange}
+          composedCommand={composedCommand}
+          repoName={repoName}
+          editingCommand={editingCommand}
+          onSave={onSave}
+        />
+      </ExpandableScreenContent>
+    </ExpandableScreen>
+  )
+}
+
+function SaveCommandForm({
+  commandName,
+  onCommandNameChange,
+  composedCommand,
+  repoName,
+  editingCommand,
+  onSave,
+}: Omit<SaveCommandDialogProps, "children">) {
+  const { collapse } = useExpandableScreen()
+
+  const handleSave = () => {
+    onSave()
+    collapse()
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
+        <h2 className="text-lg font-semibold leading-none tracking-tight">
+          {editingCommand ? "Update Command" : "Save Command"}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {editingCommand
+            ? "Update the command details."
+            : "Enter a name for this command to save it for future use."}
+        </p>
+      </div>
+
+      <div className="space-y-4 p-6 pt-2">
+        <div className="space-y-2">
+          <Label htmlFor="command-name">Command Name</Label>
+          <Input
+            id="command-name"
+            value={commandName}
+            onChange={(event) => onCommandNameChange(event.target.value)}
+            placeholder="e.g., build-desktop"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && commandName.trim()) {
+                handleSave()
+              }
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Command</Label>
+          <div className="rounded-none border border-border/70 bg-muted/30 p-2 text-xs font-mono">
+            {composedCommand || "(empty)"}
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="space-y-2">
+          <Label>Repository</Label>
+          <div className="rounded-none border border-border/70 bg-muted/30 p-2 text-xs">
+            {repoName}
+          </div>
+        </div>
+
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-2">
+          <Button variant="outline" onClick={() => collapse()}>
             Cancel
           </Button>
-          <Button onClick={onSave} disabled={!commandName.trim()}>
+          <Button onClick={handleSave} disabled={!commandName.trim()}>
             {editingCommand ? "Update" : "Save"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   )
 }

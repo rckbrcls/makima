@@ -2,12 +2,11 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ExpandableScreen,
+  ExpandableScreenContent,
+  ExpandableScreenTrigger,
+  useExpandableScreen,
+} from "@/components/ui/expandable-screen"
 import {
   Select,
   SelectContent,
@@ -16,8 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ModeToggle } from "@/components/mode-toggle"
-import { Menu, Plus, Search, Sparkles, Terminal, Wand2 } from "lucide-react"
-import { AddRepositoryDialog } from "./add-repository-dialog"
+import { Menu, Plus, Search, Sparkles, Terminal } from "lucide-react"
 import { QuickComposer } from "./quick-composer"
 import type { Command, NewRepositoryInput, Repository, RunCommandInput } from "./types"
 
@@ -38,7 +36,6 @@ export function CommandHubHeader({
   onRunCommandInput,
   onAddCommand,
 }: CommandHubHeaderProps) {
-  const [composeDialogOpen, setComposeDialogOpen] = useState(false)
   const [composeRepo, setComposeRepo] = useState<string>(
     selectedRepo || repositories[0]?.name || ""
   )
@@ -96,64 +93,94 @@ export function CommandHubHeader({
               <Sparkles data-icon="inline-start" />
               Auto-setup
             </Button>
-            <Button
-              className="h-9 border-border text-xs"
-              onClick={() => setComposeDialogOpen(true)}
-            >
-              <Plus data-icon="inline-start" />
-              New command
-            </Button>
+
+            <ExpandableScreen>
+              <ExpandableScreenTrigger>
+                <Button
+                  className="h-9 border-border text-xs"
+                >
+                  <Plus data-icon="inline-start" />
+                  New command
+                </Button>
+              </ExpandableScreenTrigger>
+              <ExpandableScreenContent className="bg-background border border-border p-6 sm:max-w-xl">
+                <NewCommandContent
+                  repositories={repositories}
+                  composeRepo={composeRepo}
+                  setComposeRepo={setComposeRepo}
+                  onRunCommandInput={onRunCommandInput}
+                  onAddCommand={onAddCommand}
+                />
+              </ExpandableScreenContent>
+            </ExpandableScreen>
+
           </div>
         </div>
       </header>
-
-      {/* Compose Dialog */}
-      <Dialog open={composeDialogOpen} onOpenChange={setComposeDialogOpen}>
-        <DialogContent className="min-w-1/2">
-          <DialogHeader>
-            <DialogTitle>New command</DialogTitle>
-            <DialogDescription>
-              Select a repository and build custom commands.
-            </DialogDescription>
-          </DialogHeader>
-          {repositories.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-              <p className="text-sm text-muted-foreground">
-                No repositories available. Add a repository to start composing commands.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-foreground">
-                  Repository:
-                </label>
-                <Select value={composeRepo} onValueChange={setComposeRepo}>
-                  <SelectTrigger className="w-full border-border bg-card">
-                    <SelectValue placeholder="Select repository" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {repositories.map((repo) => (
-                      <SelectItem key={repo.name} value={repo.name}>
-                        {repo.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <QuickComposer
-                repoName={composeRepo}
-                inline={true}
-                onRunCommand={onRunCommandInput}
-                onAddCommand={(command) => {
-                  onAddCommand?.(command)
-                  setComposeDialogOpen(false)
-                }}
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
+  )
+}
+
+function NewCommandContent({
+  repositories,
+  composeRepo,
+  setComposeRepo,
+  onRunCommandInput,
+  onAddCommand
+}: {
+  repositories: Repository[],
+  composeRepo: string,
+  setComposeRepo: (value: string) => void,
+  onRunCommandInput?: (request: RunCommandInput) => void | Promise<void>,
+  onAddCommand?: (command: Command) => void | Promise<void>
+}) {
+  const { collapse } = useExpandableScreen()
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col space-y-1.5 pb-2 text-center sm:text-left">
+        <h2 className="text-lg font-semibold leading-none tracking-tight">New command</h2>
+        <p className="text-sm text-muted-foreground">
+          Select a repository and build custom commands.
+        </p>
+      </div>
+
+      {repositories.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            No repositories available. Add a repository to start composing commands.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-foreground">
+              Repository:
+            </label>
+            <Select value={composeRepo} onValueChange={setComposeRepo}>
+              <SelectTrigger className="w-full border-border bg-card">
+                <SelectValue placeholder="Select repository" />
+              </SelectTrigger>
+              <SelectContent>
+                {repositories.map((repo) => (
+                  <SelectItem key={repo.name} value={repo.name}>
+                    {repo.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <QuickComposer
+            repoName={composeRepo}
+            inline={true}
+            onRunCommand={onRunCommandInput}
+            onAddCommand={(command) => {
+              onAddCommand?.(command)
+              collapse()
+            }}
+          />
+        </div>
+      )}
+    </div>
   )
 }

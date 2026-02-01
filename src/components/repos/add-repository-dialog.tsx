@@ -18,14 +18,11 @@ import { invoke, isTauri } from "@tauri-apps/api/core"
 
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  ExpandableScreen,
+  ExpandableScreenContent,
+  ExpandableScreenTrigger,
+  useExpandableScreen,
+} from "@/components/ui/expandable-screen"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -61,13 +58,30 @@ export function AddRepositoryDialog({
   children,
   onAddRepository,
 }: AddRepositoryDialogProps) {
+  // We can't easily intercept open change in ExpandableScreen from outside without context,
+  // but we can reset form on submit or inside the content component
+  return (
+    <ExpandableScreen>
+      <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
+      <ExpandableScreenContent className="bg-background border border-border p-0 sm:max-w-[480px]">
+        <AddRepositoryForm onAddRepository={onAddRepository} />
+      </ExpandableScreenContent>
+    </ExpandableScreen>
+  )
+}
+
+function AddRepositoryForm({
+  onAddRepository,
+}: {
+  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean
+}) {
+  const { collapse } = useExpandableScreen()
   const id = useId()
   const nameId = `${id}-name`
   const pathId = `${id}-path`
   const branchId = `${id}-branch`
   const techId = `${id}-tech`
 
-  const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [path, setPath] = useState("")
   const [branch, setBranch] = useState(defaultBranch)
@@ -99,13 +113,6 @@ export function AddRepositoryDialog({
     setBranches([])
   }
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
-    if (!nextOpen) {
-      resetForm()
-    }
-  }
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!canSubmit || isSubmitting) return
@@ -121,7 +128,7 @@ export function AddRepositoryDialog({
 
     if (result !== false) {
       resetForm()
-      setOpen(false)
+      collapse()
     }
   }
 
@@ -224,123 +231,117 @@ export function AddRepositoryDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle>Add repository</DialogTitle>
-          <DialogDescription>
-            Register a local repo so Overseer can run and track commands.
-          </DialogDescription>
-        </DialogHeader>
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor={nameId} className="flex items-center gap-2">
-              <FolderGit2 className="size-4 text-muted-foreground" />
-              Repository name
-            </Label>
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
+        <h2 className="text-lg font-semibold leading-none tracking-tight">Add repository</h2>
+        <p className="text-sm text-muted-foreground">
+          Register a local repo so Overseer can run and track commands.
+        </p>
+      </div>
+      <form className="grid gap-4 p-6 pt-2" onSubmit={handleSubmit}>
+        <div className="grid gap-2">
+          <Label htmlFor={nameId} className="flex items-center gap-2">
+            <FolderGit2 className="size-4 text-muted-foreground" />
+            Repository name
+          </Label>
+          <Input
+            id={nameId}
+            placeholder="billing-api"
+            className="h-9"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={pathId} className="flex items-center gap-2">
+            <Link2 className="size-4 text-muted-foreground" />
+            Local path
+          </Label>
+          <div className="flex gap-2">
             <Input
-              id={nameId}
-              placeholder="billing-api"
-              className="h-9"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoFocus
+              id={pathId}
+              placeholder="~/codes/billing-api"
+              className="h-9 flex-1"
+              value={path}
+              onChange={(event) => setPath(event.target.value)}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={pathId} className="flex items-center gap-2">
-              <Link2 className="size-4 text-muted-foreground" />
-              Local path
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id={pathId}
-                placeholder="~/codes/billing-api"
-                className="h-9 flex-1"
-                value={path}
-                onChange={(event) => setPath(event.target.value)}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handlePickFolder}
-                disabled={!canPickFolder}
-                aria-label="Pick folder"
-              >
-                <FolderOpen className="size-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={branchId} className="flex items-center gap-2">
-              <GitBranch className="size-4 text-muted-foreground" />
-              Default branch
-            </Label>
-            <div className="flex gap-2">
-              <Select
-                value={branch}
-                onValueChange={setBranch}
-                disabled={isLoadingBranches}
-              >
-                <SelectTrigger id={branchId} className="h-9 flex-1">
-                  <SelectValue placeholder={defaultBranch} />
-                </SelectTrigger>
-                {branches.length > 0 && (
-                  <SelectContent>
-                    {branches.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                )}
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleRefreshBranches}
-                disabled={!path.trim() || isLoadingBranches || !isTauriAvailable()}
-                aria-label="Refresh branches"
-              >
-                <RefreshCw
-                  className={isLoadingBranches ? "size-4 animate-spin" : "size-4"}
-                />
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={techId} className="flex items-center gap-2">
-              <Tag className="size-4 text-muted-foreground" />
-              Tech stack (comma separated)
-            </Label>
-            <Input
-              id={techId}
-              placeholder="tauri, react, vite"
-              className="h-9"
-              value={tech}
-              onChange={(event) => setTech(event.target.value)}
-            />
-          </div>
-          <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                resetForm()
-                setOpen(false)
-              }}
+              size="icon"
+              onClick={handlePickFolder}
+              disabled={!canPickFolder}
+              aria-label="Pick folder"
             >
-              Cancel
+              <FolderOpen className="size-4" />
             </Button>
-            <Button type="submit" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Connecting..." : "Connect repo"}
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={branchId} className="flex items-center gap-2">
+            <GitBranch className="size-4 text-muted-foreground" />
+            Default branch
+          </Label>
+          <div className="flex gap-2">
+            <Select
+              value={branch}
+              onValueChange={setBranch}
+              disabled={isLoadingBranches}
+            >
+              <SelectTrigger id={branchId} className="h-9 flex-1">
+                <SelectValue placeholder={defaultBranch} />
+              </SelectTrigger>
+              {branches.length > 0 && (
+                <SelectContent>
+                  {branches.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              )}
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleRefreshBranches}
+              disabled={!path.trim() || isLoadingBranches || !isTauriAvailable()}
+              aria-label="Refresh branches"
+            >
+              <RefreshCw
+                className={isLoadingBranches ? "size-4 animate-spin" : "size-4"}
+              />
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={techId} className="flex items-center gap-2">
+            <Tag className="size-4 text-muted-foreground" />
+            Tech stack (comma separated)
+          </Label>
+          <Input
+            id={techId}
+            placeholder="tauri, react, vite"
+            className="h-9"
+            value={tech}
+            onChange={(event) => setTech(event.target.value)}
+          />
+        </div>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => collapse()}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!canSubmit || isSubmitting}>
+            {isSubmitting ? "Connecting..." : "Connect repo"}
+          </Button>
+        </div>
+      </form>
+    </div>
   )
 }

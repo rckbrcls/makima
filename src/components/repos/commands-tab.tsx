@@ -1,4 +1,4 @@
-import { useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -8,10 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { CircleDot, GitBranch, Plus, Square, Terminal } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { repoStatusColor, getRepo, groupByRepo } from "@/lib/command-hub/helpers"
+import { Plus, Square, Terminal } from "lucide-react"
 import { CommandCard } from "./command-card"
 import { QuickComposer } from "./quick-composer"
 import { StatsCards } from "./stats-cards"
@@ -20,7 +17,6 @@ import type { Command, Repository, RunCommandInput, StatCard } from "./types"
 interface CommandsTabProps {
   selectedRepo: string | null
   commands: Command[]
-  repositories: Repository[]
   onRunCommand?: (command: Command) => void
   onStopCommand?: (repo: string, commandName: string) => void
   onDeleteCommand?: (command: Command) => void
@@ -32,7 +28,6 @@ interface CommandsTabProps {
 export function CommandsTab({
   selectedRepo,
   commands,
-  repositories,
   onRunCommand,
   onStopCommand,
   onDeleteCommand,
@@ -40,33 +35,6 @@ export function CommandsTab({
   onUpdateCommand,
   onRunCommandInput,
 }: CommandsTabProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingCommand, setEditingCommand] = useState<Command | undefined>(undefined)
-  const groupedCommands = groupByRepo(commands)
-
-  const handleEdit = (command: Command) => {
-    setEditingCommand(command)
-    setDialogOpen(true)
-  }
-
-  const handleUpdateCommand = async (command: Command) => {
-    await onUpdateCommand?.(command)
-    setEditingCommand(undefined)
-    setDialogOpen(false)
-  }
-
-  const handleAddCommand = async (command: Command) => {
-    await onAddCommand?.(command)
-    setDialogOpen(false)
-  }
-
-  const handleDialogClose = (open: boolean) => {
-    setDialogOpen(open)
-    if (!open) {
-      setEditingCommand(undefined)
-    }
-  }
-
   const stopAllForRepo = (repoName: string) => {
     if (!onStopCommand) return
     commands
@@ -93,7 +61,7 @@ export function CommandsTab({
     {
       label: "Total commands",
       value: String(commands.length),
-      note: `in ${selectedRepo}`,
+      note: `in ${selectedRepo} `,
     },
     {
       label: "Running",
@@ -124,18 +92,21 @@ export function CommandsTab({
           </CardDescription>
           <CardAction>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-border bg-card"
-                onClick={() => {
-                  setEditingCommand(undefined)
-                  setDialogOpen(true)
-                }}
+              <QuickComposer
+                repoName={selectedRepo}
+                onRunCommand={onRunCommandInput}
+                onAddCommand={onAddCommand}
               >
-                <Plus data-icon="inline-start" />
-                Add command
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-border bg-card"
+                >
+                  <Plus data-icon="inline-start" />
+                  Add command
+                </Button>
+              </QuickComposer>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -151,27 +122,16 @@ export function CommandsTab({
         <CardContent className="flex flex-col gap-3 py-4 ">
           {commands.map((command, index) => (
             <CommandCard
-              key={`${command.repo}-${command.name}`}
+              key={`${command.repo} -${command.name} `}
               command={command}
               index={index}
               onRun={onRunCommand}
               onDelete={onDeleteCommand}
-              onEdit={handleEdit}
+              onUpdateCommand={onUpdateCommand}
             />
           ))}
         </CardContent>
       </Card>
-
-      {/* Quick Composer Dialog */}
-      <QuickComposer
-        repoName={selectedRepo || ""}
-        open={dialogOpen}
-        onOpenChange={handleDialogClose}
-        onRunCommand={onRunCommandInput}
-        onAddCommand={handleAddCommand}
-        onUpdateCommand={handleUpdateCommand}
-        editingCommand={editingCommand}
-      />
     </div>
   )
 }
