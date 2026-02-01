@@ -16,18 +16,14 @@ import {
   XCircle,
 } from "lucide-react"
 import { useAgentState } from "@/hooks/use-agent-state"
-import { useUIStore } from "@/stores/ui-store"
 import { useSettingsStore } from "@/stores/settings-store"
-import { PageHeader } from "@/components/shared/page-header"
+
 
 export function SettingsPage() {
   const {
     mode,
-    pendingApprovals,
     toggleMode,
   } = useAgentState()
-
-  const { openApprovalDrawer, openTerminalDrawer } = useUIStore()
 
   const {
     preferences,
@@ -50,14 +46,7 @@ export function SettingsPage() {
 
       <div className="relative mx-auto grid mt-10 min-h-0 flex-1 w-full grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 pb-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <PageHeader
-          mode={mode}
-          pendingCount={pendingApprovals.length}
-          onToggleMode={handleToggleMode}
-          onOpenApprovals={openApprovalDrawer}
-          onOpenTerminal={openTerminalDrawer}
-          showSearch={false}
-        />
+
 
         {/* Settings Content */}
         <div className="min-h-0 flex-1 overflow-y-auto space-y-6">

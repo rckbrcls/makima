@@ -16,7 +16,6 @@ import { useAgentState } from "@/hooks/use-agent-state"
 import { useUIStore } from "@/stores/ui-store"
 import { useMakimaState } from "@/hooks/use-makima-state"
 import { SessionPanel } from "@/components/agents/session-panel"
-import { PageHeader } from "@/components/shared/page-header"
 import { UnifiedSidebar } from "@/components/workspace/unified-sidebar"
 import { LiveExecutionCard } from "@/components/repos/live-execution-card"
 import { TextureOverlay } from "@/components/ui/texture-overlay"
@@ -164,16 +163,13 @@ function NewSessionChat({ repoName, agents, onCreateSession, onCancel }: NewSess
 
 export function WorkspacePage() {
   const {
-    mode,
     agents,
     sessions,
     pendingApprovals,
-    refreshState,
     startSession,
     endSession,
     getActionsForSession,
     getEventsForSession,
-    toggleMode,
   } = useAgentState()
 
   const {
@@ -181,8 +177,6 @@ export function WorkspacePage() {
     selectSession,
     selectedRepo,
     selectRepo,
-    openApprovalDrawer,
-    openTerminalDrawer,
   } = useUIStore()
 
   const {
@@ -316,14 +310,7 @@ export function WorkspacePage() {
     <div className="relative h-full overflow-hidden bg-background text-foreground flex flex-col">
 
       {/* Header */}
-      <PageHeader
-        mode={mode}
-        pendingCount={pendingApprovals.length}
-        onToggleMode={toggleMode}
-        onOpenApprovals={openApprovalDrawer}
-        onOpenTerminal={openTerminalDrawer}
-        onRefresh={refreshState}
-      />
+
 
       <TextureOverlay texture="noise" className="mix-blend-overlay" />
 

@@ -1,4 +1,4 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute, useLocation } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
@@ -8,7 +8,9 @@ import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from '@/components/ui/app-sidebar'
 import { GlobalApprovalDrawer } from '@/components/agents/global-approval-drawer'
 import { TerminalDrawer } from '@/components/agents/terminal-drawer'
-import { TextureOverlay } from '@/components/ui/texture-overlay'
+import { PageHeader } from '@/components/shared/page-header'
+import { useAgentState } from '@/hooks/use-agent-state'
+import { useUIStore } from '@/stores/ui-store'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -36,6 +38,23 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation()
+
+  const {
+    mode,
+    pendingApprovals,
+    refreshState,
+    toggleMode,
+  } = useAgentState()
+
+  const {
+    openApprovalDrawer,
+    openTerminalDrawer,
+  } = useUIStore()
+
+  // Hide search on settings page
+  const showSearch = pathname !== '/settings'
+
   return (
     <html lang="en">
       <head>
@@ -43,11 +62,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <div className="relative flex h-svh flex-row overflow-hidden">
+          <div className="relative flex h-svh flex-row overflow-hidden bg-background">
             <AppSidebar />
-            <main className="min-h-0 flex-1 overflow-hidden ml-14 mt-14">{children}</main>
+            <div className="flex-1 flex flex-col min-h-0 ml-14 overflow-hidden">
+              <PageHeader
+                mode={mode}
+                pendingCount={pendingApprovals.length}
+                onToggleMode={toggleMode}
+                onOpenApprovals={openApprovalDrawer}
+                onOpenTerminal={openTerminalDrawer}
+                onRefresh={refreshState}
+                showSearch={showSearch}
+              />
+              <main className="flex-1 overflow-hidden mt-14 relative z-0">
+                {children}
+              </main>
+            </div>
           </div>
-          {/* Global Approval Drawer - accessible from any page */}
           {/* Global Approval Drawer - accessible from any page */}
           <GlobalApprovalDrawer />
           <TerminalDrawer />
