@@ -62,7 +62,7 @@ export function QuickComposer({
   ) : (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border p-0 sm:max-w-5xl">
+      <ExpandableScreenContent className="bg-background border border-border pt-6">
         <QuickComposerContent
           repoName={repoName}
           onRunCommand={onRunCommand}

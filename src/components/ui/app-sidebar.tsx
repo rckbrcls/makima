@@ -2,20 +2,26 @@ import { Link } from "@tanstack/react-router"
 import {
   Bot,
   Settings,
-  FolderGit2,
+  Terminal,
   Info,
+  Code,
   BarChart2,
 } from "lucide-react"
 
 const navItems = [
   {
-    name: "Agents",
-    icon: Bot,
+    name: "Coding",
+    icon: Code,
     to: "/",
   },
   {
-    name: "Repos",
-    icon: FolderGit2,
+    name: "Agents",
+    icon: Bot,
+    to: "/agents",
+  },
+  {
+    name: "Commands",
+    icon: Terminal,
     to: "/repos",
   },
   {
@@ -32,7 +38,7 @@ const navItems = [
 
 export function AppSidebar() {
   return (
-    <aside className="group fixed top-0 left-0 z-40 flex h-full w-14 flex-col border-r border-border/40 bg-card text-card-foreground transition-all duration-300 ease-in-out hover:w-36">
+    <aside className="group fixed top-0 left-0 z-40 flex h-full w-14 flex-col border-r border-border bg-card text-card-foreground transition-all duration-300 ease-in-out hover:w-36">
       <nav className="flex flex-1 flex-col gap-1.5 p-2 pt-16">
         {navItems.map((item) => (
           <Link

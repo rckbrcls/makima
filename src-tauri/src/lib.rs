@@ -23,18 +23,18 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            // Overseer commands
-            commands::overseer_state,
-            commands::overseer_add_repository,
-            commands::overseer_repo_branches,
-            commands::overseer_import_commands,
-            commands::overseer_add_command,
-            commands::overseer_update_command,
-            commands::overseer_run_command,
-            commands::overseer_stop_command,
-            commands::overseer_delete_command,
-            commands::overseer_delete_repository,
-            commands::overseer_get_execution_logs,
+            // Makima commands
+            commands::makima_state,
+            commands::makima_add_repository,
+            commands::makima_repo_branches,
+            commands::makima_import_commands,
+            commands::makima_add_command,
+            commands::makima_update_command,
+            commands::makima_run_command,
+            commands::makima_stop_command,
+            commands::makima_delete_command,
+            commands::makima_delete_repository,
+            commands::makima_get_execution_logs,
             // Port registry commands
             port_registry::port_registry_lease_port,
             port_registry::port_registry_release_port,

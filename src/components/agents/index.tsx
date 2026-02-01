@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { ModeToggle } from "@/components/mode-toggle"
 import { useAgentState } from "@/hooks/use-agent-state"
-import { useOverseerState } from "@/hooks/use-overseer-state"
+import { useMakimaState } from "@/hooks/use-makima-state"
 import { AgentCard } from "./agent-card"
 import { ApprovalDrawer } from "./approval-drawer"
 import { SessionPanel } from "./session-panel"
@@ -277,9 +277,9 @@ export function AgentHub() {
     toggleMode,
   } = useAgentState()
 
-  // Overseer state
+  // Makima state
   const {
-    state: overseerState,
+    state: makimaState,
     runCommand,
     stopCommand,
     addRepository,
@@ -288,7 +288,7 @@ export function AgentHub() {
     deleteCommand,
     deleteRepository,
     getExecutionLogs,
-  } = useOverseerState()
+  } = useMakimaState()
 
   const {
     commands,
@@ -297,7 +297,7 @@ export function AgentHub() {
     pipelines,
     repositories,
     runQueue,
-  } = overseerState
+  } = makimaState
 
   // Local state
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
@@ -588,7 +588,7 @@ export function AgentHub() {
             <TabsContent value="statistics" className="flex-1 overflow-auto p-1">
               <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
                 <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
-                  <HistoryTab state={overseerState} selectedRepo={selectedRepo} />
+                  <HistoryTab state={makimaState} selectedRepo={selectedRepo} />
                 </div>
               </Card>
             </TabsContent>

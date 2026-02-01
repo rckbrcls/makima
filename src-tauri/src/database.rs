@@ -17,7 +17,7 @@ pub fn resolve_db_path(app: &AppHandle) -> Result<PathBuf, String> {
         .app_data_dir()
         .map_err(|error| error.to_string())?;
     fs::create_dir_all(&app_data_dir).map_err(|error| error.to_string())?;
-    Ok(app_data_dir.join("overseer.db"))
+    Ok(app_data_dir.join("makima.db"))
 }
 
 pub fn init_db(db_path: &Path) -> Result<(), String> {

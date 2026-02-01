@@ -31,7 +31,7 @@ export function SaveCommandDialog({
   return (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border p-0 sm:max-w-md">
+      <ExpandableScreenContent className="bg-background border border-border pt-6">
         <SaveCommandForm
           commandName={commandName}
           onCommandNameChange={onCommandNameChange}

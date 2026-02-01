@@ -24,8 +24,8 @@ pub fn seed_state() -> DashboardState {
     DashboardState {
         repositories: vec![
             Repository {
-                name: "overseer".to_string(),
-                path: "~/codes/overseer".to_string(),
+                name: "makima".to_string(),
+                path: "~/codes/makima".to_string(),
                 branch: "main".to_string(),
                 status: RepositoryStatus::Idle,
                 tech: vec!["tauri".to_string(), "react".to_string(), "vite".to_string()],
@@ -59,7 +59,7 @@ pub fn seed_state() -> DashboardState {
                 status: CommandStatus::Idle,
                 duration: "-".to_string(),
                 last_run: "-".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
             },
             Command {
                 name: "Build Desktop".to_string(),
@@ -68,7 +68,7 @@ pub fn seed_state() -> DashboardState {
                 status: CommandStatus::Idle,
                 duration: "-".to_string(),
                 last_run: "-".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
             },
             Command {
                 name: "Tests".to_string(),
@@ -77,7 +77,7 @@ pub fn seed_state() -> DashboardState {
                 status: CommandStatus::Idle,
                 duration: "-".to_string(),
                 last_run: "-".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
             },
             Command {
                 name: "Lint".to_string(),
@@ -86,7 +86,7 @@ pub fn seed_state() -> DashboardState {
                 status: CommandStatus::Idle,
                 duration: "-".to_string(),
                 last_run: "-".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
             },
             Command {
                 name: "Typecheck".to_string(),
@@ -95,7 +95,7 @@ pub fn seed_state() -> DashboardState {
                 status: CommandStatus::Idle,
                 duration: "-".to_string(),
                 last_run: "-".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
             },
             Command {
                 name: "Bundle Assets".to_string(),
@@ -104,7 +104,7 @@ pub fn seed_state() -> DashboardState {
                 status: CommandStatus::Idle,
                 duration: "-".to_string(),
                 last_run: "-".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
             },
             Command {
                 name: "Dev Server".to_string(),
@@ -172,7 +172,7 @@ pub fn seed_state() -> DashboardState {
         ],
         live_executions: vec![
             LiveExecution {
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 command: "Dev (Tauri)".to_string(),
                 pid: 42301,
                 cpu: "38%".to_string(),
@@ -243,7 +243,7 @@ pub fn seed_state() -> DashboardState {
             RunQueueItem {
                 id: 1,
                 name: "Build Desktop".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 command: "pnpm build".to_string(),
                 command_type: CommandType::Build,
                 queued_at: "2026-01-28 14:10".to_string(),
@@ -267,7 +267,7 @@ pub fn seed_state() -> DashboardState {
         ],
         pipelines: vec![
             Pipeline {
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 steps: vec![
                     PipelineStep {
                         label: "Install deps".to_string(),
@@ -334,7 +334,7 @@ pub fn seed_state() -> DashboardState {
             ExecutionHistoryItem {
                 id: 1,
                 name: "Build Desktop".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 status: CommandStatus::Success,
                 duration: "03:22".to_string(),
                 timestamp: "Today 14:12".to_string(),
@@ -350,7 +350,7 @@ pub fn seed_state() -> DashboardState {
             ExecutionHistoryItem {
                 id: 3,
                 name: "Lint".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 status: CommandStatus::Success,
                 duration: "00:38".to_string(),
                 timestamp: "Today 13:30".to_string(),
@@ -382,7 +382,7 @@ pub fn seed_state() -> DashboardState {
             ExecutionHistoryItem {
                 id: 7,
                 name: "Tests".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 status: CommandStatus::Failed,
                 duration: "01:12".to_string(),
                 timestamp: "Yesterday 17:45".to_string(),
@@ -390,7 +390,7 @@ pub fn seed_state() -> DashboardState {
             ExecutionHistoryItem {
                 id: 8,
                 name: "Build Desktop".to_string(),
-                repo: "overseer".to_string(),
+                repo: "makima".to_string(),
                 status: CommandStatus::Success,
                 duration: "03:18".to_string(),
                 timestamp: "Yesterday 16:30".to_string(),

@@ -188,7 +188,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
-      name: "overseer-settings",
+      name: "makima-settings",
       storage: createJSONStorage(() => tauriStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

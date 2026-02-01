@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Terminal, History } from "lucide-react"
 import { useAgentState } from "@/hooks/use-agent-state"
-import { useOverseerState } from "@/hooks/use-overseer-state"
+import { useMakimaState } from "@/hooks/use-makima-state"
 import { useUIStore } from "@/stores/ui-store"
 import { PageHeader } from "@/components/shared/page-header"
 import { RepositorySidebar } from "@/components/repos/repository-sidebar"
@@ -21,7 +21,7 @@ export function ReposPage() {
   } = useAgentState()
 
   const {
-    state: overseerState,
+    state: makimaState,
     runCommand,
     stopCommand,
     addRepository,
@@ -30,7 +30,7 @@ export function ReposPage() {
     deleteCommand,
     deleteRepository,
     getExecutionLogs,
-  } = useOverseerState()
+  } = useMakimaState()
 
   const {
     selectedRepo,
@@ -44,7 +44,7 @@ export function ReposPage() {
     executionHistory,
     liveExecutions,
     repositories,
-  } = overseerState
+  } = makimaState
 
   // Filtered data for repos components
   const filteredCommands = filterByRepo(commands, selectedRepo)

@@ -74,7 +74,7 @@ export function CommandHubHeader({
               <p className="text-[0.6rem] uppercase tracking-[0.4em] text-muted-foreground">
                 Command panel
               </p>
-              <h1 className="text-2xl font-semibold">Overseer</h1>
+              <h1 className="text-2xl font-semibold">Makima</h1>
               <p className="text-xs text-muted-foreground">
                 Orchestrate build, run and deploy per repository in one place.
               </p>
@@ -103,7 +103,7 @@ export function CommandHubHeader({
                   New command
                 </Button>
               </ExpandableScreenTrigger>
-              <ExpandableScreenContent className="bg-background border border-border p-6 sm:max-w-xl">
+              <ExpandableScreenContent className="bg-background border border-border pt-6">
                 <NewCommandContent
                   repositories={repositories}
                   composeRepo={composeRepo}

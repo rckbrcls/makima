@@ -63,7 +63,7 @@ export function AddRepositoryDialog({
   return (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border p-0 sm:max-w-[480px]">
+      <ExpandableScreenContent className="bg-background border border-border pt-6">
         <AddRepositoryForm onAddRepository={onAddRepository} />
       </ExpandableScreenContent>
     </ExpandableScreen>
@@ -163,7 +163,7 @@ function AddRepositoryForm({
     setIsLoadingBranches(true)
     const timer = setTimeout(async () => {
       try {
-        const result = await invoke<RepoBranches>("overseer_repo_branches", {
+        const result = await invoke<RepoBranches>("makima_repo_branches", {
           path: trimmed,
         })
         if (!active) return
@@ -212,7 +212,7 @@ function AddRepositoryForm({
     if (!path.trim() || !isTauriAvailable()) return
     setIsLoadingBranches(true)
     try {
-      const result = await invoke<RepoBranches>("overseer_repo_branches", {
+      const result = await invoke<RepoBranches>("makima_repo_branches", {
         path: path.trim(),
       })
       setBranches(result.branches)
@@ -235,7 +235,7 @@ function AddRepositoryForm({
       <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
         <h2 className="text-lg font-semibold leading-none tracking-tight">Add repository</h2>
         <p className="text-sm text-muted-foreground">
-          Register a local repo so Overseer can run and track commands.
+          Register a local repo so Makima can run and track commands.
         </p>
       </div>
       <form className="grid gap-4 p-6 pt-2" onSubmit={handleSubmit}>

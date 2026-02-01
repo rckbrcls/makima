@@ -1,8 +1,8 @@
-# Overseer — Executor de Agentes de IA (Visão e Arquitetura)
+# Makima — Executor de Agentes de IA (Visão e Arquitetura)
 
 ## Visão geral
 
-O Overseer deixa de ser apenas um executor de comandos e passa a ser um **orquestrador de agentes de IA**, com observabilidade total do que cada agente faz (comandos, edições, pesquisas) e com **modo seguro** (aprovação manual) ou **modo automático**.
+O Makima deixa de ser apenas um executor de comandos e passa a ser um **orquestrador de agentes de IA**, com observabilidade total do que cada agente faz (comandos, edições, pesquisas) e com **modo seguro** (aprovação manual) ou **modo automático**.
 
 A home vira um **painel de agentes**, com vários cards mostrando agentes rodando em paralelo, status e logs em tempo real.
 
@@ -74,31 +74,31 @@ Logs, diffs, outputs, anexos.
 
 ### 1) CLI Provider (controle via app)
 
-Objetivo: rodar CLIs (Codex, Claude Code, Gemini Code) **sob controle do Overseer**.
+Objetivo: rodar CLIs (Codex, Claude Code, Gemini Code) **sob controle do Makima**.
 
 **Estratégia:**
 
-- O Overseer inicia o CLI como processo filho (PTY).
+- O Makima inicia o CLI como processo filho (PTY).
 - Toda entrada/saída passa pelo app (stdin/stdout).
 - O CLI não executa comandos diretamente: ele **pede ações**.
-- O Overseer executa as ações e responde ao CLI.
+- O Makima executa as ações e responde ao CLI.
 
 **Resultado:**
 
-- O Overseer controla cada passo.
+- O Makima controla cada passo.
 - Modo seguro funciona (aprovação antes de executar).
 
 > Se o CLI não suporta tool-proxy nativamente, podemos usar um wrapper/bridge que interpreta a conversa e converte em ações.
 
 ---
 
-## Protocolo do CLI Bridge (Overseer Agent Bridge)
+## Protocolo do CLI Bridge (Makima Agent Bridge)
 
 Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e debuggável: **JSON por linha** (NDJSON) via stdin/stdout.
 
 ### Nomes finais das mensagens
 
-**Direção CLI → Overseer**
+**Direção CLI → Makima**
 
 - `hello`
 - `log`
@@ -108,7 +108,7 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 - `session.end`
 - `ping`
 
-**Direção Overseer → CLI**
+**Direção Makima → CLI**
 
 - `hello.ack`
 - `action.result`
@@ -127,71 +127,71 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 
 ### Campos por tipo
 
-**hello (CLI → Overseer)**
+**hello (CLI → Makima)**
 
 - `cli`: string
 - `version`: string
 - `capabilities`: string[] (ex: `["actions","plan","stream"]`)
 
-**hello.ack (Overseer → CLI)**
+**hello.ack (Makima → CLI)**
 
 - `protocol`: string (ex: `cab/1.0`)
 - `mode`: `safe | auto`
 - `workspace`: string (path)
 
-**log (CLI → Overseer)**
+**log (CLI → Makima)**
 
 - `level`: `debug | info | warn | error`
 - `message`: string
 
-**plan (CLI → Overseer)**
+**plan (CLI → Makima)**
 
 - `items`: string[]
 
-**action.request (CLI → Overseer)**
+**action.request (CLI → Makima)**
 
 - `action`: `{ type: string, payload: object, summary?: string }`
 
-**action.cancel (CLI → Overseer)**
+**action.cancel (CLI → Makima)**
 
 - `actionId`: string
 - `reason?`: string
 
-**action.result (Overseer → CLI)**
+**action.result (Makima → CLI)**
 
 - `actionId`: string
 - `status`: `ok | failed | blocked | rejected`
 - `output?`: string
 - `error?`: string
 
-**approval.requested (Overseer → CLI)**
+**approval.requested (Makima → CLI)**
 
 - `approvalId`: string
 - `actionId`: string
 - `summary`: string
 
-**approval.result (Overseer → CLI)**
+**approval.result (Makima → CLI)**
 
 - `approvalId`: string
 - `state`: `approved | rejected`
 - `reason?`: string
 
-**session.set_mode (Overseer → CLI)**
+**session.set_mode (Makima → CLI)**
 
 - `mode`: `safe | auto`
 
-**session.end (CLI → Overseer)**
+**session.end (CLI → Makima)**
 
 - `state`: `done | failed | aborted`
 - `summary?`: string
 
 **ping/pong**
 
-- `ping` (CLI → Overseer) / `pong` (Overseer → CLI)
+- `ping` (CLI → Makima) / `pong` (Makima → CLI)
 
 ### Handshake
 
-O Overseer inicia o processo e envia:
+O Makima inicia o processo e envia:
 
 ```json
 {
@@ -231,7 +231,7 @@ O CLI responde:
 {"type":"action.request","id":"m-7","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:14Z","action":{"type":"search_web","payload":{"query":"..."},"summary":"Pesquisar dependência"}}
 ```
 
-### Respostas do Overseer
+### Respostas do Makima
 
 ```json
 {"type":"action.result","id":"m-8","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:20Z","actionId":"act-1","status":"ok","output":"..."}
@@ -324,21 +324,21 @@ Lista de approvals com:
 ### Fluxo detalhado (safe mode)
 
 1. CLI envia `action.request`.
-2. Overseer cria `Action` (`blocked`) e `Approval` (`pending`).
+2. Makima cria `Action` (`blocked`) e `Approval` (`pending`).
 3. UI mostra badge “Waiting approval”.
 4. Usuário **Approve**:
    - `Approval` → `approved`
    - `Action` → `running` → `done/failed`
-   - Overseer envia `approval.result` para o CLI.
+   - Makima envia `approval.result` para o CLI.
 5. Usuário **Reject**:
    - `Approval` → `rejected`
    - `Action` → `rejected`
-   - Overseer envia `approval.result` para o CLI.
+   - Makima envia `approval.result` para o CLI.
 
 ### Fluxo automático
 
 1. CLI envia `action.request`.
-2. Overseer cria `Action` (`running`).
+2. Makima cria `Action` (`running`).
 3. Executa imediatamente.
 4. Envia `action.result` para o CLI.
 
@@ -579,7 +579,7 @@ Grid de cards (1 por agente). Cada card mostra:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Overseer · Agents                               [Safe Mode ☐]        │
+│ Makima · Agents                               [Safe Mode ☐]        │
 │ [New Agent] [New Session] [Settings]                                │
 └──────────────────────────────────────────────────────────────────────┘
 

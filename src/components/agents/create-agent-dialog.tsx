@@ -59,7 +59,7 @@ export function CreateAgentDialog({
   return (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border p-0 sm:max-w-[425px]">
+      <ExpandableScreenContent className="bg-background border border-border pt-6">
         <CreateAgentForm
           name={name}
           setName={setName}

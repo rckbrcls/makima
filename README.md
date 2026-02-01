@@ -1,10 +1,10 @@
-# Overseer
+# Makima
 
 Aplicacao desktop para orquestracao e gerenciamento de comandos de desenvolvimento. Permite gerenciar, executar e monitorar comandos de build, test e deploy de multiplos repositorios em uma unica interface.
 
 ## Sobre o Projeto
 
-Overseer e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Overseer centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
+Makima e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Makima centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
 
 ### Funcionalidades
 
@@ -52,7 +52,7 @@ Overseer e um painel de controle para desenvolvedores que trabalham com multiplo
 ## Estrutura do Projeto
 
 ```
-overseer/
+makima/
 ├── src/
 │   ├── components/
 │   │   ├── command-hub/          # Componentes principais da aplicacao

@@ -732,7 +732,7 @@ pub struct SetModeRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BridgeMessageType {
-    // CLI -> Overseer
+    // CLI -> Makima
     Hello,
     Log,
     Plan,
@@ -740,7 +740,7 @@ pub enum BridgeMessageType {
     ActionCancel,
     SessionEnd,
     Ping,
-    // Overseer -> CLI
+    // Makima -> CLI
     HelloAck,
     ActionResult,
     ApprovalRequested,
