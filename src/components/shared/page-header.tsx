@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Menu,
   Search,
+  Terminal,
 } from "lucide-react"
 import type { BridgeMode } from "@/components/agents/types"
 
@@ -95,19 +96,16 @@ export function PageHeader({
         </Button>
 
         {/* Theme toggle */}
-        <ModeToggle />
+        {/* <ModeToggle /> */}
 
-        {/* Refresh */}
-        {onRefresh && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={onRefresh}
-          >
-            <RefreshCw className="size-3.5" />
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-2 rounded"
+          onClick={onOpenApprovals}
+        >
+          <Terminal className="size-3.5" />
+        </Button>
       </div>
     </header>
   )

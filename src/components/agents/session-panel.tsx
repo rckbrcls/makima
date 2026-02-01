@@ -1,174 +1,36 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
 import {
-  Check,
   CheckCircle2,
   Clock,
-  FileCode,
-  Folder,
-  GitBranch,
-  Globe,
   Loader2,
   Play,
-  Shield,
   Square,
   Terminal,
-  X,
   XCircle,
-  Zap,
-  AlertTriangle,
-  Info,
-  AlertCircle,
-  Bug,
+  ArrowDown,
+  Send,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type {
   Action,
-  ActionStatus,
-  ActionType,
   AgentEvent,
-  EventLevel,
   Session,
-  SessionState,
 } from "./types"
-import { getActionTypeLabel, getStatusColor } from "./types"
+import { getStatusColor } from "./types"
+import { ActionMessage, EventMessage } from "./session-chat-items"
 
 // ============================================================================
-// Icons
+// Types
 // ============================================================================
 
-const actionTypeIcons: Record<ActionType, typeof Terminal> = {
-  run_command: Terminal,
-  start_dev_server: Zap,
-  stop_dev_server: XCircle,
-  read_file: FileCode,
-  write_file: FileCode,
-  edit_file: FileCode,
-  list_files: Folder,
-  delete_file: XCircle,
-  search_web: Globe,
-  open_url: Globe,
-  git_status: GitBranch,
-  git_diff: GitBranch,
-  git_checkout: GitBranch,
-  git_commit: GitBranch,
-  notify: AlertTriangle,
-  sleep: Clock,
-}
-
-const statusIcons: Record<ActionStatus, typeof Check> = {
-  pending: Clock,
-  running: Loader2,
-  done: CheckCircle2,
-  failed: XCircle,
-  blocked: Shield,
-  rejected: X,
-}
-
-const eventLevelIcons: Record<EventLevel, typeof Info> = {
-  info: Info,
-  warning: AlertTriangle,
-  error: AlertCircle,
-  debug: Bug,
-}
-
-const eventLevelColors: Record<EventLevel, string> = {
-  info: "text-blue-400",
-  warning: "text-yellow-400",
-  error: "text-red-400",
-  debug: "text-gray-400",
-}
-
-// ============================================================================
-// Action Item
-// ============================================================================
-
-interface ActionItemProps {
-  action: Action
-}
-
-function ActionItem({ action }: ActionItemProps) {
-  const TypeIcon = actionTypeIcons[action.actionType] ?? Terminal
-  const StatusIcon = statusIcons[action.status]
-  const isRunning = action.status === "running"
-
-  return (
-    <div className="flex items-start gap-2 py-2 border-b border-border/40 last:border-0">
-      <div
-        className={cn(
-          "flex size-6 shrink-0 items-center justify-center border",
-          action.status === "done"
-            ? "border-green-500/30 bg-green-500/10 text-green-500"
-            : action.status === "failed" || action.status === "rejected"
-              ? "border-destructive/30 bg-destructive/10 text-destructive"
-              : action.status === "blocked"
-                ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
-                : "border-border bg-muted text-muted-foreground"
-        )}
-      >
-        <TypeIcon className="size-3" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium truncate">
-            {action.summary ?? getActionTypeLabel(action.actionType)}
-          </span>
-          <StatusIcon
-            className={cn(
-              "size-3 shrink-0",
-              getStatusColor(action.status),
-              isRunning && "animate-spin"
-            )}
-          />
-        </div>
-        <span className="text-[0.6rem] text-muted-foreground">
-          {new Date(action.createdAt).toLocaleTimeString()}
-        </span>
-      </div>
-      <Badge
-        variant="outline"
-        className={cn("text-[0.5rem] uppercase shrink-0", getStatusColor(action.status))}
-      >
-        {action.status}
-      </Badge>
-    </div>
-  )
-}
-
-// ============================================================================
-// Event Item
-// ============================================================================
-
-interface EventItemProps {
-  event: AgentEvent
-}
-
-function EventItem({ event }: EventItemProps) {
-  const Icon = eventLevelIcons[event.level]
-
-  return (
-    <div className="flex items-start gap-2 py-1.5">
-      <Icon className={cn("size-3 shrink-0 mt-0.5", eventLevelColors[event.level])} />
-      <div className="flex-1 min-w-0">
-        <p className="text-[0.65rem] text-foreground/90 break-words">
-          {event.message}
-        </p>
-        <span className="text-[0.55rem] text-muted-foreground">
-          {new Date(event.createdAt).toLocaleTimeString()} · {event.source}
-        </span>
-      </div>
-    </div>
-  )
-}
+type TimelineItem =
+  | { type: "action"; data: Action; date: Date }
+  | { type: "event"; data: AgentEvent; date: Date }
 
 // ============================================================================
 // Main Component
@@ -179,6 +41,7 @@ interface SessionPanelProps {
   actions: Action[]
   events: AgentEvent[]
   onEndSession?: (success: boolean) => void
+  onSendMessage?: (message: string) => void
   isLoading?: boolean
 }
 
@@ -187,141 +50,225 @@ export function SessionPanel({
   actions,
   events,
   onEndSession,
+  onSendMessage,
   isLoading,
 }: SessionPanelProps) {
-  const [activeTab, setActiveTab] = useState<"actions" | "events">("actions")
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
+  const [message, setMessage] = useState("")
 
   const isActive = session.state === "active"
   const pendingActions = actions.filter((a) => a.status === "pending" || a.status === "blocked")
   const completedActions = actions.filter((a) => a.status === "done")
   const failedActions = actions.filter((a) => a.status === "failed" || a.status === "rejected")
 
+  // Combine and sort items for the timeline
+  const timelineItems = useMemo(() => {
+    const items: TimelineItem[] = [
+      ...actions.map((a) => ({ type: "action" as const, data: a, date: new Date(a.createdAt) })),
+      ...events.map((e) => ({ type: "event" as const, data: e, date: new Date(e.createdAt) })),
+    ]
+    return items.sort((a, b) => a.date.getTime() - b.date.getTime())
+  }, [actions, events])
+
+  // Auto-scroll logic
+  useEffect(() => {
+    if (autoScroll && scrollRef.current) {
+      const scrollElement = scrollRef.current
+      scrollElement.scrollTo({
+        top: scrollElement.scrollHeight,
+        behavior: "smooth",
+      })
+    }
+  }, [timelineItems, autoScroll])
+
+  // Handle manual scroll to disable auto-scroll
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
+      if (autoScroll !== isAtBottom) {
+        setAutoScroll(isAtBottom)
+      }
+    }
+  }
+
+  const handleSendMessage = () => {
+    if (!message.trim() || !onSendMessage) return
+    onSendMessage(message)
+    setMessage("")
+    setAutoScroll(true)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="border-b border-border pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Play className="size-4" />
-            Session
-          </CardTitle>
-          <Badge
-            variant="outline"
-            className={cn("text-[0.6rem] uppercase", getStatusColor(session.state))}
-          >
-            {session.state === "active" ? (
-              <Loader2 className="size-3 mr-1 animate-spin" />
-            ) : session.state === "done" ? (
-              <CheckCircle2 className="size-3 mr-1" />
-            ) : (
-              <XCircle className="size-3 mr-1" />
-            )}
-            {session.state}
-          </Badge>
+    <Card className="h-full flex flex-col shadow-none border-0 bg-transparent">
+      {/* Header */}
+      <div className="flex-none px-4 py-3 border-b flex items-center justify-between bg-background/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Play className="size-3.5 text-primary" />
+              Session {session.id.slice(0, 8)}
+            </h3>
+            <Badge
+              variant="outline"
+              className={cn("text-[0.6rem] uppercase h-5", getStatusColor(session.state))}
+            >
+              {session.state === "active" ? (
+                <Loader2 className="size-3 mr-1 animate-spin" />
+              ) : session.state === "done" ? (
+                <CheckCircle2 className="size-3 mr-1" />
+              ) : (
+                <XCircle className="size-3 mr-1" />
+              )}
+              {session.state}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground truncate max-w-[300px]" title={session.goal}>
+            {session.goal}
+          </p>
         </div>
-        <CardDescription className="text-[0.7rem]">
-          {session.goal ?? `Session ${session.id.slice(0, 8)}`}
-        </CardDescription>
 
-        {/* Stats Row */}
-        <div className="flex items-center gap-4 mt-2 text-[0.6rem] text-muted-foreground">
-          <span className="flex items-center gap-1">
+        {/* Mini Stats */}
+        <div className="flex items-center gap-3 text-[0.65rem] text-muted-foreground bg-muted/30 px-2 py-1 rounded-full border">
+          <span className="flex items-center gap-1.5">
             <CheckCircle2 className="size-3 text-green-500" />
-            {completedActions.length} done
+            {completedActions.length}
           </span>
-          <span className="flex items-center gap-1">
+          <Separator orientation="vertical" className="h-3" />
+          <span className="flex items-center gap-1.5">
             <Clock className="size-3 text-yellow-500" />
-            {pendingActions.length} pending
+            {pendingActions.length}
           </span>
-          <span className="flex items-center gap-1">
+          <Separator orientation="vertical" className="h-3" />
+          <span className="flex items-center gap-1.5">
             <XCircle className="size-3 text-destructive" />
-            {failedActions.length} failed
+            {failedActions.length}
           </span>
         </div>
-      </CardHeader>
-
-      {/* Tabs */}
-      <div className="flex border-b border-border">
-        <button
-          className={cn(
-            "flex-1 py-2 text-xs font-medium transition-colors",
-            activeTab === "actions"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          onClick={() => setActiveTab("actions")}
-        >
-          Actions ({actions.length})
-        </button>
-        <button
-          className={cn(
-            "flex-1 py-2 text-xs font-medium transition-colors",
-            activeTab === "events"
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          onClick={() => setActiveTab("events")}
-        >
-          Events ({events.length})
-        </button>
       </div>
 
-      {/* Content */}
-      <CardContent className="flex-1 overflow-y-auto p-3">
-        {activeTab === "actions" ? (
-          actions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Terminal className="size-8 text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">No actions yet</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {actions.map((action) => (
-                <ActionItem key={action.id} action={action} />
-              ))}
-            </div>
-          )
-        ) : events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Info className="size-8 text-muted-foreground/30 mb-2" />
-            <p className="text-xs text-muted-foreground">No events yet</p>
+      {/* Chat Content */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto min-h-0 bg-background/20 relative"
+      >
+        {timelineItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
+            <Terminal className="size-10 text-muted-foreground/30 mb-3" />
+            <p className="text-sm text-muted-foreground">Session initialized</p>
+            <p className="text-xs text-muted-foreground mt-1">Waiting for agent activity...</p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {events.map((event) => (
-              <EventItem key={event.id} event={event} />
-            ))}
+          <div className="flex flex-col py-4">
+            {/* Initial System Message */}
+            <div className="px-4 py-2 flex justify-center mb-4">
+              <div className="text-[0.65rem] text-muted-foreground bg-muted/30 px-3 py-1 rounded-full border">
+                Session started at {new Date(session.createdAt).toLocaleString()}
+              </div>
+            </div>
+
+            {timelineItems.map((item, index) => {
+              // Add a simple date separator if day changes (unlikely for single session but good practice)
+              const prevItem = timelineItems[index - 1]
+              const showDateSeparator = prevItem && item.date.toDateString() !== prevItem.date.toDateString()
+
+              return (
+                <div key={`${item.type}-${item.data.id}`}>
+                  {showDateSeparator && (
+                    <div className="flex items-center justify-center my-4">
+                      <div className="text-xs text-muted-foreground bg-background px-2">
+                        {item.date.toDateString()}
+                      </div>
+                    </div>
+                  )}
+
+                  {item.type === 'action' ? (
+                    <ActionMessage action={item.data} />
+                  ) : (
+                    <EventMessage event={item.data} />
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Scroll Anchor/padding */}
+            <div className="h-4" />
           </div>
         )}
-      </CardContent>
 
-      {/* Footer */}
-      {isActive && onEndSession && (
-        <>
-          <Separator />
-          <div className="p-3 flex gap-2">
+        {/* Scroll to bottom button */}
+        {!autoScroll && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute bottom-4 right-4 rounded-full shadow-md size-8 bg-background/80 backdrop-blur hover:bg-background transition-all animate-in fade-in zoom-in duration-200"
+            onClick={() => {
+              setAutoScroll(true)
+              scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+            }}
+          >
+            <ArrowDown className="size-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Footer Controls */}
+      <div className="flex-none p-3 border-t bg-background/50 backdrop-blur-sm flex flex-col gap-3">
+        {/* Input Area */}
+        {isActive && onSendMessage && (
+          <div className="relative">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message agent..."
+              className="min-h-[80px] pr-12 resize-none bg-background/80"
+            />
+            <Button
+              size="icon"
+              className="absolute bottom-2 right-2 size-8"
+              disabled={!message.trim() || isLoading}
+              onClick={handleSendMessage}
+            >
+              <Send className="size-4" />
+            </Button>
+          </div>
+        )}
+
+        {isActive && onEndSession && (
+          <div className="flex gap-2">
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 border-green-500/30 text-green-500 hover:bg-green-500/10"
+              className="flex-1 border-green-500/30 text-green-500 hover:bg-green-500/10 hover:text-green-600 h-8 text-xs"
               onClick={() => onEndSession(true)}
               disabled={isLoading}
             >
-              <CheckCircle2 className="size-3 mr-1" />
-              Complete
+              <CheckCircle2 className="size-3.5 mr-2" />
+              Complete Session
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+              className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive h-8 text-xs"
               onClick={() => onEndSession(false)}
               disabled={isLoading}
             >
-              <Square className="size-3 mr-1" />
-              Stop
+              <Square className="size-3.5 mr-2 fill-current" />
+              Stop Session
             </Button>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </Card>
   )
 }

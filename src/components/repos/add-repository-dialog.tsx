@@ -61,7 +61,7 @@ export function AddRepositoryDialog({
   // We can't easily intercept open change in ExpandableScreen from outside without context,
   // but we can reset form on submit or inside the content component
   return (
-    <ExpandableScreen>
+    <ExpandableScreen layoutId="add-repository-dialog">
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
       <ExpandableScreenContent className="bg-background border border-border pt-6">
         <AddRepositoryForm onAddRepository={onAddRepository} />

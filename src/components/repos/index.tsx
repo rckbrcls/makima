@@ -1,12 +1,5 @@
 import { useState } from "react"
 
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
@@ -15,7 +8,6 @@ import { CommandHubHeader } from "./command-hub-header"
 import { RepositorySidebar } from "./repository-sidebar"
 import { CommandsTab } from "./commands-tab"
 import { ExecutionTab } from "./execution-tab"
-import { HistoryTab } from "./history-tab"
 import { PipelineTab } from "./pipeline-tab"
 import type { Command } from "./types"
 
@@ -119,26 +111,6 @@ export function CommandHub() {
               onDeleteRepository={handleDeleteRepository}
             />
           </aside>
-
-          {/* Mobile sidebar (Sheet) */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetContent side="left" className="w-[280px] p-0">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Repositories</SheetTitle>
-                <SheetDescription>
-                  Select a repository to filter commands.
-                </SheetDescription>
-              </SheetHeader>
-              <RepositorySidebar
-                selectedRepo={selectedRepo}
-                repositories={repositories}
-                runningCounts={runningCounts}
-                onSelectRepo={handleSelectRepo}
-                onAddRepository={addRepository}
-                onDeleteRepository={handleDeleteRepository}
-              />
-            </SheetContent>
-          </Sheet>
 
           {/* Main area with tabs */}
           <Tabs

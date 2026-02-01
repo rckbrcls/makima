@@ -1,14 +1,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+
 import { Separator } from "@/components/ui/separator"
 import {
   AlertTriangle,
@@ -33,6 +26,7 @@ import type {
   BridgeMode,
 } from "./types"
 import { getActionRisk, getActionTypeLabel, getStatusColor } from "./types"
+import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "../ui/drawer"
 
 // ============================================================================
 // Action Type Icons
@@ -210,10 +204,10 @@ export function ApprovalDrawer({
   const pendingCount = pendingApprovals.length
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[400px] sm:max-w-[400px]">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+    <Drawer direction="right" open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="data-[vaul-drawer-direction=right]:rounded-l-4xl bg-card">
+        <DrawerHeader>
+          <DrawerTitle className="flex items-center gap-2">
             <Shield className="size-4" />
             Action Approvals
             {pendingCount > 0 && (
@@ -221,11 +215,11 @@ export function ApprovalDrawer({
                 {pendingCount}
               </Badge>
             )}
-          </SheetTitle>
-          <SheetDescription>
+          </DrawerTitle>
+          <DrawerDescription>
             Review and approve pending agent actions
-          </SheetDescription>
-        </SheetHeader>
+          </DrawerDescription>
+        </DrawerHeader>
 
         {/* Mode Toggle */}
         <div className="px-4 py-3 border-b border-border/60">
@@ -282,7 +276,7 @@ export function ApprovalDrawer({
         {pendingCount > 0 && (
           <>
             <Separator />
-            <SheetFooter className="flex-row gap-2">
+            <DrawerFooter className="flex-row gap-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -303,10 +297,10 @@ export function ApprovalDrawer({
                 <XCircle className="size-3 mr-1" />
                 Reject All
               </Button>
-            </SheetFooter>
+            </DrawerFooter>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }

@@ -52,12 +52,6 @@ export function RepositorySidebar({
 }: RepositorySidebarProps) {
   return (
     <Card className="flex rounded-none flex-col border-border bg-card">
-      <CardHeader className="border-b border-border/60">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <FolderGit2 className="size-4 text-primary" />
-          Repositories
-        </CardTitle>
-      </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-2 overflow-y-auto">
         {/* Repo list */}
         {repositories.map((repo) => {

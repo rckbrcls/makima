@@ -5,13 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
-import {
   Bot,
   Plus,
   Shield,
@@ -492,26 +485,6 @@ export function AgentHub() {
               onDeleteRepository={handleDeleteRepository}
             />
           </aside>
-
-          {/* Mobile sidebar (Sheet) */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetContent side="left" className="w-[280px] p-0">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Repositories</SheetTitle>
-                <SheetDescription>
-                  Select a repository to filter commands.
-                </SheetDescription>
-              </SheetHeader>
-              <RepositorySidebar
-                selectedRepo={selectedRepo}
-                repositories={repositories}
-                runningCounts={runningCounts}
-                onSelectRepo={handleSelectRepo}
-                onAddRepository={addRepository}
-                onDeleteRepository={handleDeleteRepository}
-              />
-            </SheetContent>
-          </Sheet>
 
           {/* Main area with tabs */}
           <Tabs

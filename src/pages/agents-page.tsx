@@ -17,6 +17,9 @@ import type {
   AgentEvent,
 } from "@/components/agents/types"
 import { TextureOverlay } from "@/components/ui/texture-overlay"
+import { useMakimaState } from "@/hooks/use-makima-state"
+import { RepositorySidebar } from "@/components/repos/repository-sidebar"
+import { runningCount } from "@/lib/command-hub/helpers"
 
 // ============================================================================
 // Agents Grid Component
@@ -113,12 +116,40 @@ export function AgentsPage() {
     createAgentDialogOpen,
     openCreateAgentDialog,
     closeCreateAgentDialog,
+    selectedRepo,
+    selectRepo,
+    setMobileSidebarOpen,
     openApprovalDrawer,
   } = useUIStore()
+
+
+  const {
+    state: makimaState,
+    runCommand,
+    stopCommand,
+    addRepository,
+    addCommand,
+    updateCommand,
+    deleteCommand,
+    deleteRepository,
+    getExecutionLogs,
+  } = useMakimaState()
+
+
+  const {
+    commands,
+    executionHistory,
+    liveExecutions,
+    repositories,
+  } = makimaState
 
   // Local state for session details
   const [sessionActions, setSessionActions] = useState<Action[]>([])
   const [sessionEvents, setSessionEvents] = useState<AgentEvent[]>([])
+  const runningCounts: Record<string, number> = {}
+  repositories.forEach((repo) => {
+    runningCounts[repo.name] = runningCount(repo.name, commands)
+  })
 
   // Build approval card data from ApprovalWithAction
   const approvalCardData: ApprovalCardData[] = useMemo(() => {
@@ -204,6 +235,19 @@ export function AgentsPage() {
     refreshAgentState()
   }
 
+  const handleDeleteRepository = async (repo: string) => {
+    const removed = await deleteRepository(repo)
+    if (removed && selectedRepo === repo) {
+      selectRepo(null)
+    }
+  }
+
+  const handleSelectRepo = (repo: string | null) => {
+    selectRepo(repo)
+    setMobileSidebarOpen(false)
+  }
+
+
   return (
     <div className="relative h-full overflow-hidden bg-background text-foreground flex flex-col">
       <TextureOverlay texture="noise" className="mix-blend-overlay" />
@@ -217,7 +261,16 @@ export function AgentsPage() {
       />
 
       {/* Body: agents grid + session panel */}
-      <div className="grid relative  w-full min-h-0 flex-1 lg:grid-cols-[1fr_3fr]">
+      <div className="grid relative  w-full min-h-0 flex-1 lg:grid-cols-[1fr_2fr_4fr]">
+        <RepositorySidebar
+          selectedRepo={selectedRepo}
+          repositories={repositories}
+          runningCounts={runningCounts}
+          onSelectRepo={handleSelectRepo}
+          onAddRepository={addRepository}
+          onDeleteRepository={handleDeleteRepository}
+        />
+
         {/* Agents Grid */}
         <AgentsGrid
           agents={agents}
