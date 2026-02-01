@@ -23,18 +23,18 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            // Company commands
-            commands::company_state,
-            commands::company_add_repository,
-            commands::company_repo_branches,
-            commands::company_import_commands,
-            commands::company_add_command,
-            commands::company_update_command,
-            commands::company_run_command,
-            commands::company_stop_command,
-            commands::company_delete_command,
-            commands::company_delete_repository,
-            commands::company_get_execution_logs,
+            // Overseer commands
+            commands::overseer_state,
+            commands::overseer_add_repository,
+            commands::overseer_repo_branches,
+            commands::overseer_import_commands,
+            commands::overseer_add_command,
+            commands::overseer_update_command,
+            commands::overseer_run_command,
+            commands::overseer_stop_command,
+            commands::overseer_delete_command,
+            commands::overseer_delete_repository,
+            commands::overseer_get_execution_logs,
             // Port registry commands
             port_registry::port_registry_lease_port,
             port_registry::port_registry_release_port,

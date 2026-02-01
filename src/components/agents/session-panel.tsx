@@ -198,7 +198,7 @@ export function SessionPanel({
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="border-b border-border/60 pb-3">
+      <CardHeader className="border-b border-border pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <Play className="size-4" />
@@ -240,7 +240,7 @@ export function SessionPanel({
       </CardHeader>
 
       {/* Tabs */}
-      <div className="flex border-b border-border/60">
+      <div className="flex border-b border-border">
         <button
           className={cn(
             "flex-1 py-2 text-xs font-medium transition-colors",

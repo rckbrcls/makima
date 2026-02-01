@@ -25,7 +25,7 @@ export function ExecutionTab({
   onStopCommand,
 }: ExecutionTabProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 py-4 pr-6 pl-1 overflow-y-auto">
       {/* Live execution cards */}
       {liveExecutions.map((exec) => (
         <LiveExecutionCard

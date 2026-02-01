@@ -41,7 +41,7 @@ export function CommandCard({ command, index, onRun, onDelete, onEdit }: Command
     <Card
       size="sm"
       className={cn(
-        "border-border/70 bg-card animate-in fade-in slide-in-from-bottom-8 duration-700",
+        "border-border bg-card animate-in fade-in slide-in-from-bottom-8 duration-700 shrink-0",
         index % 2 === 0 ? "delay-200" : "delay-300"
       )}
     >

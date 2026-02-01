@@ -1,10 +1,10 @@
-# Company
+# Overseer
 
 Aplicacao desktop para orquestracao e gerenciamento de comandos de desenvolvimento. Permite gerenciar, executar e monitorar comandos de build, test e deploy de multiplos repositorios em uma unica interface.
 
 ## Sobre o Projeto
 
-Company e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Company centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
+Overseer e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Overseer centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
 
 ### Funcionalidades
 
@@ -52,7 +52,7 @@ Company e um painel de controle para desenvolvedores que trabalham com multiplos
 ## Estrutura do Projeto
 
 ```
-company/
+overseer/
 ├── src/
 │   ├── components/
 │   │   ├── command-hub/          # Componentes principais da aplicacao
@@ -167,14 +167,14 @@ pnpm check         # Formatar + corrigir tudo
 
 ```typescript
 // Status de um repositorio
-type RepositoryStatus = 'active' | 'idle' | 'warn'
+type RepositoryStatus = "active" | "idle" | "warn";
 
 // Tipos de comando suportados
-type CommandType = 'run' | 'build' | 'test' | 'lint' | 'check' | 'bundle'
+type CommandType = "run" | "build" | "test" | "lint" | "check" | "bundle";
 
 // Status de execucao de um comando
-type CommandStatus = 'running' | 'queued' | 'success' | 'failed' | 'idle'
+type CommandStatus = "running" | "queued" | "success" | "failed" | "idle";
 
 // Estados de um step do pipeline
-type StepState = 'done' | 'running' | 'pending'
+type StepState = "done" | "running" | "pending";
 ```

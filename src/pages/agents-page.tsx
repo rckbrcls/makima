@@ -16,7 +16,7 @@ import type {
   Action,
   AgentEvent,
 } from "@/components/agents/types"
-import { AppSidebar } from "@/components/ui/app-sidebar"
+import { TextureOverlay } from "@/components/ui/texture-overlay"
 
 // ============================================================================
 // Agents Grid Component
@@ -40,7 +40,7 @@ function AgentsGrid({
   onOpenCreateDialog,
 }: AgentsGridProps) {
   return (
-    <Card className="rounded-none overflow-hidden border-border/70 bg-card">
+    <Card className="rounded-none overflow-hidden border-border bg-card">
       <div className="flex items-center justify-between px-4">
         <div>
           <h2 className="text-sm font-medium">Agents</h2>
@@ -57,7 +57,7 @@ function AgentsGrid({
           Add Agent
         </Button>
       </div>
-      <div className="p-4 border-t border-border/60 flex flex-col overflow-y-scroll gap-4">
+      <div className="p-4 border-t border-border flex flex-col overflow-y-scroll gap-4">
         {agents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Bot className="size-12 text-muted-foreground/30 mb-3" />
@@ -207,9 +207,7 @@ export function AgentsPage() {
 
   return (
     <div className="relative h-full overflow-hidden bg-background text-foreground flex flex-col">
-      {/* Grid Background */}
-      <div className="pointer-events-none absolute inset-0 opacity-50 [background-image:linear-gradient(90deg,var(--grid-line)_1px,transparent_1px),linear-gradient(0deg,var(--grid-line)_1px,transparent_1px)] [background-size:44px_44px]" />
-
+      <TextureOverlay texture="noise" className="mix-blend-overlay" />
       {/* Header */}
       <PageHeader
         mode={mode}
@@ -218,8 +216,6 @@ export function AgentsPage() {
         onOpenApprovals={openApprovalDrawer}
         onRefresh={handleRefresh}
       />
-
-
 
       {/* Body: agents grid + session panel */}
       <div className="grid relative  w-full min-h-0 flex-1 lg:grid-cols-[1fr_3fr]">
@@ -243,10 +239,10 @@ export function AgentsPage() {
               onEndSession={handleEndSession}
             />
           ) : (
-            <Card className="flex flex-col items-center justify-center text-center p-6 border-border/70 bg-card h-full w-full">
-              <Shield className="size-10 text-muted-foreground/30 mb-3" />
+            <Card className="flex flex-col items-center justify-center text-center p-6 border-border bg-card h-full w-full">
+              <Shield className="size-10 text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">No active session</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Start a session to see details here
               </p>
             </Card>

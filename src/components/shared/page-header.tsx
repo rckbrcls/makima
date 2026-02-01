@@ -35,7 +35,7 @@ export function PageHeader({
   onSearch,
 }: PageHeaderProps) {
   return (
-    <header className="flex items-center px-4 fixed top-0 left-0 right-0 justify-between gap-4 border-b z-50 border-border/40 h-14 bg-card" data-tauri-drag-region>
+    <header className="flex items-center px-4 fixed top-0 left-0 right-0 justify-between gap-4 border-b z-50 border-border h-14 bg-card" data-tauri-drag-region>
       <div className="flex items-center ml-22">
         {/* <div className="flex size-6 items-center justify-center shrink-0 overflow-hidden">
           <img
@@ -50,7 +50,7 @@ export function PageHeader({
           />
         </div> */}
         <span className="text-xl tracking-0 whitespace-nowrap text-primary font-serif font-bold">
-          Company
+          MAKIMA
         </span>
       </div>
 

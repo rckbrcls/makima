@@ -7,6 +7,7 @@ import appCss from '../styles.css?url'
 import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from '@/components/ui/app-sidebar'
 import { GlobalApprovalDrawer } from '@/components/agents/global-approval-drawer'
+import { TextureOverlay } from '@/components/ui/texture-overlay'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -19,7 +20,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Company',
+        title: 'Overseer',
       },
     ],
     links: [

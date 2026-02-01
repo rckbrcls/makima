@@ -1,7 +1,7 @@
-//! Company Agent Bridge (CAB) Protocol
+//! Overseer Agent Bridge (CAB) Protocol
 //!
 //! This module implements the bridge between CLI agents (like Claude CLI, Codex, etc.)
-//! and Company. It handles NDJSON communication for agent actions and their results.
+//! and Overseer. It handles NDJSON communication for agent actions and their results.
 
 use crate::database;
 use crate::types::{

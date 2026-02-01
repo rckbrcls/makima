@@ -77,62 +77,11 @@ export function CommandsTab({
   if (selectedRepo === null) {
     // All repos: grouped by repo
     return (
-      <div className="flex flex-col gap-4">
-        {Object.entries(groupedCommands).map(([repoName, cmds]) => {
-          const repo = getRepo(repoName, repositories)
-          return (
-            <section key={repoName}>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <CircleDot
-                    className={cn(
-                      "size-3",
-                      repoStatusColor(repo?.status ?? "idle")
-                    )}
-                  />
-                  {repoName}
-                  <span className="flex items-center gap-1 text-[0.6rem] font-normal text-muted-foreground">
-                    <GitBranch className="size-2.5" />
-                    {repo?.branch}
-                  </span>
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-border bg-card"
-                  onClick={() => stopAllForRepo(repoName)}
-                >
-                  <Square data-icon="inline-start" />
-                  Stop all
-                </Button>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {cmds.map((command, index) => (
-                  <CommandCard
-                    key={`${repoName}-${command.name}`}
-                    command={command}
-                    index={index}
-                    onRun={onRunCommand}
-                    onDelete={onDeleteCommand}
-                    onEdit={handleEdit}
-                  />
-                ))}
-              </div>
-              <Separator className="mt-4 bg-border/60" />
-            </section>
-          )
-        })}
-        {/* Quick Composer Dialog for editing when no repo is selected */}
-        <QuickComposer
-          repoName={editingCommand?.repo || ""}
-          open={dialogOpen}
-          onOpenChange={handleDialogClose}
-          onRunCommand={onRunCommandInput}
-          onAddCommand={handleAddCommand}
-          onUpdateCommand={handleUpdateCommand}
-          editingCommand={editingCommand}
-        />
-      </div>
+      <Card className="flex flex-col gap-4 p-4 pr-0 rounded-none h-full overflow-y-auto">
+        <CardDescription>
+          Select a repository to view its commands.
+        </CardDescription>
+      </Card>
     )
   }
 
@@ -159,13 +108,13 @@ export function CommandsTab({
   ]
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full p-4 pl-3 pr-1 overflow-y-auto">
       {/* Summary cards */}
       <StatsCards stats={summaryStats} />
 
       {/* Commands grid */}
-      <Card className="flex flex-col border-border/60 bg-card">
-        <CardHeader className="border-b border-border/60">
+      <Card className="flex flex-col border-border bg-card">
+        <CardHeader className="border-b border-border">
           <CardTitle className="flex items-center gap-2 text-base">
             <Terminal className="size-4 text-primary" />
             {selectedRepo} | commands
@@ -199,7 +148,7 @@ export function CommandsTab({
             </div>
           </CardAction>
         </CardHeader>
-        <CardContent className="grid gap-3 py-4 sm:grid-cols-2">
+        <CardContent className="flex flex-col gap-3 py-4 ">
           {commands.map((command, index) => (
             <CommandCard
               key={`${command.repo}-${command.name}`}

@@ -156,7 +156,7 @@ export function AddRepositoryDialog({
     setIsLoadingBranches(true)
     const timer = setTimeout(async () => {
       try {
-        const result = await invoke<RepoBranches>("company_repo_branches", {
+        const result = await invoke<RepoBranches>("overseer_repo_branches", {
           path: trimmed,
         })
         if (!active) return
@@ -205,7 +205,7 @@ export function AddRepositoryDialog({
     if (!path.trim() || !isTauriAvailable()) return
     setIsLoadingBranches(true)
     try {
-      const result = await invoke<RepoBranches>("company_repo_branches", {
+      const result = await invoke<RepoBranches>("overseer_repo_branches", {
         path: path.trim(),
       })
       setBranches(result.branches)
@@ -230,7 +230,7 @@ export function AddRepositoryDialog({
         <DialogHeader>
           <DialogTitle>Add repository</DialogTitle>
           <DialogDescription>
-            Register a local repo so Company can run and track commands.
+            Register a local repo so Overseer can run and track commands.
           </DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={handleSubmit}>

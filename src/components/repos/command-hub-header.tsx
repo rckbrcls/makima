@@ -77,7 +77,7 @@ export function CommandHubHeader({
               <p className="text-[0.6rem] uppercase tracking-[0.4em] text-muted-foreground">
                 Command panel
               </p>
-              <h1 className="text-2xl font-semibold">Company</h1>
+              <h1 className="text-2xl font-semibold">Overseer</h1>
               <p className="text-xs text-muted-foreground">
                 Orchestrate build, run and deploy per repository in one place.
               </p>

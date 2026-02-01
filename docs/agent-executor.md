@@ -1,8 +1,8 @@
-# Company — Executor de Agentes de IA (Visão e Arquitetura)
+# Overseer — Executor de Agentes de IA (Visão e Arquitetura)
 
 ## Visão geral
 
-O Company deixa de ser apenas um executor de comandos e passa a ser um **orquestrador de agentes de IA**, com observabilidade total do que cada agente faz (comandos, edições, pesquisas) e com **modo seguro** (aprovação manual) ou **modo automático**.
+O Overseer deixa de ser apenas um executor de comandos e passa a ser um **orquestrador de agentes de IA**, com observabilidade total do que cada agente faz (comandos, edições, pesquisas) e com **modo seguro** (aprovação manual) ou **modo automático**.
 
 A home vira um **painel de agentes**, com vários cards mostrando agentes rodando em paralelo, status e logs em tempo real.
 
@@ -74,31 +74,31 @@ Logs, diffs, outputs, anexos.
 
 ### 1) CLI Provider (controle via app)
 
-Objetivo: rodar CLIs (Codex, Claude Code, Gemini Code) **sob controle do Company**.
+Objetivo: rodar CLIs (Codex, Claude Code, Gemini Code) **sob controle do Overseer**.
 
 **Estratégia:**
 
-- O Company inicia o CLI como processo filho (PTY).
+- O Overseer inicia o CLI como processo filho (PTY).
 - Toda entrada/saída passa pelo app (stdin/stdout).
 - O CLI não executa comandos diretamente: ele **pede ações**.
-- O Company executa as ações e responde ao CLI.
+- O Overseer executa as ações e responde ao CLI.
 
 **Resultado:**
 
-- O Company controla cada passo.
+- O Overseer controla cada passo.
 - Modo seguro funciona (aprovação antes de executar).
 
 > Se o CLI não suporta tool-proxy nativamente, podemos usar um wrapper/bridge que interpreta a conversa e converte em ações.
 
 ---
 
-## Protocolo do CLI Bridge (Company Agent Bridge)
+## Protocolo do CLI Bridge (Overseer Agent Bridge)
 
 Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e debuggável: **JSON por linha** (NDJSON) via stdin/stdout.
 
 ### Nomes finais das mensagens
 
-**Direção CLI → Company**
+**Direção CLI → Overseer**
 
 - `hello`
 - `log`
@@ -108,7 +108,7 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 - `session.end`
 - `ping`
 
-**Direção Company → CLI**
+**Direção Overseer → CLI**
 
 - `hello.ack`
 - `action.result`
@@ -127,71 +127,71 @@ Objetivo: controlar qualquer CLI via mensagens estruturadas. Formato simples e d
 
 ### Campos por tipo
 
-**hello (CLI → Company)**
+**hello (CLI → Overseer)**
 
 - `cli`: string
 - `version`: string
 - `capabilities`: string[] (ex: `["actions","plan","stream"]`)
 
-**hello.ack (Company → CLI)**
+**hello.ack (Overseer → CLI)**
 
 - `protocol`: string (ex: `cab/1.0`)
 - `mode`: `safe | auto`
 - `workspace`: string (path)
 
-**log (CLI → Company)**
+**log (CLI → Overseer)**
 
 - `level`: `debug | info | warn | error`
 - `message`: string
 
-**plan (CLI → Company)**
+**plan (CLI → Overseer)**
 
 - `items`: string[]
 
-**action.request (CLI → Company)**
+**action.request (CLI → Overseer)**
 
 - `action`: `{ type: string, payload: object, summary?: string }`
 
-**action.cancel (CLI → Company)**
+**action.cancel (CLI → Overseer)**
 
 - `actionId`: string
 - `reason?`: string
 
-**action.result (Company → CLI)**
+**action.result (Overseer → CLI)**
 
 - `actionId`: string
 - `status`: `ok | failed | blocked | rejected`
 - `output?`: string
 - `error?`: string
 
-**approval.requested (Company → CLI)**
+**approval.requested (Overseer → CLI)**
 
 - `approvalId`: string
 - `actionId`: string
 - `summary`: string
 
-**approval.result (Company → CLI)**
+**approval.result (Overseer → CLI)**
 
 - `approvalId`: string
 - `state`: `approved | rejected`
 - `reason?`: string
 
-**session.set_mode (Company → CLI)**
+**session.set_mode (Overseer → CLI)**
 
 - `mode`: `safe | auto`
 
-**session.end (CLI → Company)**
+**session.end (CLI → Overseer)**
 
 - `state`: `done | failed | aborted`
 - `summary?`: string
 
 **ping/pong**
 
-- `ping` (CLI → Company) / `pong` (Company → CLI)
+- `ping` (CLI → Overseer) / `pong` (Overseer → CLI)
 
 ### Handshake
 
-O Company inicia o processo e envia:
+O Overseer inicia o processo e envia:
 
 ```json
 {
@@ -231,7 +231,7 @@ O CLI responde:
 {"type":"action.request","id":"m-7","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:14Z","action":{"type":"search_web","payload":{"query":"..."},"summary":"Pesquisar dependência"}}
 ```
 
-### Respostas do Company
+### Respostas do Overseer
 
 ```json
 {"type":"action.result","id":"m-8","sessionId":"s-123","agentId":"a-1","timestamp":"2026-01-30T12:00:20Z","actionId":"act-1","status":"ok","output":"..."}
@@ -324,21 +324,21 @@ Lista de approvals com:
 ### Fluxo detalhado (safe mode)
 
 1. CLI envia `action.request`.
-2. Company cria `Action` (`blocked`) e `Approval` (`pending`).
+2. Overseer cria `Action` (`blocked`) e `Approval` (`pending`).
 3. UI mostra badge “Waiting approval”.
 4. Usuário **Approve**:
    - `Approval` → `approved`
    - `Action` → `running` → `done/failed`
-   - Company envia `approval.result` para o CLI.
+   - Overseer envia `approval.result` para o CLI.
 5. Usuário **Reject**:
    - `Approval` → `rejected`
    - `Action` → `rejected`
-   - Company envia `approval.result` para o CLI.
+   - Overseer envia `approval.result` para o CLI.
 
 ### Fluxo automático
 
 1. CLI envia `action.request`.
-2. Company cria `Action` (`running`).
+2. Overseer cria `Action` (`running`).
 3. Executa imediatamente.
 4. Envia `action.result` para o CLI.
 
@@ -579,7 +579,7 @@ Grid de cards (1 por agente). Cada card mostra:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Company · Agents                               [Safe Mode ☐]        │
+│ Overseer · Agents                               [Safe Mode ☐]        │
 │ [New Agent] [New Session] [Settings]                                │
 └──────────────────────────────────────────────────────────────────────┘
 

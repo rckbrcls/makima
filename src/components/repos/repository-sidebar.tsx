@@ -19,16 +19,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import {
   AlertTriangle,
   CircleDot,
   FolderGit2,
   GitBranch,
-  Layers,
   Plus,
   Trash2,
-} from "lucide-react"
+}
+  from "lucide-react"
 import { cn } from "@/lib/utils"
 import { repoStatusColor } from "@/lib/command-hub/helpers"
 import { AddRepositoryDialog } from "./add-repository-dialog"
@@ -52,58 +51,37 @@ export function RepositorySidebar({
   onDeleteRepository,
 }: RepositorySidebarProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card">
+    <Card className="flex rounded-none flex-col border-border bg-card">
       <CardHeader className="border-b border-border/60">
         <CardTitle className="flex items-center gap-2 text-sm">
           <FolderGit2 className="size-4 text-primary" />
           Repositories
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 space-y-1 overflow-y-auto">
-        {/* All repositories */}
-        <button
-          onClick={() => onSelectRepo(null)}
-          className={cn(
-            "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition",
-            selectedRepo === null
-              ? "border-primary/40 bg-primary/10"
-              : "border-transparent hover:bg-accent/60"
-          )}
-        >
-          <span className="flex items-center gap-2 text-xs font-medium text-foreground">
-            <Layers className="size-3.5 text-primary" />
-            All repositories
-          </span>
-          <Badge variant="outline" className="text-[0.6rem]">
-            {repositories.length}
-          </Badge>
-        </button>
-
-        <Separator className="my-2 bg-border/60" />
-
+      <CardContent className="flex-1 flex flex-col gap-2 overflow-y-auto">
         {/* Repo list */}
         {repositories.map((repo) => {
           const running = runningCounts[repo.name] || 0
           return (
-            <div key={repo.name} className="flex items-center gap-1">
+            <div key={repo.name} className={cn(
+              "flex justify-between p-2 cursor-pointer border border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 aria-expanded:bg-muted aria-expanded:text-foreground w-full items-center rounded-sm px-2.5 transition-all duration-200 group/item",
+              selectedRepo === repo.name
+                ? "bg-primary text-primary-foreground dark:bg-primary dark:text-primary-foreground hover:bg-primary hover:text-primary-foreground/90 dark:hover:bg-primary/90 dark:hover:text-primary-foreground/90"
+                : "border-transparent hover:bg-accent/60"
+            )}>
               <button
                 onClick={() => onSelectRepo(repo.name)}
-                className={cn(
-                  "flex w-full flex-1 items-center justify-between rounded-xl border px-3 py-2 text-left transition",
-                  selectedRepo === repo.name
-                    ? "border-primary/40 bg-primary/10"
-                    : "border-transparent hover:bg-accent/60"
-                )}
+                className="w-full flex items-center gap-2"
               >
                 <span className="flex items-center gap-2">
                   <CircleDot
                     className={cn("size-3", repoStatusColor(repo.status))}
                   />
                   <span className="space-y-0.5">
-                    <span className="block text-xs font-medium text-foreground">
+                    <span className="block text-xs font-medium ">
                       {repo.name}
                     </span>
-                    <span className="flex items-center gap-1 text-[0.6rem] text-muted-foreground">
+                    <span className="flex items-center gap-1 text-[0.6rem] ">
                       <GitBranch className="size-2.5" />
                       {repo.branch}
                     </span>
@@ -123,7 +101,7 @@ export function RepositorySidebar({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className="text-muted-foreground hover:text-destructive"
+                    className=""
                     aria-label={`Delete ${repo.name}`}
                     disabled={running > 0 || !onDeleteRepository}
                   >
@@ -138,7 +116,7 @@ export function RepositorySidebar({
                     <AlertDialogTitle>Delete repository?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This removes {repo.name}, its commands, and history from
-                      Company.
+                      Overseer.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -165,6 +143,6 @@ export function RepositorySidebar({
           </Button>
         </AddRepositoryDialog>
       </CardFooter>
-    </Card>
+    </Card >
   )
 }

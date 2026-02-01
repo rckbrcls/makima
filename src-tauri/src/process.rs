@@ -225,7 +225,7 @@ pub fn spawn_log_reader(
             }
 
             app.emit(
-                "company://execution-log",
+                "overseer://execution-log",
                 ExecutionLogEvent {
                     repo: repo.clone(),
                     command: command.clone(),
@@ -378,7 +378,7 @@ pub fn start_execution(
     }
 
     app.emit(
-        "company://execution-started",
+        "overseer://execution-started",
         ExecutionStartedEvent {
             repo: request.repo.clone(),
             command: display_name.clone(),
@@ -624,7 +624,7 @@ pub fn spawn_waiter(
         }
 
         app.emit(
-            "company://execution-finished",
+            "overseer://execution-finished",
             ExecutionFinishedEvent {
                 repo,
                 command,

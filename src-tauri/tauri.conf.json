@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "company",
+  "productName": "overseer",
   "version": "0.1.0",
-  "identifier": "com.company.app",
+  "identifier": "com.overseer.app",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:3000",

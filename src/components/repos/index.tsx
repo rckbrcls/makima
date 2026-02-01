@@ -10,7 +10,7 @@ import {
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
-import { useCompanyState } from "@/hooks/use-company-state"
+import { useOverseerState } from "@/hooks/use-overseer-state"
 import { CommandHubHeader } from "./command-hub-header"
 import { RepositorySidebar } from "./repository-sidebar"
 import { CommandsTab } from "./commands-tab"
@@ -32,7 +32,7 @@ export function CommandHub() {
     deleteCommand,
     deleteRepository,
     getExecutionLogs,
-  } = useCompanyState()
+  } = useOverseerState()
 
   const {
     commands,

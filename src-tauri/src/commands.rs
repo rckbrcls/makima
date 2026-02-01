@@ -12,12 +12,12 @@ use std::{collections::HashSet, fs, path::Path};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
-pub fn company_state(state: State<'_, Arc<AppRuntime>>) -> DashboardState {
+pub fn overseer_state(state: State<'_, Arc<AppRuntime>>) -> DashboardState {
     state.data.lock().expect("state poisoned").clone()
 }
 
 #[tauri::command]
-pub fn company_add_repository(
+pub fn overseer_add_repository(
     state: State<'_, Arc<AppRuntime>>,
     repo: Repository,
 ) -> Result<(), String> {
@@ -39,7 +39,7 @@ pub fn company_add_repository(
 }
 
 #[tauri::command]
-pub fn company_repo_branches(path: String) -> Result<RepoBranches, String> {
+pub fn overseer_repo_branches(path: String) -> Result<RepoBranches, String> {
     let repo_path = Path::new(&path);
     if !repo_path.exists() {
         return Err("path not found".to_string());
@@ -233,7 +233,7 @@ fn add_command_if_missing(
 }
 
 #[tauri::command]
-pub fn company_import_commands(
+pub fn overseer_import_commands(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,
 ) -> Result<usize, String> {
@@ -259,7 +259,7 @@ pub fn company_import_commands(
 }
 
 #[tauri::command]
-pub fn company_add_command(
+pub fn overseer_add_command(
     state: State<'_, Arc<AppRuntime>>,
     command: Command,
 ) -> Result<(), String> {
@@ -289,7 +289,7 @@ pub fn company_add_command(
 }
 
 #[tauri::command]
-pub fn company_run_command(
+pub fn overseer_run_command(
     app: AppHandle,
     state: State<'_, Arc<AppRuntime>>,
     request: RunCommandRequest,
@@ -384,7 +384,7 @@ pub fn company_run_command(
 }
 
 #[tauri::command]
-pub fn company_stop_command(
+pub fn overseer_stop_command(
     state: State<'_, Arc<AppRuntime>>,
     request: StopCommandRequest,
 ) -> Result<(), String> {
@@ -405,7 +405,7 @@ pub fn company_stop_command(
 }
 
 #[tauri::command]
-pub fn company_update_command(
+pub fn overseer_update_command(
     state: State<'_, Arc<AppRuntime>>,
     command: Command,
 ) -> Result<(), String> {
@@ -443,7 +443,7 @@ pub fn company_update_command(
 }
 
 #[tauri::command]
-pub fn company_delete_command(
+pub fn overseer_delete_command(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,
     name: String,
@@ -480,7 +480,7 @@ pub fn company_delete_command(
 }
 
 #[tauri::command]
-pub fn company_delete_repository(
+pub fn overseer_delete_repository(
     state: State<'_, Arc<AppRuntime>>,
     repo: String,
 ) -> Result<(), String> {
@@ -508,7 +508,7 @@ pub fn company_delete_repository(
 }
 
 #[tauri::command]
-pub fn company_get_execution_logs(
+pub fn overseer_get_execution_logs(
     state: State<'_, Arc<AppRuntime>>,
     execution_id: u32,
 ) -> Result<Vec<ExecutionLogLine>, String> {
