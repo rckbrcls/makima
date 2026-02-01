@@ -19,6 +19,11 @@ import { SessionPanel } from "@/components/agents/session-panel"
 import { UnifiedSidebar } from "@/components/workspace/unified-sidebar"
 import { LiveExecutionCard } from "@/components/repos/live-execution-card"
 import { TextureOverlay } from "@/components/ui/texture-overlay"
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable"
 import { runningCount } from "@/lib/command-hub/helpers"
 import type { Session, Action, AgentEvent, Agent, AgentQuestion } from "@/components/agents/types"
 import { mockAgentQuestions } from "@/mocks"
@@ -314,88 +319,101 @@ export function WorkspacePage() {
 
       <TextureOverlay texture="noise" className="mix-blend-overlay" />
 
-      {/* Body: 3-column layout */}
-      <div className="relative z-10 grid w-full min-h-0 flex-1 lg:grid-cols-[300px_1fr_320px]">
+      {/* Body: resizable 3-column layout */}
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="relative z-10 w-full min-h-0 flex-1"
+      >
         {/* 1. Unified Sidebar (Repos + Sessions) */}
-        <UnifiedSidebar
-          repositories={repositories}
-          sessions={sessions}
-          agents={agents}
-          selectedRepo={selectedRepo}
-          selectedSession={selectedSession}
-          isCreatingNewSession={isCreatingNewSession}
-          runningCounts={runningCounts}
-          onSelectRepo={handleSelectRepo}
-          onSelectSession={handleSelectSession}
-          onNewSession={handleNewSession}
-          onDeleteRepository={handleDeleteRepository}
-          getPendingCount={getPendingCount}
-        />
+        <ResizablePanel defaultSize={22} minSize={15} className="min-w-[240px]">
+          <UnifiedSidebar
+            repositories={repositories}
+            sessions={sessions}
+            agents={agents}
+            selectedRepo={selectedRepo}
+            selectedSession={selectedSession}
+            isCreatingNewSession={isCreatingNewSession}
+            runningCounts={runningCounts}
+            onSelectRepo={handleSelectRepo}
+            onSelectSession={handleSelectSession}
+            onNewSession={handleNewSession}
+            onDeleteRepository={handleDeleteRepository}
+            getPendingCount={getPendingCount}
+          />
+        </ResizablePanel>
+
+        <ResizableHandle />
 
         {/* 2. Chat / Session View */}
-        <div className="p-4 flex flex-col h-full overflow-hidden">
-          {isCreatingNewSession && selectedRepo ? (
-            <NewSessionChat
-              repoName={selectedRepo}
-              agents={agents}
-              onCreateSession={handleCreateSession}
-              onCancel={() => setIsCreatingNewSession(false)}
-            />
-          ) : selectedSession ? (
-            <SessionPanel
-              session={selectedSession}
-              actions={sessionActions}
-              events={sessionEvents}
-              questions={sessionQuestions}
-              agentName={selectedAgent?.name}
-              onEndSession={handleEndSession}
-              onSendMessage={handleSendMessage}
-              onAnswerQuestion={handleAnswerQuestion}
-            />
-          ) : (
-            <Card className="flex flex-col items-center justify-center text-center p-6 h-full border-dashed bg-card">
-              <MessageSquarePlus className="size-12 text-muted mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground">
-                {selectedRepo ? "Start a new session" : "Select a repository"}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                {selectedRepo
-                  ? "Click \"New Session\" in the sidebar to start working with an AI agent"
-                  : "Expand a repository in the sidebar to see its sessions"
-                }
-              </p>
-              {selectedRepo && (
-                <Button onClick={() => handleNewSession(selectedRepo)} className="mt-4 gap-2">
-                  <Plus className="size-4" />
-                  New Session
-                </Button>
-              )}
-            </Card>
-          )}
-        </div>
+        <ResizablePanel defaultSize={56} minSize={30} className="min-w-[320px]">
+          <div className="p-4 flex flex-col h-full overflow-hidden">
+            {isCreatingNewSession && selectedRepo ? (
+              <NewSessionChat
+                repoName={selectedRepo}
+                agents={agents}
+                onCreateSession={handleCreateSession}
+                onCancel={() => setIsCreatingNewSession(false)}
+              />
+            ) : selectedSession ? (
+              <SessionPanel
+                session={selectedSession}
+                actions={sessionActions}
+                events={sessionEvents}
+                questions={sessionQuestions}
+                agentName={selectedAgent?.name}
+                onEndSession={handleEndSession}
+                onSendMessage={handleSendMessage}
+                onAnswerQuestion={handleAnswerQuestion}
+              />
+            ) : (
+              <Card className="flex flex-col items-center justify-center text-center p-6 h-full border-dashed bg-card">
+                <MessageSquarePlus className="size-12 text-muted mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground">
+                  {selectedRepo ? "Start a new session" : "Select a repository"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  {selectedRepo
+                    ? "Click \"New Session\" in the sidebar to start working with an AI agent"
+                    : "Expand a repository in the sidebar to see its sessions"
+                  }
+                </p>
+                {selectedRepo && (
+                  <Button onClick={() => handleNewSession(selectedRepo)} className="mt-4 gap-2">
+                    <Plus className="size-4" />
+                    New Session
+                  </Button>
+                )}
+              </Card>
+            )}
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle />
 
         {/* 3. Live Executions Panel */}
-        <div className="border-l border-border bg-card p-4 overflow-y-auto">
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            Live Executions
-          </h3>
-          {liveExecutions.length > 0 ? (
-            <div className="space-y-3">
-              {liveExecutions.map((execution, i) => (
-                <LiveExecutionCard key={i} execution={execution} />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="size-10 text-muted mb-3" />
-              <p className="text-sm text-muted-foreground">No active executions</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Running processes will appear here
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+        <ResizablePanel defaultSize={22} minSize={15} className="min-w-[260px]">
+          <div className="border-l border-border bg-card p-4 overflow-y-auto h-full">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Live Executions
+            </h3>
+            {liveExecutions.length > 0 ? (
+              <div className="space-y-3">
+                {liveExecutions.map((execution, i) => (
+                  <LiveExecutionCard key={i} execution={execution} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="size-10 text-muted mb-3" />
+                <p className="text-sm text-muted-foreground">No active executions</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Running processes will appear here
+                </p>
+              </div>
+            )}
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   )
 }

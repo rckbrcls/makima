@@ -3,17 +3,26 @@ import * as ResizablePrimitive from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
+type Orientation = "horizontal" | "vertical"
+
 function ResizablePanelGroup({
   className,
+  direction,
+  orientation,
   ...props
-}: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) {
+}: React.ComponentProps<typeof ResizablePrimitive.Group> & {
+  direction?: Orientation
+}) {
+  const resolvedOrientation = orientation ?? direction
   return (
-    <ResizablePrimitive.PanelGroup
+    <ResizablePrimitive.Group
       data-slot="resizable-panel-group"
       className={cn(
-        "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+        "flex h-full w-full",
+        resolvedOrientation === "vertical" && "flex-col",
         className
       )}
+      orientation={resolvedOrientation}
       {...props}
     />
   )
@@ -28,23 +37,36 @@ function ResizablePanel({
 function ResizableHandle({
   withHandle,
   className,
+  direction,
+  orientation,
   ...props
-}: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
+}: React.ComponentProps<typeof ResizablePrimitive.Separator> & {
   withHandle?: boolean
+  direction?: Orientation
 }) {
+  const resolvedOrientation = orientation ?? direction ?? "horizontal"
   return (
-    <ResizablePrimitive.PanelResizeHandle
+    <ResizablePrimitive.Separator
       data-slot="resizable-handle"
+      data-orientation={resolvedOrientation}
       className={cn(
-        "bg-border focus-visible:ring-ring relative flex w-px items-center justify-center after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:outline-hidden data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:translate-x-0 data-[panel-group-direction=vertical]:after:-translate-y-1/2 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+        "bg-border relative flex items-center justify-center outline-none",
+        resolvedOrientation === "vertical"
+          ? "h-px w-full after:absolute after:inset-x-0 after:top-1/2 after:h-1 after:-translate-y-1/2"
+          : "w-px after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2",
         className
       )}
       {...props}
     >
       {withHandle && (
-        <div className="bg-border h-6 w-1 rounded-none z-10 flex shrink-0" />
+        <div
+          className={cn(
+            "bg-border z-10 flex shrink-0 rounded-none",
+            resolvedOrientation === "vertical" ? "h-1 w-6" : "h-6 w-1"
+          )}
+        />
       )}
-    </ResizablePrimitive.PanelResizeHandle>
+    </ResizablePrimitive.Separator>
   )
 }
 
