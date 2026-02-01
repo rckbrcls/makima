@@ -20,6 +20,7 @@ import { TextureOverlay } from "@/components/ui/texture-overlay"
 import { useMakimaState } from "@/hooks/use-makima-state"
 import { RepositorySidebar } from "@/components/repos/repository-sidebar"
 import { runningCount } from "@/lib/command-hub/helpers"
+import { LiveExecutionCard } from "@/components/repos/live-execution-card"
 
 // ============================================================================
 // Agents Grid Component
@@ -120,6 +121,7 @@ export function AgentsPage() {
     selectRepo,
     setMobileSidebarOpen,
     openApprovalDrawer,
+    openTerminalDrawer,
   } = useUIStore()
 
 
@@ -257,6 +259,7 @@ export function AgentsPage() {
         pendingCount={pendingApprovals.length}
         onToggleMode={handleToggleMode}
         onOpenApprovals={openApprovalDrawer}
+        onOpenTerminal={openTerminalDrawer}
         onRefresh={handleRefresh}
       />
 
@@ -281,7 +284,7 @@ export function AgentsPage() {
           onOpenCreateDialog={openCreateAgentDialog}
         />
 
-        <div className="p-4 flex-1 h-full">
+        <div className="p-4 flex flex-col gap-4 flex-1 h-full">
           {/* Session Panel */}
           {selectedSession ? (
             <SessionPanel
@@ -299,6 +302,8 @@ export function AgentsPage() {
               </p>
             </Card>
           )}
+
+          <LiveExecutionCard execution={liveExecutions[0]} />
         </div>
       </div>
 

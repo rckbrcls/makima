@@ -6,7 +6,6 @@ import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
 import { useMakimaState } from "@/hooks/use-makima-state"
 import { CommandHubHeader } from "./command-hub-header"
 import { RepositorySidebar } from "./repository-sidebar"
-import { CommandsTab } from "./commands-tab"
 import { ExecutionTab } from "./execution-tab"
 import { PipelineTab } from "./pipeline-tab"
 import type { Command } from "./types"
@@ -126,20 +125,6 @@ export function CommandHub() {
 
             <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
               <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
-                {/* Tab: Commands */}
-                <TabsContent value="commands" className="flex flex-col">
-                  <CommandsTab
-                    selectedRepo={selectedRepo}
-                    commands={filteredCommands}
-                    repositories={repositories}
-                    onRunCommand={handleRunCommand}
-                    onStopCommand={handleStopCommand}
-                    onDeleteCommand={handleDeleteCommand}
-                    onAddCommand={addCommand}
-                    onUpdateCommand={updateCommand}
-                    onRunCommandInput={runCommand}
-                  />
-                </TabsContent>
 
                 {/* Tab: Execution */}
                 <TabsContent value="execution" className="flex flex-col">

@@ -17,6 +17,7 @@ interface PageHeaderProps {
   pendingCount: number
   onToggleMode: () => void
   onOpenApprovals: () => void
+  onOpenTerminal?: () => void
   onRefresh?: () => void
   onMenuClick?: () => void
   showSearch?: boolean
@@ -29,6 +30,7 @@ export function PageHeader({
   pendingCount,
   onToggleMode,
   onOpenApprovals,
+  onOpenTerminal,
   onRefresh,
   onMenuClick,
   showSearch = true,
@@ -102,7 +104,7 @@ export function PageHeader({
           variant="outline"
           size="sm"
           className="h-8 gap-2 rounded"
-          onClick={onOpenApprovals}
+          onClick={onOpenTerminal}
         >
           <Terminal className="size-3.5" />
         </Button>

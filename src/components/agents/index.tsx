@@ -34,9 +34,7 @@ import type {
 
 // Repos components (formerly Command Hub)
 import { RepositorySidebar } from "@/components/repos/repository-sidebar"
-import { CommandsTab } from "@/components/repos/commands-tab"
 import { ExecutionTab } from "@/components/repos/execution-tab"
-import { HistoryTab } from "@/components/repos/history-tab"
 import { filterByRepo, runningCount } from "@/lib/command-hub/helpers"
 import type { Command } from "@/components/repos/types"
 
@@ -496,10 +494,6 @@ export function AgentHub() {
                 <Bot className="size-3.5 mr-1.5" />
                 Agents
               </TabsTrigger>
-              <TabsTrigger value="commands">
-                <Terminal className="size-3.5 mr-1.5" />
-                Commands
-              </TabsTrigger>
               <TabsTrigger value="execution">Execution</TabsTrigger>
               <TabsTrigger value="statistics">Statistics</TabsTrigger>
             </TabsList>
@@ -522,24 +516,7 @@ export function AgentHub() {
               </div>
             </TabsContent>
 
-            {/* Tab: Commands */}
-            <TabsContent value="commands" className="flex-1 overflow-auto p-1">
-              <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-border/60 bg-card p-0">
-                <div className="min-h-0 flex-1 overflow-y-auto p-4 pr-5">
-                  <CommandsTab
-                    selectedRepo={selectedRepo}
-                    commands={filteredCommands}
-                    repositories={repositories}
-                    onRunCommand={handleRunCommand}
-                    onStopCommand={handleStopCommand}
-                    onDeleteCommand={handleDeleteCommand}
-                    onAddCommand={addCommand}
-                    onUpdateCommand={updateCommand}
-                    onRunCommandInput={runCommand}
-                  />
-                </div>
-              </Card>
-            </TabsContent>
+
 
             {/* Tab: Execution */}
             <TabsContent value="execution" className="flex-1 overflow-auto p-1">

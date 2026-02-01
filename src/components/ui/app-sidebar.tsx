@@ -27,11 +27,6 @@ const navItems = [
     to: "/skills",
   },
   {
-    name: "Executions",
-    icon: Terminal,
-    to: "/repos",
-  },
-  {
     name: "Statistics",
     icon: BarChart2,
     to: "/statistics",

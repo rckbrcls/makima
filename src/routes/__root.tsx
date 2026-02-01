@@ -7,6 +7,7 @@ import appCss from '../styles.css?url'
 import { Toaster } from '@/components/ui/sonner'
 import { AppSidebar } from '@/components/ui/app-sidebar'
 import { GlobalApprovalDrawer } from '@/components/agents/global-approval-drawer'
+import { TerminalDrawer } from '@/components/agents/terminal-drawer'
 import { TextureOverlay } from '@/components/ui/texture-overlay'
 
 export const Route = createRootRoute({
@@ -47,7 +48,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <main className="min-h-0 flex-1 overflow-hidden ml-14 mt-14">{children}</main>
           </div>
           {/* Global Approval Drawer - accessible from any page */}
+          {/* Global Approval Drawer - accessible from any page */}
           <GlobalApprovalDrawer />
+          <TerminalDrawer />
         </ThemeProvider>
         <TanStackDevtools
           config={{

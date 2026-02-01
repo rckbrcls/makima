@@ -27,7 +27,7 @@ export function SettingsPage() {
     toggleMode,
   } = useAgentState()
 
-  const { openApprovalDrawer } = useUIStore()
+  const { openApprovalDrawer, openTerminalDrawer } = useUIStore()
 
   const {
     preferences,
@@ -55,6 +55,7 @@ export function SettingsPage() {
           pendingCount={pendingApprovals.length}
           onToggleMode={handleToggleMode}
           onOpenApprovals={openApprovalDrawer}
+          onOpenTerminal={openTerminalDrawer}
           showSearch={false}
         />
 
