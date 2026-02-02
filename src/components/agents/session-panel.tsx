@@ -4,8 +4,10 @@ import {
   Check,
   Cpu,
   Loader2,
+  MessageSquarePlus,
   Send,
   Shield,
+  Sparkles,
   Square,
   Terminal,
 } from "lucide-react";
@@ -165,7 +167,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
 // ============================================================================
 
 interface SessionPanelProps {
-  session: Session;
+  session?: Session | null;
   actions: Array<Action>;
   events: Array<AgentEvent>;
   questions?: Array<AgentQuestion>;
@@ -183,6 +185,8 @@ interface SessionPanelProps {
   onOpenApprovals: () => void;
   agents?: Array<Agent>;
   onAgentChange?: (agentId: string) => void;
+  onCreateSession?: (agentId: string, goal: string) => Promise<void>;
+  isCreating?: boolean;
 }
 
 export function SessionPanel({
@@ -202,16 +206,33 @@ export function SessionPanel({
   onOpenApprovals,
   agents = [],
   onAgentChange,
+  onCreateSession,
+  isCreating,
 }: SessionPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [message, setMessage] = useState("");
+  const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(
+    session?.agentId ?? agents[0]?.id ?? "",
+  );
 
-  const isActive = session.state === "active";
+  useEffect(() => {
+    if (session?.agentId) {
+      setSelectedAgentId(session.agentId);
+    } else if (!selectedAgentId && agents.length > 0) {
+      setSelectedAgentId(agents[0].id);
+    }
+  }, [session?.agentId, agents, selectedAgentId]);
+
+  const isActive = session?.state === "active";
+  const isSessionCreated = !!session;
 
   // Combine and sort items for the timeline
   const timelineItems = useMemo(() => {
+    if (!session) return [];
+
     const items: Array<TimelineItem> = [
       ...actions.map((a) => ({
         type: "action" as const,
@@ -230,7 +251,7 @@ export function SessionPanel({
       })),
     ];
     return items.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [actions, events, questions]);
+  }, [actions, events, questions, session]);
 
   // Find unanswered question
   const pendingQuestion = questions.find((q) => !q.answered);
@@ -255,9 +276,20 @@ export function SessionPanel({
     }
   };
 
-  const handleSendMessage = () => {
-    if (!message.trim() || !onSendMessage) return;
-    onSendMessage(message.trim());
+  const handleSendMessageInternal = async () => {
+    if (!message.trim()) return;
+
+    if (isSessionCreated && onSendMessage) {
+      onSendMessage(message.trim());
+    } else if (!isSessionCreated && onCreateSession && selectedAgentId) {
+      setIsCreatingSession(true);
+      try {
+        await onCreateSession(selectedAgentId, message.trim());
+      } finally {
+        setIsCreatingSession(false);
+      }
+    }
+
     setMessage("");
     setAutoScroll(true);
   };
@@ -265,11 +297,11 @@ export function SessionPanel({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSendMessageInternal();
     }
   };
 
-  const handleAnswerQuestion = (
+  const handleAnswerQuestionInternal = (
     questionId: string,
     answer: string | Array<string>,
   ) => {
@@ -277,19 +309,31 @@ export function SessionPanel({
   };
 
   const handleAgentChange = (agentId: string) => {
-    onAgentChange?.(agentId);
+    setSelectedAgentId(agentId);
+    if (isSessionCreated) {
+      onAgentChange?.(agentId);
+    }
   };
+
+  const currentAgent = agents.find(a => a.id === selectedAgentId);
 
   return (
     <Card className="border-border gap-0 flex h-full flex-col overflow-hidden pb-0">
       {/* Minimal Header */}
-      <div className="border-border bg-card flex flex-none items-center justify-between border-b px-4 pb-2.5">
+      <div className="border-border bg-card flex flex-none items-center border-b justify-between px-4 py-2.5">
         <div className="flex items-center gap-2">
-
-          <p className="text-sm font-medium">
-            {session.goal}
-          </p>
-
+          {isSessionCreated ? (
+            <p className="text-sm font-medium">
+              {session.goal}
+            </p>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="bg-muted flex size-6 items-center justify-center rounded-full">
+                <MessageSquarePlus className="text-primary size-3" />
+              </div>
+              <p className="text-sm font-medium">New Session</p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <ModeToggleSafe mode={mode} onToggle={onToggleMode} />
@@ -321,13 +365,59 @@ export function SessionPanel({
         </div>
       </div>
 
-      <div className="relative flex-1 min-h-0 bg-background">
+      <div className="relative flex-1 min-h-0 bg-transparent">
         <div
           ref={scrollRef}
           onScroll={handleScroll}
           className="absolute inset-0 overflow-y-auto pb-30"
         >
-          {timelineItems.length === 0 ? (
+          {!isSessionCreated ? (
+            /* New Session Start View */
+            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center h-full">
+              <div className="max-w-md">
+                <div className="bg-muted mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
+                  <Sparkles className="text-primary size-8" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold">
+                  Start a conversation with {currentAgent?.name ?? "an agent"}
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Describe what you want to accomplish. This will be the goal of your
+                  session.
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="hover:bg-muted cursor-pointer text-xs"
+                    onClick={() => setMessage("Fix a bug in ")}
+                  >
+                    Fix a bug
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="hover:bg-muted cursor-pointer text-xs"
+                    onClick={() => setMessage("Add a feature to ")}
+                  >
+                    Add a feature
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="hover:bg-muted cursor-pointer text-xs"
+                    onClick={() => setMessage("Refactor ")}
+                  >
+                    Refactor code
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="hover:bg-muted cursor-pointer text-xs"
+                    onClick={() => setMessage("Write tests for ")}
+                  >
+                    Write tests
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          ) : timelineItems.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center px-4 text-center">
               <Terminal className="text-muted mb-3 size-10" />
               <p className="text-muted-foreground text-sm">Session started</p>
@@ -348,7 +438,7 @@ export function SessionPanel({
                   <QuestionOptions
                     key={item.data.id}
                     question={item.data}
-                    onAnswer={handleAnswerQuestion}
+                    onAnswer={handleAnswerQuestionInternal}
                   />
                 );
               })}
@@ -373,7 +463,7 @@ export function SessionPanel({
         </div>
 
         {/* Scroll to bottom button */}
-        {!autoScroll && (
+        {!autoScroll && isSessionCreated && (
           <Button
             variant="outline"
             size="icon"
@@ -390,56 +480,61 @@ export function SessionPanel({
           </Button>
         )}
 
-        {/* Input Area - Always visible when active */}
-        {isActive && (
-          <div className="border-border absolute bottom-4  left-4 right-4 p-2 bg-card flex flex-col gap-2 pb-4 border rounded-xl z-20">
-            <div className="flex items-end gap-2">
-              <Textarea
-                ref={inputRef}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  pendingQuestion
-                    ? "Type a custom response or select an option above..."
+        {/* Input Area - Always visible */}
+        <div className="border-border absolute bottom-4  left-4 right-4 p-2 bg-card flex flex-col gap-2 pb-4 border rounded-xl z-20">
+          <div className="flex items-end gap-2">
+            <Textarea
+              ref={inputRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                pendingQuestion
+                  ? "Type a custom response or select an option above..."
+                  : !isSessionCreated
+                    ? "What would you like to work on?"
                     : "Type a message..."
-                }
-                className="min-h-[32px] h-full resize-none bg-card border-none md:text-sm text-sm"
-                rows={1}
-              />
-              <Button
-                size="icon"
-                className="h-[36px] w-[36px] shrink-0"
-                disabled={!message.trim() || isLoading}
-                onClick={handleSendMessage}
-              >
+              }
+              className="min-h-[32px] h-full resize-none bg-card border-none md:text-sm text-sm"
+              rows={1}
+              autoFocus={!isSessionCreated}
+            />
+            <Button
+              size="icon"
+              className="h-[36px] w-[36px] shrink-0"
+              disabled={!message.trim() || isLoading || isCreating || isCreatingSession}
+              onClick={handleSendMessageInternal}
+            >
+              {isCreating || isCreatingSession ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
                 <Send className="size-4" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-2 ">
-              <Select value={session.agentId} onValueChange={handleAgentChange}>
-                <SelectTrigger className="w-auto h-7 text-xs border hover:bg-accent/50 gap-1 px-2.5 focus:ring-0 shadow-none">
-                  <SelectValue placeholder="Select an agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      <div className="flex items-center gap-2">
-                        <Cpu className="size-3.5 text-muted-foreground" />
-                        <span className="text-xs">{agent.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              )}
+            </Button>
           </div>
-        )}
+          <div className="flex items-center gap-2 ">
+            <Select value={selectedAgentId} onValueChange={handleAgentChange}>
+              <SelectTrigger className="w-auto h-7 text-xs border hover:bg-accent/50 gap-1 px-2.5 focus:ring-0 shadow-none">
+                <SelectValue placeholder="Select an agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    <div className="flex items-center gap-2">
+                      <Cpu className="size-3.5 text-muted-foreground" />
+                      <span className="text-xs">{agent.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
 
       {/* Completed/Failed state */}
-      {!isActive && (
+      {!isActive && isSessionCreated && (
         <div className="border-border bg-card flex-none border-t p-3">
           <p className="text-muted-foreground text-center text-xs">
             Session {session.state === "done" ? "completed" : "ended"} at{" "}

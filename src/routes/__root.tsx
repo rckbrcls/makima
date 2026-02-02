@@ -45,11 +45,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <div className="bg-background relative flex h-svh flex-row overflow-hidden">
+          <div className="bg-background relative flex h-svh flex-row ">
             <AppSidebar />
-            <div className="ml-14 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="ml-14 flex min-h-0 flex-1 flex-col ">
               <PageHeader />
-              <main className="relative z-0 mt-14 flex-1 overflow-hidden">
+              <main className="relative z-0 mt-14 flex-1 ">
                 {children}
               </main>
             </div>

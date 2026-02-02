@@ -2,25 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertCircle,
-  Cpu,
-  Loader2,
   MessageSquarePlus,
   Plus,
-  Send,
-  Sparkles,
   Terminal,
 } from "lucide-react";
 import type {
   Action,
-  Agent,
   AgentEvent,
   AgentQuestion,
   Session,
 } from "@/components/agents/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { useAgentState } from "@/hooks/use-agent-state";
 import { useUIStore } from "@/stores/ui-store";
 import { useMakimaState } from "@/hooks/use-makima-state";
@@ -35,177 +28,8 @@ import {
 } from "@/components/ui/resizable";
 import { runningCount } from "@/lib/command-hub/helpers";
 import { mockAgentQuestions } from "@/mocks";
-import { cn } from "@/lib/utils";
 
-// ============================================================================
-// New Session Chat Component
-// ============================================================================
 
-interface NewSessionChatProps {
-  repoName: string;
-  agents: Array<Agent>;
-  onCreateSession: (agentId: string, goal: string) => Promise<void>;
-  onCancel: () => void;
-}
-
-function NewSessionChat({
-  repoName,
-  agents,
-  onCreateSession,
-  onCancel,
-}: NewSessionChatProps) {
-  const [selectedAgentId, setSelectedAgentId] = useState<string>(
-    agents[0]?.id ?? "",
-  );
-  const [message, setMessage] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-
-  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
-
-  const handleSubmit = async () => {
-    if (!message.trim() || !selectedAgentId) return;
-    setIsCreating(true);
-    await onCreateSession(selectedAgentId, message.trim());
-    setIsCreating(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  return (
-    <Card className="border-border flex h-full flex-col overflow-hidden">
-      {/* Header */}
-      <div className="border-border bg-card flex flex-none items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="bg-muted flex size-8 items-center justify-center rounded-full">
-            <MessageSquarePlus className="text-primary size-4" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">New Session</p>
-            <p className="text-muted-foreground text-xs">{repoName}</p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onCancel}
-          className="text-xs"
-        >
-          Cancel
-        </Button>
-      </div>
-
-      {/* Agent Selection */}
-      <div className="border-border bg-muted flex-none border-b p-4">
-        <label className="text-muted-foreground mb-2 block text-xs font-medium">
-          Select an agent to work with
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {agents.map((agent) => (
-            <button
-              key={agent.id}
-              onClick={() => setSelectedAgentId(agent.id)}
-              className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-2 transition-all",
-                selectedAgentId === agent.id
-                  ? "border-primary bg-accent text-primary"
-                  : "border-border bg-background hover:border-primary",
-              )}
-            >
-              <Cpu className="size-4" />
-              <span className="text-sm font-medium">{agent.name}</span>
-              {agent.model && (
-                <span className="text-muted-foreground text-xs">
-                  {agent.model.split("-")[0]}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-6 text-center">
-        <div className="max-w-md">
-          <div className="bg-muted mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
-            <Sparkles className="text-primary size-8" />
-          </div>
-          <h3 className="mb-2 text-lg font-semibold">
-            Start a conversation with {selectedAgent?.name ?? "an agent"}
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            Describe what you want to accomplish. This will be the goal of your
-            session.
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Badge
-              variant="outline"
-              className="hover:bg-muted cursor-pointer text-xs"
-              onClick={() => setMessage("Fix a bug in ")}
-            >
-              Fix a bug
-            </Badge>
-            <Badge
-              variant="outline"
-              className="hover:bg-muted cursor-pointer text-xs"
-              onClick={() => setMessage("Add a feature to ")}
-            >
-              Add a feature
-            </Badge>
-            <Badge
-              variant="outline"
-              className="hover:bg-muted cursor-pointer text-xs"
-              onClick={() => setMessage("Refactor ")}
-            >
-              Refactor code
-            </Badge>
-            <Badge
-              variant="outline"
-              className="hover:bg-muted cursor-pointer text-xs"
-              onClick={() => setMessage("Write tests for ")}
-            >
-              Write tests
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="border-border bg-card flex-none border-t p-4">
-        <div className="flex items-end gap-2">
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="What would you like to work on?"
-            className="max-h-[120px] min-h-[60px] resize-none text-sm"
-            rows={2}
-            autoFocus
-          />
-          <Button
-            size="icon"
-            className="size-[60px] shrink-0"
-            disabled={!message.trim() || !selectedAgentId || isCreating}
-            onClick={handleSubmit}
-          >
-            {isCreating ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <Send className="size-5" />
-            )}
-          </Button>
-        </div>
-        <p className="text-muted-foreground mt-2 text-center text-[10px]">
-          Press Enter to start session
-        </p>
-      </div>
-    </Card>
-  );
-}
 
 // ============================================================================
 // Main Page
@@ -415,17 +239,10 @@ export function WorkspacePage() {
 
         {/* 2. Chat / Session View */}
         <ResizablePanel minSize={"400px"} >
-          <div className="flex h-full flex-col overflow-hidden p-4">
-            {isCreatingNewSession && selectedRepo ? (
-              <NewSessionChat
-                repoName={selectedRepo}
-                agents={agents}
-                onCreateSession={handleCreateSession}
-                onCancel={() => setIsCreatingNewSession(false)}
-              />
-            ) : selectedSession ? (
+          <div className="flex h-full flex-col overflow-hidden p-6">
+            {(isCreatingNewSession && selectedRepo) || selectedSession ? (
               <SessionPanel
-                session={selectedSession}
+                session={selectedSession ?? null}
                 actions={sessionActions}
                 events={sessionEvents}
                 questions={sessionQuestions}
@@ -435,10 +252,14 @@ export function WorkspacePage() {
                 onAnswerQuestion={handleAnswerQuestion}
                 mode={mode}
                 onToggleMode={toggleMode}
-                pendingCount={getPendingCount(selectedSession.id)}
+                pendingCount={
+                  selectedSession ? getPendingCount(selectedSession.id) : 0
+                }
                 onOpenApprovals={openApprovalDrawer}
                 agents={agents}
                 onAgentChange={handleAgentChange}
+                onCreateSession={handleCreateSession}
+                isCreating={isCreatingNewSession}
               />
             ) : (
               <Card className="bg-card flex h-full flex-col items-center justify-center border-dashed p-6 text-center">
