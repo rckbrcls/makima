@@ -210,6 +210,35 @@ function AgentCardBuilder({
           </Button>
         </div>
 
+        {/* <div className="mt-3 flex flex-wrap gap-1">
+          {agent.skills.slice(0, 4).map((skill) => (
+            <Badge key={skill} variant="secondary" className="text-[10px]">
+              {skillConfig[skill]?.label ?? skill}
+            </Badge>
+          ))}
+          {agent.skills.length > 4 && (
+            <Badge variant="outline" className="text-[10px]">
+              +{agent.skills.length - 4}
+            </Badge>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px]",
+              agent.status === "running" && "border-emerald-500 text-emerald-950 bg-emerald-600",
+              agent.status === "error" && "border-red-500 text-red-950 bg-red-600",
+              agent.status === "active" && "border-blue-500 text-blue-950 bg-blue-600",
+            )}
+          >
+            {agent.status}
+          </Badge>
+          <span className="text-muted-foreground text-[10px]">
+            {agent.provider}
+          </span>
+        </div> */}
       </CardContent>
     </Card>
   );
