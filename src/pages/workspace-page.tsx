@@ -325,7 +325,11 @@ export function WorkspacePage() {
         className="relative z-10 w-full min-h-0 flex-1"
       >
         {/* 1. Unified Sidebar (Repos + Sessions) */}
-        <ResizablePanel defaultSize={22} className="min-w-[240px]">
+        <ResizablePanel
+          defaultSize={200}
+          minSize={200}
+          collapsible={true}
+        >
           <UnifiedSidebar
             repositories={repositories}
             sessions={sessions}
@@ -391,7 +395,11 @@ export function WorkspacePage() {
         <ResizableHandle />
 
         {/* 3. Live Executions Panel */}
-        <ResizablePanel defaultSize={22} className="min-w-[260px]">
+        <ResizablePanel
+          defaultSize={360}
+          minSize={360}
+          collapsible={true}
+        >
           <div className="border-l border-border bg-card p-4 overflow-y-auto h-full">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
               Live Executions
