@@ -21,7 +21,8 @@ import {
 import { useState } from "react";
 import { getActionTypeLabel, getStatusColor } from "./types";
 import type {
-  Check} from "lucide-react";
+  Check
+} from "lucide-react";
 import type {
   Action,
   ActionStatus,
@@ -213,7 +214,7 @@ export function ActionMessage({ action }: ActionMessageProps) {
     <div
       className={cn(
         "group flex gap-3 px-4 py-3",
-        isFocussedAction(action) && "bg-muted",
+        isFocussedAction(action) && "bg-card border-border border-y",
       )}
     >
       <div
@@ -223,9 +224,9 @@ export function ActionMessage({ action }: ActionMessageProps) {
           isFailed && "border-destructive text-destructive",
           action.status === "blocked" && "border-yellow-500 text-yellow-500",
           !isDone &&
-            !isFailed &&
-            action.status !== "blocked" &&
-            "border-border text-muted-foreground",
+          !isFailed &&
+          action.status !== "blocked" &&
+          "border-border text-muted-foreground",
         )}
       >
         {isRunning ? (
