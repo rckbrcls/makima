@@ -1,44 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   AlertTriangle,
   Bot,
-  Brain,
-  Calendar,
   CheckCircle2,
-  Clock,
-  Cloud,
-  Database,
-  Eye,
-  FileText,
-  GitBranch,
-  Globe,
-  Grid3x3,
-  Hash,
   Loader2,
-  Mail,
-  MessageCircle,
-  MessageSquare,
-  MessagesSquare,
-  Mic,
   PauseCircle,
-  Phone,
-  Plug,
   Plus,
-  RefreshCw,
-  Rocket,
-  Search,
   Send,
   Settings,
-  Shield,
-  Smartphone,
-  Terminal,
-  Tv,
   User,
-  Users,
-  Wrench,
   XCircle,
-  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -59,19 +30,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 import { ConfigPanel } from "@/components/jarvis/config-panel";
 import {
@@ -611,20 +571,12 @@ const buildMessageId = () =>
   `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
 export function JarvisPage() {
-  const [profileName, setProfileName] = useState("Jarvis");
-  const [codename, setCodename] = useState("openClaw");
-  const [environment, setEnvironment] = useState("dev");
-  const [region, setRegion] = useState("us-east");
-  const [language, setLanguage] = useState("en-US");
-  const [tone, setTone] = useState("balanced");
-  const [provider, setProvider] = useState("openclaw");
+  const [tone,] = useState("balanced");
+  const [provider,] = useState("openclaw");
   const [model, setModel] = useState("claw-sonic");
   const [temperature, setTemperature] = useState("0.4");
   const [maxTokens, setMaxTokens] = useState("4096");
   const [contextWindow, setContextWindow] = useState("128k");
-  const [systemPrompt, setSystemPrompt] = useState(
-    "You are Jarvis, an openClaw orchestrator, focused on precision and safety.",
-  );
   const [tools, setTools] = useState(toolDefaults);
   const [channels, setChannels] = useState(channelDefaults);
   const [plugins, setPlugins] = useState(pluginDefaults);
@@ -681,7 +633,7 @@ export function JarvisPage() {
                 message: {
                   ...item.message,
                   streamedChars: nextCount,
-                  state: done ? "normal" : "streaming",
+                  state: (done ? "normal" : "streaming") as MessageState,
                 },
               };
             }
@@ -891,7 +843,7 @@ export function JarvisPage() {
                   createdAt: Date.now(),
                   meta: { provider, model, tone },
                   streamedChars: 0,
-                },
+                } as ChatMessage,
               }
               : item,
           );
@@ -915,11 +867,8 @@ export function JarvisPage() {
           <div className="px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
-                  <MessagesSquare className="text-primary size-4" />
-                </div>
                 <div>
-                  <p className="text-sm font-semibold">Chats</p>
+                  <p className="text-sm font-bold font-serif">CHATS</p>
                 </div>
               </div>
               <Button
@@ -935,7 +884,6 @@ export function JarvisPage() {
           <div className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
             {conversations.map((conversation) => {
               const statusMeta = conversationStatusMeta[conversation.status];
-              const stateMeta = conversationStateMeta[conversation.state];
               const isActive = conversation.id === activeConversationId;
 
               return (

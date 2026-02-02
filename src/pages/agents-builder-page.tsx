@@ -102,10 +102,10 @@ const providerOptions: Array<{
   label: string;
   disabled: boolean;
 }> = [
-  { value: "cli", label: "CLI Agent (Claude Code)", disabled: false },
-  { value: "api", label: "API Provider", disabled: true },
-  { value: "local", label: "Local Model (Ollama)", disabled: true },
-];
+    { value: "cli", label: "CLI Agent (Claude Code)", disabled: false },
+    { value: "api", label: "API Provider", disabled: true },
+    { value: "local", label: "Local Model (Ollama)", disabled: true },
+  ];
 
 const modelOptions = [
   {
@@ -168,22 +168,24 @@ function AgentCardBuilder({
   return (
     <Card
       className={cn(
-        "hover:border-primary cursor-pointer transition-all",
-        isSelected && "border-primary bg-accent",
+        "w-full rounded-xl border text-left transition-colors",
+        isSelected
+          ? "border-primary/15 bg-primary/10"
+          : "border-border bg-card hover:bg-muted/30",
       )}
       onClick={onSelect}
     >
-      <CardContent className="p-4">
+      <CardContent >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                "bg-muted flex size-10 items-center justify-center rounded-lg",
-                agent.status === "running" && "text-green-500",
-                agent.status === "error" && "text-red-500",
+                "bg-muted flex size-10 items-center justify-center rounded-lg border",
+                agent.status === "running" && "border-emerald-500 bg-emerald-600 text-emerald-950",
+                agent.status === "error" && "border-red-500 bg-red-600 text-red-950",
                 agent.status !== "running" &&
-                  agent.status !== "error" &&
-                  "text-muted-foreground",
+                agent.status !== "error" &&
+                "border-muted-foreground text-muted-foreground",
               )}
             >
               <Cpu className="size-5" />
@@ -208,35 +210,6 @@ function AgentCardBuilder({
           </Button>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-1">
-          {agent.skills.slice(0, 4).map((skill) => (
-            <Badge key={skill} variant="secondary" className="text-[10px]">
-              {skillConfig[skill]?.label ?? skill}
-            </Badge>
-          ))}
-          {agent.skills.length > 4 && (
-            <Badge variant="outline" className="text-[10px]">
-              +{agent.skills.length - 4}
-            </Badge>
-          )}
-        </div>
-
-        <div className="mt-3 flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-[10px]",
-              agent.status === "running" && "border-green-500 text-green-500",
-              agent.status === "error" && "border-red-500 text-red-500",
-              agent.status === "active" && "border-blue-500 text-blue-500",
-            )}
-          >
-            {agent.status}
-          </Badge>
-          <span className="text-muted-foreground text-[10px]">
-            {agent.provider}
-          </span>
-        </div>
       </CardContent>
     </Card>
   );
@@ -318,56 +291,53 @@ export function AgentsBuilderPage() {
     <div className="bg-background text-foreground relative flex h-full flex-col overflow-hidden">
       <TextureOverlay texture="noise" className="z-0 opacity-[0.03]" />
 
-      {/* Header */}
-      <header className="border-border bg-card relative z-10 flex items-center justify-between border-b px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
-            <Cpu className="text-primary size-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold">Agents Builder</h1>
-            <p className="text-muted-foreground text-xs">
-              Configure AI agents with skills and capabilities
-            </p>
-          </div>
-        </div>
-        <Button onClick={handleNewAgent} className="gap-2">
-          <Plus className="size-4" />
-          New Agent
-        </Button>
-      </header>
+
 
       {/* Main Content */}
       <div className="relative z-10 grid min-h-0 flex-1 grid-cols-[320px_1fr] overflow-hidden">
-        {/* Agents List */}
-        <div className="border-border bg-card space-y-3 overflow-y-auto border-r p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-muted-foreground text-sm font-medium">
-              Your Agents ({agents.length})
-            </h2>
+        <div className="border-border bg-card space-y-3 overflow-y-auto border-r">
+          {/* Header */}
+          <div className="border-border flex-none border-b p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-bold font-serif">AGENTS</h2>
+              <Button variant="ghost" size="icon" className="size-7">
+                <Plus className="size-4" />
+              </Button>
+            </div>
+            <div className="relative">
+              <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4" />
+              <Input
+                placeholder="Search sessions..."
+                className="border-border bg-background h-9 rounded-lg pl-8 text-xs"
+                onChange={(e) => { }}
+              />
+            </div>
           </div>
 
-          {agents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Cpu className="text-muted mb-3 size-12" />
-              <p className="text-muted-foreground text-sm">
-                No agents configured
-              </p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Create your first agent to get started
-              </p>
-            </div>
-          ) : (
-            agents.map((agent) => (
-              <AgentCardBuilder
-                key={agent.id}
-                agent={agent}
-                isSelected={selectedAgent?.id === agent.id}
-                onSelect={() => handleSelectAgent(agent)}
-                onDelete={() => handleDeleteAgent(agent.id)}
-              />
-            ))
-          )}
+
+          <div className="p-4 flex flex-col gap-4">
+            {agents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Cpu className="text-muted mb-3 size-12" />
+                <p className="text-muted-foreground text-sm">
+                  No agents configured
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Create your first agent to get started
+                </p>
+              </div>
+            ) : (
+              agents.map((agent) => (
+                <AgentCardBuilder
+                  key={agent.id}
+                  agent={agent}
+                  isSelected={selectedAgent?.id === agent.id}
+                  onSelect={() => handleSelectAgent(agent)}
+                  onDelete={() => handleDeleteAgent(agent.id)}
+                />
+              ))
+            )}
+          </div>
         </div>
 
         {/* Agent Editor */}

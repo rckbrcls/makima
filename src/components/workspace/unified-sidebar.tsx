@@ -415,7 +415,7 @@ export function UnifiedSidebar({
       {/* Header */}
       <div className="border-border flex-none border-b p-3">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Workspace</h2>
+          <h2 className="text-sm font-bold font-serif">WORKSPACE</h2>
           <Button variant="ghost" size="icon" className="size-7">
             <Plus className="size-4" />
           </Button>
