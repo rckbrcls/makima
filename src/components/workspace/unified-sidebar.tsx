@@ -89,7 +89,7 @@ function SessionItem({
         <button
           onClick={onClick}
           className={cn(
-            "w-full rounded cursor-pointer border p-2 text-xs transition-colors",
+            "w-full rounded-md cursor-poixnter border p-2 text-xs text-start transition-colors",
             isSelected
               ? "border-primary/15 bg-primary/10"
               : "border-border bg-card hover:bg-muted/30",

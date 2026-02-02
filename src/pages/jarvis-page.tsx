@@ -9,6 +9,7 @@ import {
   Send,
   Settings,
   User,
+  X,
   XCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -962,7 +963,7 @@ export function JarvisPage() {
             </div>
 
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-              <Badge variant="outline" className="text-[10px]">
+              {/* <Badge variant="outline" className="text-[10px]">
                 Provider: {provider}
               </Badge>
               <Badge variant="outline" className="text-[10px]">
@@ -982,7 +983,7 @@ export function JarvisPage() {
               </Badge>
               <Badge variant="outline" className="text-[10px]">
                 Plugins: {pluginCount}
-              </Badge>
+              </Badge> */}
 
               <Button
                 variant="ghost"
@@ -991,7 +992,8 @@ export function JarvisPage() {
                 aria-label="Settings"
                 onClick={() => setIsConfigOpen((prev) => !prev)}
               >
-                <Settings className="size-4" />
+                <Settings className={cn("size-4", isConfigOpen && "hidden")} />
+                <X className={cn("size-4", !isConfigOpen && "hidden")} />
               </Button>
             </div>
           </div>
