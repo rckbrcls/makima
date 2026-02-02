@@ -326,7 +326,7 @@ export function WorkspacePage() {
       >
         {/* 1. Unified Sidebar (Repos + Sessions) */}
         <ResizablePanel
-          defaultSize={200}
+          defaultSize={20}
           minSize={200}
           collapsible={true}
         >
@@ -396,7 +396,7 @@ export function WorkspacePage() {
 
         {/* 3. Live Executions Panel */}
         <ResizablePanel
-          defaultSize={360}
+          defaultSize={20}
           minSize={360}
           collapsible={true}
         >
