@@ -50,7 +50,7 @@ function ResizableHandle({
       data-slot="resizable-handle"
       data-orientation={resolvedOrientation}
       className={cn(
-        "bg-border relative flex items-center justify-center outline-none",
+        "relative flex items-center justify-center outline-none",
         resolvedOrientation === "vertical"
           ? "h-px w-full after:absolute after:inset-x-0 after:top-1/2 after:h-1 after:-translate-y-1/2"
           : "w-px after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2",
