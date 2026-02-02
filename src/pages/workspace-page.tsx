@@ -374,7 +374,11 @@ export function WorkspacePage() {
         className="relative z-10 min-h-0 w-full flex-1"
       >
         {/* 1. Unified Sidebar (Repos + Sessions) */}
-        <ResizablePanel defaultSize={20} minSize={200} collapsible={true}>
+        <ResizablePanel
+          defaultSize={"260px"}
+          minSize={"250px"}
+          collapsible
+        >
           <UnifiedSidebar
             repositories={repositories}
             sessions={sessions}
@@ -394,7 +398,7 @@ export function WorkspacePage() {
         <ResizableHandle />
 
         {/* 2. Chat / Session View */}
-        <ResizablePanel defaultSize={56} minSize={30} className="min-w-[320px]">
+        <ResizablePanel minSize={"400px"} >
           <div className="flex h-full flex-col overflow-hidden p-4">
             {isCreatingNewSession && selectedRepo ? (
               <NewSessionChat
@@ -446,7 +450,11 @@ export function WorkspacePage() {
         <ResizableHandle />
 
         {/* 3. Live Executions Panel */}
-        <ResizablePanel defaultSize={20} minSize={360} collapsible={true}>
+        <ResizablePanel
+          defaultSize={"400px"}
+          minSize={"200px"}
+          collapsible
+        >
           <div className="border-border bg-card h-full overflow-y-auto border-l p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
