@@ -374,7 +374,7 @@ export function WorkspacePage() {
         className="relative z-10 min-h-0 w-full flex-1"
       >
         {/* 1. Unified Sidebar (Repos + Sessions) */}
-        <ResizablePanel defaultSize={16} minSize={200} collapsible={true}>
+        <ResizablePanel defaultSize={20} minSize={200} collapsible={true}>
           <UnifiedSidebar
             repositories={repositories}
             sessions={sessions}
