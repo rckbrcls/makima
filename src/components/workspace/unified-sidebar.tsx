@@ -89,9 +89,10 @@ function SessionItem({
         <button
           onClick={onClick}
           className={cn(
-            "w-full rounded-md px-3 py-2 text-left text-sm transition-all",
-            "hover:bg-muted",
-            isSelected && "bg-accent text-primary",
+            "w-full rounded cursor-pointer border p-2 text-xs transition-colors",
+            isSelected
+              ? "border-primary/15 bg-primary/10"
+              : "border-border bg-card hover:bg-muted/30",
           )}
         >
           <div className="flex items-center gap-2">
@@ -148,7 +149,7 @@ function SessionItem({
           Delete Session
         </ContextMenuItem>
       </ContextMenuContent>
-    </ContextMenu>
+    </ContextMenu >
   );
 }
 
@@ -194,7 +195,7 @@ function RepoGroup({
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
       <div
-        className={cn("rounded-lg transition-all", isSelected && "bg-muted")}
+        className={cn("rounded-lg transition-all border border-border bg-card")}
       >
         {/* Repo Header with Context Menu */}
         <ContextMenu>
@@ -202,9 +203,8 @@ function RepoGroup({
             <CollapsibleTrigger asChild>
               <button
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all",
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all bg-card ",
                   "hover:bg-muted",
-                  isExpanded && "bg-muted",
                 )}
               >
                 <ChevronRight
@@ -213,20 +213,27 @@ function RepoGroup({
                     isExpanded && "rotate-90",
                   )}
                 />
-                <FolderGit2 className="text-primary size-4" />
                 <div className="min-w-0 flex-1">
                   <span className="text-sm font-medium">{repo.name}</span>
                 </div>
+
                 {totalActive > 0 && (
-                  <Badge variant="outline" className="h-5 text-[10px]">
+                  <Badge variant="outline" className="h-5 text-[8px]">
                     {totalActive}
                   </Badge>
                 )}
-                {runningCount > 0 && (
-                  <Badge className="h-5 border-green-500 bg-green-100 text-[10px] text-green-700 dark:bg-green-900 dark:text-green-300">
-                    {runningCount}
-                  </Badge>
-                )}
+
+
+                {/* New Session Button */}
+                <Button
+                  onClick={onNewSession}
+                  size={"icon-sm"}
+                  variant={"ghost"}
+                  disabled={isCreatingNewSession && isSelected}
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+
               </button>
             </CollapsibleTrigger>
           </ContextMenuTrigger>
@@ -258,29 +265,17 @@ function RepoGroup({
 
         {/* Expanded Content */}
         <CollapsibleContent>
-          <div className="space-y-1 pr-2 pb-2 pl-4">
+          <div className="space-y-1 p-2">
             {/* Repo Info */}
-            <div className="text-muted-foreground flex items-center gap-2 px-3 py-1 text-xs">
+            {/* <div className="text-muted-foreground flex items-center gap-2 px-3 py-1 text-xs">
               <GitBranch className="size-3" />
               <span>{repo.branch}</span>
-            </div>
+            </div> */}
 
-            {/* New Session Button */}
-            <button
-              onClick={onNewSession}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-all",
-                "hover:bg-accent text-primary",
-                isCreatingNewSession && isSelected && "bg-accent",
-              )}
-            >
-              <MessageSquarePlus className="size-3.5" />
-              <span>New Session</span>
-            </button>
 
             {/* Active Sessions */}
             {activeSessions.length > 0 && (
-              <div className="pt-1">
+              <div className="flex flex-col gap-2">
                 <p className="text-muted-foreground px-3 py-1 text-[10px] font-medium tracking-wider uppercase">
                   Active
                 </p>
@@ -335,8 +330,8 @@ function RepoGroup({
             )}
           </div>
         </CollapsibleContent>
-      </div>
-    </Collapsible>
+      </div >
+    </Collapsible >
   );
 }
 
@@ -430,7 +425,7 @@ export function UnifiedSidebar({
         </div>
       </div>
       {/* Repository List */}
-      <div className="flex-1 space-y-1 overflow-y-auto p-2">
+      <div className="flex-1 space-y-2 overflow-y-auto p-2">
         {repositories.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
             <FolderGit2 className="text-muted mb-2 size-10" />

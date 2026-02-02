@@ -318,7 +318,7 @@ export function SessionPanel({
   const currentAgent = agents.find(a => a.id === selectedAgentId);
 
   return (
-    <Card className="border-border gap-0 flex h-full flex-col overflow-hidden pb-0">
+    <Card className="border-border gap-0 flex h-full flex-col overflow-hidden p-0">
       {/* Minimal Header */}
       <div className="border-border bg-card flex flex-none items-center border-b justify-between px-4 py-2.5">
         <div className="flex items-center gap-2">
