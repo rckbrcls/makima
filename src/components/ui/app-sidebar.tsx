@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 const navItems = [
   {
-    name: "Jarvis",
+    name: "Assistant",
     icon: Bot,
     to: "/",
   },
