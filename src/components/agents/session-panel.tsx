@@ -102,7 +102,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
 
   return (
     <div className="px-4 py-3">
-      <div className="bg-card border-border max-w-md rounded-lg border p-4">
+      <div className="bg-card border-border max-w-md rounded-xl border p-4">
         <p className="mb-3 text-sm font-medium">{question.question}</p>
 
         <div className="space-y-2">

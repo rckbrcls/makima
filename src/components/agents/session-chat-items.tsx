@@ -14,6 +14,7 @@ import {
   Loader2,
   Shield,
   Terminal,
+  User,
   X,
   XCircle,
   Zap,
@@ -108,35 +109,60 @@ export function EventMessage({ event }: EventMessageProps) {
   const Icon = eventLevelIcons[event.level];
   const isUser = event.source === "user";
 
-  if (event.level === "debug") return null; // Optionally hide debug logs to reduce noise
+  // Shared container styles
+  const containerClass = cn(
+    "flex w-full mb-4 px-4",
+    isUser ? "justify-end" : "justify-start"
+  );
 
-  if (isUser) {
-    return (
-      <div className="flex justify-end px-4 py-3">
-        <div className="bg-primary text-primary-foreground max-w-[80%] rounded-lg rounded-tr-none px-3 py-2 shadow-sm">
-          <p className="text-sm break-words whitespace-pre-wrap">
-            {event.message}
-          </p>
-          <div className="text-primary-foreground mt-1 flex justify-end text-[0.6rem] opacity-70">
-            {formatTime(event.createdAt)}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const contentContainerClass = cn(
+    "max-w-3xl flex flex-col",
+    isUser ? "items-end" : "items-start"
+  );
+
+  const metaClass = cn(
+    "text-muted-foreground flex items-center gap-2 text-xs mb-2",
+    isUser && "justify-end"
+  );
+
+  const bubbleClass = cn(
+    "rounded-2xl border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+    isUser
+      ? "border-primary bg-primary text-primary-foreground rounded-tr-sm"
+      : "border-border bg-card rounded-tl-sm"
+  );
+
+  if (event.level === "debug") return null;
 
   return (
-    <div className="hover:bg-muted flex gap-3 px-4 py-2 transition-colors">
-      <div className={cn("mt-1 shrink-0", eventLevelColors[event.level])}>
-        <Icon className="size-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-muted-foreground mb-0.5 text-xs">
-          System • {formatTime(event.createdAt)}
+    <div className={containerClass}>
+      <div className={contentContainerClass}>
+        {/* Meta Row */}
+        <div className={metaClass}>
+          <div
+            className={cn(
+              "flex size-6 items-center justify-center rounded-full border",
+              isUser
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-border bg-muted"
+            )}
+          >
+            {isUser ? (
+              <User className="size-3" />
+            ) : (
+              <Icon className="size-3" />
+            )}
+          </div>
+          <span className="font-medium">
+            {isUser ? "You" : "System"}
+          </span>
+          <span>{formatTime(event.createdAt)}</span>
         </div>
-        <p className="text-foreground text-sm whitespace-pre-wrap">
+
+        {/* Message Bubble */}
+        <div className={bubbleClass}>
           {event.message}
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -211,64 +237,61 @@ export function ActionMessage({ action }: ActionMessageProps) {
   }
 
   return (
-    <div
-      className={cn(
-        "group flex gap-3 px-4 py-3",
-        isFocussedAction(action) && "bg-card border-border border-y",
-      )}
-    >
-      <div
-        className={cn(
-          "bg-muted mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border shadow-sm",
-          isDone && "border-green-500 text-green-500",
-          isFailed && "border-destructive text-destructive",
-          action.status === "blocked" && "border-yellow-500 text-yellow-500",
-          !isDone &&
-          !isFailed &&
-          action.status !== "blocked" &&
-          "border-border text-muted-foreground",
-        )}
-      >
-        {isRunning ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <TypeIcon className="size-4" />
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <span className="text-sm font-semibold">{title}</span>
-          <span className="text-muted-foreground text-xs font-normal">
-            • {formatTime(action.createdAt)}
-          </span>
-          {!isRunning && !isDone && (
-            <Badge
-              variant="outline"
-              className={cn(
-                "ml-auto h-4 px-1 text-[0.6rem] uppercase",
-                getStatusColor(action.status),
-              )}
-            >
-              {action.status}
-            </Badge>
-          )}
+    <div className="flex w-full justify-start px-4 mb-4">
+      <div className="max-w-3xl w-full">
+        {/* Meta Row */}
+        <div className="text-muted-foreground flex items-center gap-2 text-xs mb-2">
+          <div className={cn(
+            "flex size-6 items-center justify-center rounded-full border border-border bg-muted",
+            isDone && "border-green-500/30 bg-green-500/10 text-green-500",
+            isFailed && "border-destructive/30 bg-destructive/10 text-destructive",
+            isRunning && "border-primary/30 bg-primary/10 text-primary"
+          )}>
+            {isRunning ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <TypeIcon className="size-3" />
+            )}
+          </div>
+          <span className="font-medium">Agent</span>
+          <span>{formatTime(action.createdAt)}</span>
+          <Badge
+            variant="outline"
+            className={cn(
+              "ml-auto h-4 px-1 text-[0.6rem] uppercase",
+              getStatusColor(action.status),
+            )}
+          >
+            {action.status}
+          </Badge>
         </div>
 
-        {/* Main Content */}
-        {action.actionType === "notify" ? (
-          content
-        ) : (
-          <div className="text-muted-foreground text-sm">
-            {text && <p className="line-clamp-2 leading-relaxed">{text}</p>}
-            {content}
+        {/* Card Content */}
+        <div
+          className={cn(
+            "group rounded-xl border border-border bg-card p-4 shadow-sm",
+            isFocussedAction(action) && "ring-1 ring-primary/20",
+          )}
+        >
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-sm font-semibold">{title}</span>
           </div>
-        )}
 
-        {/* Payload/Output Details Collapsible */}
-        {action.actionType !== "notify" && (
-          <CollapsibleDetails payload={payload} action={action} />
-        )}
+          {/* Main Content */}
+          {action.actionType === "notify" ? (
+            content
+          ) : (
+            <div className="text-muted-foreground text-sm">
+              {text && <p className="line-clamp-2 leading-relaxed">{text}</p>}
+              {content}
+            </div>
+          )}
+
+          {/* Payload/Output Details Collapsible */}
+          {action.actionType !== "notify" && (
+            <CollapsibleDetails payload={payload} action={action} />
+          )}
+        </div>
       </div>
     </div>
   );
