@@ -13,6 +13,7 @@ import { ActionMessage, EventMessage } from "./session-chat-items";
 import { ModeToggleSafe } from "./mode-toggle-safe";
 import type {
   Action,
+  Agent,
   AgentEvent,
   AgentQuestion,
   BridgeMode,
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 // ============================================================================
 // Types
@@ -98,7 +100,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
 
   return (
     <div className="px-4 py-3">
-      <div className="bg-muted border-border max-w-md rounded-lg border p-4">
+      <div className="bg-card border-border max-w-md rounded-lg border p-4">
         <p className="mb-3 text-sm font-medium">{question.question}</p>
 
         <div className="space-y-2">
@@ -108,19 +110,14 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
               onClick={() => handleSelect(option.value)}
               className={cn(
                 "w-full rounded-md border px-3 py-2.5 text-left transition-all",
-                "hover:border-primary hover:bg-accent",
-                isSelected(option.value)
-                  ? "border-primary bg-accent text-primary"
-                  : "border-border bg-background",
+                "hover:border-secondary hover:bg-secondary",
               )}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 <div
                   className={cn(
                     "flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-                    isSelected(option.value)
-                      ? "border-primary bg-primary"
-                      : "border-muted",
+                    isSelected(option.value) && "border-primary bg-primary",
                   )}
                 >
                   {isSelected(option.value) && (
@@ -128,7 +125,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{option.label}</p>
+                  <p className="text-sm font-medium ">{option.label}</p>
                   {option.description && (
                     <p className="text-muted-foreground mt-0.5 text-xs">
                       {option.description}
@@ -159,7 +156,7 @@ function QuestionOptions({ question, onAnswer }: QuestionOptionsProps) {
           Or type a custom response below
         </p>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -184,6 +181,8 @@ interface SessionPanelProps {
   pendingCount: number;
   onToggleMode: () => void;
   onOpenApprovals: () => void;
+  agents?: Array<Agent>;
+  onAgentChange?: (agentId: string) => void;
 }
 
 export function SessionPanel({
@@ -199,7 +198,10 @@ export function SessionPanel({
   mode,
   pendingCount,
   onToggleMode,
+
   onOpenApprovals,
+  agents = [],
+  onAgentChange,
 }: SessionPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -274,26 +276,20 @@ export function SessionPanel({
     onAnswerQuestion?.(questionId, answer);
   };
 
+  const handleAgentChange = (agentId: string) => {
+    onAgentChange?.(agentId);
+  };
+
   return (
-    <Card className="border-border flex h-full flex-col overflow-hidden">
+    <Card className="border-border gap-0 flex h-full flex-col overflow-hidden pb-0">
       {/* Minimal Header */}
-      <div className="border-border bg-card flex flex-none items-center justify-between border-b px-4 py-2.5">
+      <div className="border-border bg-card flex flex-none items-center justify-between border-b px-4 pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="bg-muted flex size-6 items-center justify-center rounded-full">
-            <Cpu className="text-primary size-3.5" />
-          </div>
-          <div>
-            <p className="text-sm font-medium">{agentName}</p>
-          </div>
-          {isActive && (
-            <Badge
-              variant="outline"
-              className="h-5 border-green-500 text-[10px] text-green-500"
-            >
-              <span className="mr-1.5 size-1.5 animate-pulse rounded-full bg-green-500" />
-              Active
-            </Badge>
-          )}
+
+          <p className="text-sm font-medium">
+            {session.goal}
+          </p>
+
         </div>
         <div className="flex items-center gap-2">
           <ModeToggleSafe mode={mode} onToggle={onToggleMode} />
@@ -325,68 +321,63 @@ export function SessionPanel({
         </div>
       </div>
 
-      {/* Goal Banner */}
-      <div className="bg-muted border-border flex-none border-b px-4 py-2">
-        <p className="text-muted-foreground text-xs">
-          <span className="font-medium">Goal:</span> {session.goal}
-        </p>
-      </div>
-
-      {/* Chat Content */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="bg-background min-h-0 flex-1 overflow-y-auto"
-      >
-        {timelineItems.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <Terminal className="text-muted mb-3 size-10" />
-            <p className="text-muted-foreground text-sm">Session started</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {agentName} is analyzing your request...
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col py-2">
-            {timelineItems.map((item) => {
-              if (item.type === "action") {
-                return <ActionMessage key={item.data.id} action={item.data} />;
-              }
-              if (item.type === "event") {
-                return <EventMessage key={item.data.id} event={item.data} />;
-              }
-              <QuestionOptions
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="absolute inset-0 overflow-y-auto pb-30"
+        >
+          {timelineItems.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+              <Terminal className="text-muted mb-3 size-10" />
+              <p className="text-muted-foreground text-sm">Session started</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {agentName} is analyzing your request...
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col py-2">
+              {timelineItems.map((item) => {
+                if (item.type === "action") {
+                  return <ActionMessage key={item.data.id} action={item.data} />;
+                }
+                if (item.type === "event") {
+                  return <EventMessage key={item.data.id} event={item.data} />;
+                }
+                return (
+                  <QuestionOptions
                     key={item.data.id}
                     question={item.data}
                     onAnswer={handleAnswerQuestion}
                   />
-              return null;
-            })}
+                );
+              })}
 
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="flex gap-3 px-4 py-3">
-                <div className="bg-muted flex size-8 items-center justify-center rounded-full">
-                  <Loader2 className="text-muted-foreground size-4 animate-spin" />
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex gap-3 px-4 py-3">
+                  <div className="bg-card flex size-8 items-center justify-center rounded-full">
+                    <Loader2 className="text-muted-foreground size-4 animate-spin" />
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-muted-foreground text-sm">
+                      {agentName} is working...
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <span className="text-muted-foreground text-sm">
-                    {agentName} is working...
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
 
-            <div className="h-2" />
-          </div>
-        )}
+              <div className="h-2" />
+            </div>
+          )}
+        </div>
 
         {/* Scroll to bottom button */}
         {!autoScroll && (
           <Button
             variant="outline"
             size="icon"
-            className="bg-background absolute right-6 bottom-20 size-8 rounded-full shadow-lg"
+            className="bg-card absolute right-6 bottom-20 size-8 rounded-full shadow-lg z-20"
             onClick={() => {
               setAutoScroll(true);
               scrollRef.current?.scrollTo({
@@ -398,43 +389,58 @@ export function SessionPanel({
             <ArrowDown className="size-4" />
           </Button>
         )}
+
+        {/* Input Area - Always visible when active */}
+        {isActive && (
+          <div className="border-border absolute bottom-4  left-4 right-4 p-2 bg-card flex flex-col gap-2 pb-4 border rounded-xl z-20">
+            <div className="flex items-end gap-2">
+              <Textarea
+                ref={inputRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  pendingQuestion
+                    ? "Type a custom response or select an option above..."
+                    : "Type a message..."
+                }
+                className="min-h-[32px] h-full resize-none bg-card border-none md:text-sm text-sm"
+                rows={1}
+              />
+              <Button
+                size="icon"
+                className="h-[36px] w-[36px] shrink-0"
+                disabled={!message.trim() || isLoading}
+                onClick={handleSendMessage}
+              >
+                <Send className="size-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 ">
+              <Select value={session.agentId} onValueChange={handleAgentChange}>
+                <SelectTrigger className="w-auto h-7 text-xs border hover:bg-accent/50 gap-1 px-2.5 focus:ring-0 shadow-none">
+                  <SelectValue placeholder="Select an agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      <div className="flex items-center gap-2">
+                        <Cpu className="size-3.5 text-muted-foreground" />
+                        <span className="text-xs">{agent.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Input Area - Always visible when active */}
-      {isActive && (
-        <div className="border-border bg-card flex-none border-t p-3">
-          <div className="flex items-end gap-2">
-            <Textarea
-              ref={inputRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                pendingQuestion
-                  ? "Type a custom response or select an option above..."
-                  : "Type a message..."
-              }
-              className="max-h-[120px] min-h-[44px] resize-none text-sm"
-              rows={1}
-            />
-            <Button
-              size="icon"
-              className="size-[44px] shrink-0"
-              disabled={!message.trim() || isLoading}
-              onClick={handleSendMessage}
-            >
-              <Send className="size-4" />
-            </Button>
-          </div>
-          <p className="text-muted-foreground mt-1.5 text-center text-[10px]">
-            Press Enter to send, Shift+Enter for new line
-          </p>
-        </div>
-      )}
 
       {/* Completed/Failed state */}
       {!isActive && (
-        <div className="border-border bg-muted flex-none border-t p-3">
+        <div className="border-border bg-card flex-none border-t p-3">
           <p className="text-muted-foreground text-center text-xs">
             Session {session.state === "done" ? "completed" : "ended"} at{" "}
             {new Date(session.updatedAt).toLocaleString()}

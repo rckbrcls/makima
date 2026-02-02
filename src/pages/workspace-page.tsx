@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertCircle,
   Cpu,
@@ -362,6 +363,21 @@ export function WorkspacePage() {
     selectRepo(repo);
   };
 
+  const handleAgentChange = (agentId: string) => {
+    if (!selectedRepo) return;
+
+    // Find latest session for this agent in this repo
+    const agentSession = sessions
+      .filter((s) => s.agentId === agentId && s.repoName === selectedRepo)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+    if (agentSession) {
+      handleSelectSession(agentSession);
+    } else {
+      toast.error("No session found for this agent");
+    }
+  };
+
   return (
     <div className="bg-background text-foreground relative flex h-full flex-col overflow-hidden">
       {/* Header */}
@@ -421,6 +437,8 @@ export function WorkspacePage() {
                 onToggleMode={toggleMode}
                 pendingCount={getPendingCount(selectedSession.id)}
                 onOpenApprovals={openApprovalDrawer}
+                agents={agents}
+                onAgentChange={handleAgentChange}
               />
             ) : (
               <Card className="bg-card flex h-full flex-col items-center justify-center border-dashed p-6 text-center">

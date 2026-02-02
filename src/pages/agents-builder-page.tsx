@@ -168,14 +168,14 @@ function AgentCardBuilder({
   return (
     <Card
       className={cn(
-        "w-full rounded-xl border text-left transition-colors",
+        "w-full rounded-xl text-left transition-colors",
         isSelected
           ? "border-primary/15 bg-primary/10"
           : "border-border bg-card hover:bg-muted/30",
       )}
       onClick={onSelect}
     >
-      <CardContent >
+      <CardContent>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div
