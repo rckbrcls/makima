@@ -1,32 +1,33 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react"
-import { Button } from "@/components/ui/button"
+import {  useEffect, useMemo, useState } from "react";
+import { Play, Plus } from "lucide-react";
+import { CommandForm } from "./command-form";
+import { SaveCommandDialog } from "./save-command-dialog";
+import type {ReactNode} from "react";
+import type { Command, CommandType, RunCommandInput } from "./types";
 import {
   ExpandableScreen,
   ExpandableScreenContent,
   ExpandableScreenTrigger,
   useExpandableScreen,
-} from "@/components/ui/expandable-screen"
-import { Play, Plus } from "lucide-react"
-import { CommandForm } from "./command-form"
-import { SaveCommandDialog } from "./save-command-dialog"
-import type { Command, CommandType, RunCommandInput } from "./types"
+} from "@/components/ui/expandable-screen";
+import { Button } from "@/components/ui/button";
 
 interface QuickComposerProps {
-  repoName: string
-  children?: ReactNode
-  onRunCommand?: (request: RunCommandInput) => void | Promise<void>
-  onAddCommand?: (command: Command) => void | Promise<void>
-  onUpdateCommand?: (command: Command) => void | Promise<void>
-  editingCommand?: Command
-  inline?: boolean
+  repoName: string;
+  children?: ReactNode;
+  onRunCommand?: (request: RunCommandInput) => void | Promise<void>;
+  onAddCommand?: (command: Command) => void | Promise<void>;
+  onUpdateCommand?: (command: Command) => void | Promise<void>;
+  editingCommand?: Command;
+  inline?: boolean;
 }
 
 interface FormState {
-  commandName: string
-  baseCommand: string
-  args: string
-  notes: string
-  commandType: CommandType
+  commandName: string;
+  baseCommand: string;
+  args: string;
+  notes: string;
+  commandType: CommandType;
 }
 
 const initialFormState: FormState = {
@@ -35,7 +36,7 @@ const initialFormState: FormState = {
   args: "",
   notes: "",
   commandType: "run",
-}
+};
 
 export function QuickComposer({
   repoName,
@@ -62,7 +63,7 @@ export function QuickComposer({
   ) : (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border pt-6">
+      <ExpandableScreenContent className="bg-background border-border border pt-6">
         <QuickComposerContent
           repoName={repoName}
           onRunCommand={onRunCommand}
@@ -73,10 +74,13 @@ export function QuickComposer({
         />
       </ExpandableScreenContent>
     </ExpandableScreen>
-  )
+  );
 }
 
-interface QuickComposerContentProps extends Omit<QuickComposerProps, "children"> { }
+interface QuickComposerContentProps extends Omit<
+  QuickComposerProps,
+  "children"
+> {}
 
 function QuickComposerContent({
   repoName,
@@ -86,7 +90,7 @@ function QuickComposerContent({
   editingCommand,
   inline,
 }: QuickComposerContentProps) {
-  const { collapse } = useExpandableScreen() // Will be no-op if inline (context missing or mocked?)
+  const { collapse } = useExpandableScreen(); // Will be no-op if inline (context missing or mocked?)
   // Actually useExpandableScreen throws if no context.
   // If inline, we are NOT inside ExpandableScreen?
   // Wait, the usages of QuickComposer inline are likely NOT inside an ExpandableScreen.
@@ -94,33 +98,33 @@ function QuickComposerContent({
   // Let's check `useExpandableScreen`. It throws.
   // So we should only call it if !inline.
 
-  const [formState, setFormState] = useState<FormState>(initialFormState)
+  const [formState, setFormState] = useState<FormState>(initialFormState);
 
   const composedCommand = useMemo(() => {
-    const base = formState.baseCommand.trim()
-    const extras = formState.args.trim()
-    return [base, extras].filter(Boolean).join(" ")
-  }, [formState.baseCommand, formState.args])
+    const base = formState.baseCommand.trim();
+    const extras = formState.args.trim();
+    return [base, extras].filter(Boolean).join(" ");
+  }, [formState.baseCommand, formState.args]);
 
   const isValid = useMemo(() => {
-    return Boolean(repoName?.trim() && composedCommand.trim())
-  }, [repoName, composedCommand])
+    return Boolean(repoName?.trim() && composedCommand.trim());
+  }, [repoName, composedCommand]);
 
   const handleRun = () => {
-    if (!isValid) return
+    if (!isValid) return;
     const request: RunCommandInput = {
       repo: repoName,
       command: composedCommand,
       commandType: formState.commandType,
-    }
+    };
     if (formState.commandName.trim()) {
-      request.name = formState.commandName.trim()
+      request.name = formState.commandName.trim();
     }
-    onRunCommand?.(request)
-  }
+    onRunCommand?.(request);
+  };
 
   const handleSave = () => {
-    if (!isValid || !formState.commandName.trim()) return
+    if (!isValid || !formState.commandName.trim()) return;
 
     const commandToSave: Command = {
       name: formState.commandName.trim(),
@@ -130,43 +134,43 @@ function QuickComposerContent({
       duration: editingCommand?.duration || "-",
       lastRun: editingCommand?.lastRun || "-",
       repo: editingCommand?.repo || repoName,
-    }
+    };
 
     if (editingCommand && onUpdateCommand) {
-      onUpdateCommand(commandToSave)
+      onUpdateCommand(commandToSave);
     } else if (onAddCommand) {
-      onAddCommand(commandToSave)
+      onAddCommand(commandToSave);
     }
 
     if (!editingCommand) {
-      setFormState(initialFormState)
+      setFormState(initialFormState);
     }
 
     if (!inline) {
       try {
-        collapse()
+        collapse();
       } catch {
         // Ignore if used outside of context (shouldn't happen with current logic but safe)
       }
     }
-  }
+  };
 
   useEffect(() => {
     if (editingCommand) {
       // Simple parsing logic...
-      const parts = editingCommand.command.trim().split(/\s+/)
+      const parts = editingCommand.command.trim().split(/\s+/);
       if (parts.length > 0) {
-        const packageManagers = ["pnpm", "npm", "yarn"]
-        const hasPackageManager = packageManagers.includes(parts[0])
-        const hasRun = parts.length > 1 && parts[1] === "run"
+        const packageManagers = ["pnpm", "npm", "yarn"];
+        const hasPackageManager = packageManagers.includes(parts[0]);
+        const hasRun = parts.length > 1 && parts[1] === "run";
 
-        let baseEndIndex = 1
+        let baseEndIndex = 1;
         if (hasPackageManager && hasRun) {
-          baseEndIndex = 2
+          baseEndIndex = 2;
         } else if (hasPackageManager) {
-          baseEndIndex = 1
+          baseEndIndex = 1;
         } else {
-          baseEndIndex = Math.min(2, parts.length)
+          baseEndIndex = Math.min(2, parts.length);
         }
 
         setFormState({
@@ -175,7 +179,7 @@ function QuickComposerContent({
           args: parts.slice(baseEndIndex).join(" "),
           notes: "",
           commandType: editingCommand.type,
-        })
+        });
       } else {
         setFormState({
           commandName: editingCommand.name,
@@ -183,36 +187,36 @@ function QuickComposerContent({
           args: "",
           notes: "",
           commandType: editingCommand.type,
-        })
+        });
       }
     }
     // We don't reset on open change here because we don't track open state.
     // Resetting should happen on successful save or cancel.
-  }, [editingCommand])
+  }, [editingCommand]);
 
   const updateField = <K extends keyof FormState>(
     field: K,
-    value: FormState[K]
+    value: FormState[K],
   ) => {
-    setFormState((prev) => ({ ...prev, [field]: value }))
-  }
+    setFormState((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleCancel = () => {
     if (!inline) {
       try {
-        collapse()
-      } catch { }
+        collapse();
+      } catch {}
     }
-  }
+  };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {!inline && (
         <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">
+          <h2 className="text-lg leading-none font-semibold tracking-tight">
             {editingCommand ? "Edit command" : "Quick composer"}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {editingCommand
               ? `Edit ${editingCommand.name} command.`
               : repoName
@@ -233,14 +237,14 @@ function QuickComposerContent({
         onArgsChange={(value) => updateField("args", value)}
         onNotesChange={(value) => updateField("notes", value)}
         onTemplateApply={(data) => {
-          updateField("commandName", data.commandName)
-          updateField("baseCommand", data.baseCommand)
-          updateField("args", data.args)
-          updateField("commandType", data.commandType)
+          updateField("commandName", data.commandName);
+          updateField("baseCommand", data.baseCommand);
+          updateField("args", data.args);
+          updateField("commandType", data.commandType);
         }}
       />
 
-      <div className="flex gap-2 justify-end p-6 pt-0">
+      <div className="flex justify-end gap-2 p-6 pt-0">
         {!inline && (
           <Button variant="outline" onClick={handleCancel}>
             Cancel
@@ -274,15 +278,12 @@ function QuickComposerContent({
             </Button>
           </SaveCommandDialog>
         ) : (
-          <Button
-            variant="default"
-            disabled
-          >
+          <Button variant="default" disabled>
             <Plus className="mr-2 size-4" />
             {editingCommand ? "Update command" : "Save command"}
           </Button>
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,20 +1,21 @@
-import { ReactNode, useMemo, useState } from "react"
-import { AnimatePresence, motion, MotionConfig } from "motion/react"
-import useMeasure from "react-use-measure"
+import { useMemo, useState } from "react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import useMeasure from "react-use-measure";
+import type { ReactNode} from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 type Tab = {
-  id: number
-  label: string
-  content: ReactNode
-}
+  id: number;
+  label: string;
+  content: ReactNode;
+};
 
 interface OgImageSectionProps {
-  tabs: Tab[]
-  className?: string
-  rounded?: string
-  onChange?: () => void
+  tabs: Array<Tab>;
+  className?: string;
+  rounded?: string;
+  onChange?: () => void;
 }
 
 function DirectionAwareTabs({
@@ -23,24 +24,24 @@ function DirectionAwareTabs({
   rounded,
   onChange,
 }: OgImageSectionProps) {
-  const [activeTab, setActiveTab] = useState(0)
-  const [direction, setDirection] = useState(0)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [ref, bounds] = useMeasure()
+  const [activeTab, setActiveTab] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [ref, bounds] = useMeasure();
 
   const content = useMemo(() => {
-    const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content
-    return activeTabContent || null
-  }, [activeTab, tabs])
+    const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content;
+    return activeTabContent || null;
+  }, [activeTab, tabs]);
 
   const handleTabClick = (newTabId: number) => {
     if (newTabId !== activeTab && !isAnimating) {
-      const newDirection = newTabId > activeTab ? 1 : -1
-      setDirection(newDirection)
-      setActiveTab(newTabId)
-      onChange ? onChange() : null
+      const newDirection = newTabId > activeTab ? 1 : -1;
+      setDirection(newDirection);
+      setActiveTab(newTabId);
+      onChange ? onChange() : null;
     }
-  }
+  };
 
   const variants = {
     initial: (direction: number) => ({
@@ -58,15 +59,15 @@ function DirectionAwareTabs({
       opacity: 0,
       filter: "blur(4px)",
     }),
-  }
+  };
 
   return (
-    <div className=" flex flex-col items-start w-full">
+    <div className="flex w-full flex-col items-start">
       <div
         className={cn(
-          "flex space-x-1 rounded-full cursor-pointer bg-card border-border border px-[3px] py-[3.2px] shadow-inner-shadow",
+          "bg-card border-border shadow-inner-shadow flex cursor-pointer space-x-1 rounded-full border px-[3px] py-[3.2px]",
           className,
-          rounded
+          rounded,
         )}
       >
         {tabs.map((tab) => (
@@ -74,18 +75,18 @@ function DirectionAwareTabs({
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
             className={cn(
-              "relative rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium text-neutral-200  transition focus-visible:outline-1 focus-visible:ring-1  focus-visible:outline-none flex gap-2 items-center ",
+              "relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-200 transition focus-visible:ring-1 focus-visible:outline-1 focus-visible:outline-none sm:text-sm",
               activeTab === tab.id
                 ? "text-white"
-                : "hover:text-neutral-300/60  text-neutral-200/80",
-              rounded
+                : "text-neutral-200/80 hover:text-neutral-300/60",
+              rounded,
             )}
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
             {activeTab === tab.id && (
               <motion.span
                 layoutId="bubble"
-                className="absolute  inset-0 z-10 bg-primary mix-blend-difference shadow-inner-shadow border border-border"
+                className="bg-primary shadow-inner-shadow border-border absolute inset-0 z-10 border mix-blend-difference"
                 style={rounded ? { borderRadius: 9 } : { borderRadius: 9999 }}
                 transition={{ type: "spring", bounce: 0.19, duration: 0.4 }}
               />
@@ -97,7 +98,7 @@ function DirectionAwareTabs({
       </div>
       <MotionConfig transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}>
         <motion.div
-          className="relative mx-auto w-full h-full overflow-hidden mt-2"
+          className="relative mx-auto mt-2 h-full w-full overflow-hidden"
           initial={false}
           animate={{ height: bounds.height }}
         >
@@ -124,6 +125,6 @@ function DirectionAwareTabs({
         </motion.div>
       </MotionConfig>
     </div>
-  )
+  );
 }
-export { DirectionAwareTabs }
+export { DirectionAwareTabs };

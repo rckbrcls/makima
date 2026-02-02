@@ -1,5 +1,17 @@
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import {
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  Clock,
+  Play,
+  Settings,
+  Trash2,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import type { Agent, AgentStatus } from "./types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +23,7 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardAction,
@@ -20,20 +32,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import {
-  AlertTriangle,
-  Bot,
-  Play,
-  Settings,
-  Trash2,
-  Zap,
-  Clock,
-  CheckCircle2,
-  XCircle,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { Agent, AgentStatus } from "./types"
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 // ============================================================================
 // Status Styling
@@ -44,27 +44,27 @@ const statusStyles: Record<AgentStatus, string> = {
   idle: "border-border/50 bg-muted/50 text-muted-foreground",
   running: "border-green-500/30 bg-green-500/10 text-green-400",
   error: "border-destructive/30 bg-destructive/10 text-destructive",
-}
+};
 
 const statusIcons: Record<AgentStatus, typeof Bot> = {
   active: Zap,
   idle: Clock,
   running: Play,
   error: XCircle,
-}
+};
 
 // ============================================================================
 // Component
 // ============================================================================
 
 interface AgentCardProps {
-  agent: Agent
-  index?: number
-  pendingCount?: number
-  onConfigure?: (agent: Agent) => void
-  onDelete?: (agent: Agent) => void
-  onStartSession?: (agent: Agent) => void
-  onClick?: (agent: Agent) => void
+  agent: Agent;
+  index?: number;
+  pendingCount?: number;
+  onConfigure?: (agent: Agent) => void;
+  onDelete?: (agent: Agent) => void;
+  onStartSession?: (agent: Agent) => void;
+  onClick?: (agent: Agent) => void;
 }
 
 export function AgentCard({
@@ -76,31 +76,37 @@ export function AgentCard({
   onStartSession,
   onClick,
 }: AgentCardProps) {
-  const StatusIcon = statusIcons[agent.status]
+  const StatusIcon = statusIcons[agent.status];
 
   const handleClick = () => {
-    onClick?.(agent)
-  }
+    onClick?.(agent);
+  };
 
   return (
     <Card
       className={cn(
-        "border-border bg-card flex flex-col justify-between animate-in fade-in slide-in-from-bottom-8 cursor-pointer hover:border-primary shrink-0",
+        "border-border bg-card animate-in fade-in slide-in-from-bottom-8 hover:border-primary flex shrink-0 cursor-pointer flex-col justify-between",
       )}
       onClick={handleClick}
     >
-      <CardHeader className="border-b flex items-start gap-4 flex-col border-border/60">
+      <CardHeader className="border-border/60 flex flex-col items-start gap-4 border-b">
         <div className="flex items-center gap-2 text-sm">
-          <span className="flex size-8 rounded-md items-center justify-center border border-border bg-muted text-foreground/80">
+          <span className="border-border bg-muted text-foreground/80 flex size-8 items-center justify-center rounded-md border">
             <Bot className="size-4" />
           </span>
           {agent.name}
-          <div className="flex items-center gap-1 justify-end w-full" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex w-full items-center justify-end gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Badge
               variant="outline"
-              className={cn("text-[0.6rem] uppercase", statusStyles[agent.status])}
+              className={cn(
+                "text-[0.6rem] uppercase",
+                statusStyles[agent.status],
+              )}
             >
-              <StatusIcon className="size-3 mr-1" />
+              <StatusIcon className="mr-1 size-3" />
               {agent.status}
             </Badge>
             {pendingCount > 0 && (
@@ -153,41 +159,44 @@ export function AgentCard({
             </AlertDialog>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[0.7rem] flex-row w-full text-nowrap text-muted-foreground">
+        <div className="text-muted-foreground flex w-full flex-row items-center gap-2 text-[0.7rem] text-nowrap">
           {agent.model ?? agent.provider}
           <span className="text-foreground/80">· {agent.id.slice(0, 8)}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-[0.65rem] text-muted-foreground">
+        <div className="text-muted-foreground flex items-center justify-between text-[0.65rem]">
           <span>provider: {agent.provider}</span>
           <span className="text-foreground/80">
             updated: {new Date(agent.updatedAt).toLocaleDateString()}
           </span>
         </div>
-        <div className="h-1 w-full overflow-hidden border border-border bg-muted">
+        <div className="border-border bg-muted h-1 w-full overflow-hidden border">
           <div
             className={cn(
               "h-full transition-all duration-500",
               agent.status === "running"
-                ? "w-3/4 bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1/80 bg-[length:200%_100%] animate-[shimmer_2.8s_linear_infinite]"
+                ? "from-chart-1 via-chart-2 to-chart-1/80 w-3/4 animate-[shimmer_2.8s_linear_infinite] bg-gradient-to-r bg-[length:200%_100%]"
                 : agent.status === "active"
                   ? "w-1/2 bg-blue-500/70"
                   : agent.status === "error"
-                    ? "w-full bg-destructive/70"
-                    : "w-0"
+                    ? "bg-destructive/70 w-full"
+                    : "w-0",
             )}
           />
         </div>
       </CardContent>
-      <CardFooter className="justify-between" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 text-[0.65rem] text-muted-foreground">
+      <CardFooter
+        className="justify-between"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-muted-foreground flex items-center gap-2 text-[0.65rem]">
           <CheckCircle2 className="size-3" />
           Ready
         </div>
         <Button
           size="xs"
-          className="h-6 bg-primary text-primary-foreground hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-6"
           onClick={() => onStartSession?.(agent)}
           disabled={agent.status === "running"}
         >
@@ -196,5 +205,5 @@ export function AgentCard({
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }

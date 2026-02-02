@@ -37,7 +37,7 @@ import type {
 // Command Hub Mocks
 // =============================================================================
 
-export const mockRepositories: Repository[] = [
+export const mockRepositories: Array<Repository> = [
   {
     name: "makima",
     path: "/Users/dev/codes/makima",
@@ -76,7 +76,7 @@ export const mockRepositories: Repository[] = [
   },
 ];
 
-export const mockCommands: Command[] = [
+export const mockCommands: Array<Command> = [
   {
     name: "Dev Server",
     command: "pnpm dev",
@@ -133,7 +133,7 @@ export const mockCommands: Command[] = [
   },
 ];
 
-export const mockLiveExecutions: LiveExecution[] = [
+export const mockLiveExecutions: Array<LiveExecution> = [
   {
     repo: "makima",
     command: "pnpm dev",
@@ -163,7 +163,7 @@ export const mockLiveExecutions: LiveExecution[] = [
   },
 ];
 
-export const mockRunQueue: RunQueueItem[] = [
+export const mockRunQueue: Array<RunQueueItem> = [
   {
     id: 1,
     name: "Test Suite",
@@ -190,7 +190,7 @@ export const mockRunQueue: RunQueueItem[] = [
   },
 ];
 
-export const mockPipelines: Pipeline[] = [
+export const mockPipelines: Array<Pipeline> = [
   {
     repo: "makima",
     steps: [
@@ -213,7 +213,7 @@ export const mockPipelines: Pipeline[] = [
   },
 ];
 
-export const mockExecutionHistory: ExecutionHistoryItem[] = [
+export const mockExecutionHistory: Array<ExecutionHistoryItem> = [
   {
     id: 1,
     name: "Build",
@@ -290,14 +290,21 @@ export const mockCommandHubDashboard: DashboardState = {
 // Agent Hub Mocks
 // =============================================================================
 
-export const mockAgents: Agent[] = [
+export const mockAgents: Array<Agent> = [
   {
     id: "agent-1",
     name: "Luna",
     provider: "cli",
     model: "claude-sonnet-4-20250514",
     status: "running",
-    skills: ["file_read", "file_write", "file_edit", "bash", "git", "code_analysis"],
+    skills: [
+      "file_read",
+      "file_write",
+      "file_edit",
+      "bash",
+      "git",
+      "code_analysis",
+    ],
     createdAt: "2026-01-30T10:00:00Z",
     updatedAt: "2026-01-30T16:00:00Z",
   },
@@ -327,13 +334,21 @@ export const mockAgents: Agent[] = [
     provider: "cli",
     model: "gemini-2.0-flash",
     status: "active",
-    skills: ["file_read", "file_write", "file_edit", "bash", "git", "browser", "deployment"],
+    skills: [
+      "file_read",
+      "file_write",
+      "file_edit",
+      "bash",
+      "git",
+      "browser",
+      "deployment",
+    ],
     createdAt: "2026-01-28T09:00:00Z",
     updatedAt: "2026-01-30T16:05:00Z",
   },
 ];
 
-export const mockSessions: Session[] = [
+export const mockSessions: Array<Session> = [
   // Sessions no repo makima
   {
     id: "session-1",
@@ -402,7 +417,7 @@ export const mockSessions: Session[] = [
   },
 ];
 
-export const mockActions: Action[] = [
+export const mockActions: Array<Action> = [
   {
     id: "action-1",
     sessionId: "session-1",
@@ -503,7 +518,7 @@ describe('UserService', () => {
   },
 ];
 
-export const mockApprovals: Approval[] = [
+export const mockApprovals: Array<Approval> = [
   {
     id: "approval-1",
     actionId: "action-2",
@@ -527,7 +542,7 @@ export const mockApprovals: Approval[] = [
   },
 ];
 
-export const mockEvents: AgentEvent[] = [
+export const mockEvents: Array<AgentEvent> = [
   {
     id: "event-1",
     sessionId: "session-1",
@@ -583,15 +598,27 @@ export const mockEvents: AgentEvent[] = [
   },
 ];
 
-export const mockAgentQuestions: AgentQuestion[] = [
+export const mockAgentQuestions: Array<AgentQuestion> = [
   {
     id: "question-1",
     sessionId: "session-1",
     question: "Which authentication method should I implement?",
     options: [
-      { label: "OAuth 2.0", value: "oauth2", description: "Recommended for third-party integrations" },
-      { label: "JWT", value: "jwt", description: "Stateless authentication with tokens" },
-      { label: "Session-based", value: "session", description: "Traditional server-side sessions" },
+      {
+        label: "OAuth 2.0",
+        value: "oauth2",
+        description: "Recommended for third-party integrations",
+      },
+      {
+        label: "JWT",
+        value: "jwt",
+        description: "Stateless authentication with tokens",
+      },
+      {
+        label: "Session-based",
+        value: "session",
+        description: "Traditional server-side sessions",
+      },
     ],
     multiSelect: false,
     answered: false,
@@ -602,9 +629,21 @@ export const mockAgentQuestions: AgentQuestion[] = [
     sessionId: "session-4",
     question: "Which components should include dark mode support?",
     options: [
-      { label: "All components", value: "all", description: "Apply dark mode everywhere" },
-      { label: "Only UI primitives", value: "primitives", description: "Buttons, inputs, cards" },
-      { label: "Custom selection", value: "custom", description: "Let me specify which ones" },
+      {
+        label: "All components",
+        value: "all",
+        description: "Apply dark mode everywhere",
+      },
+      {
+        label: "Only UI primitives",
+        value: "primitives",
+        description: "Buttons, inputs, cards",
+      },
+      {
+        label: "Custom selection",
+        value: "custom",
+        description: "Let me specify which ones",
+      },
     ],
     multiSelect: false,
     answered: true,
@@ -613,7 +652,7 @@ export const mockAgentQuestions: AgentQuestion[] = [
   },
 ];
 
-export const mockArtifacts: Artifact[] = [
+export const mockArtifacts: Array<Artifact> = [
   {
     id: "artifact-1",
     sessionId: "session-1",
@@ -661,7 +700,7 @@ export const mockArtifacts: Artifact[] = [
 ];
 
 // Combined mock data with repos
-export const mockAgentsWithRepos: AgentWithRepos[] = [
+export const mockAgentsWithRepos: Array<AgentWithRepos> = [
   {
     ...mockAgents[0],
     repos: ["makima", "api-server"],
@@ -684,7 +723,7 @@ export const mockAgentsWithRepos: AgentWithRepos[] = [
   },
 ];
 
-export const mockApprovalsWithAction: ApprovalWithAction[] = [
+export const mockApprovalsWithAction: Array<ApprovalWithAction> = [
   {
     ...mockApprovals[0],
     action: mockActions[1], // edit_file action
@@ -712,7 +751,7 @@ export const mockSessionWithDetails: SessionWithDetails = {
 };
 
 // Agent with stats for the Agent List view
-export const mockAgentsWithStats: AgentWithStats[] = [
+export const mockAgentsWithStats: Array<AgentWithStats> = [
   {
     ...mockAgents[0],
     totalSessions: 15,
@@ -756,13 +795,13 @@ export const getMockAgentById = (id: string): Agent | undefined =>
 /**
  * Get all sessions for an agent
  */
-export const getMockSessionsByAgentId = (agentId: string): Session[] =>
+export const getMockSessionsByAgentId = (agentId: string): Array<Session> =>
   mockSessions.filter((s) => s.agentId === agentId);
 
 /**
  * Get all actions for a session
  */
-export const getMockActionsBySessionId = (sessionId: string): Action[] =>
+export const getMockActionsBySessionId = (sessionId: string): Array<Action> =>
   mockActions.filter((a) => a.sessionId === sessionId);
 
 /**
@@ -770,7 +809,7 @@ export const getMockActionsBySessionId = (sessionId: string): Action[] =>
  */
 export const getMockPendingApprovalsByAgentId = (
   agentId: string,
-): ApprovalWithAction[] => {
+): Array<ApprovalWithAction> => {
   const agentSessions = getMockSessionsByAgentId(agentId);
   const sessionIds = new Set(agentSessions.map((s) => s.id));
 
@@ -788,7 +827,7 @@ export const getMockPendingApprovalsByAgentId = (
 export const getMockEventsByAgentId = (
   agentId: string,
   sessionId?: string,
-): AgentEvent[] =>
+): Array<AgentEvent> =>
   mockEvents.filter(
     (e) =>
       e.agentId === agentId &&
@@ -804,7 +843,7 @@ export const getMockRepositoryByName = (name: string): Repository | undefined =>
 /**
  * Get commands by repository
  */
-export const getMockCommandsByRepo = (repo: string): Command[] =>
+export const getMockCommandsByRepo = (repo: string): Array<Command> =>
   mockCommands.filter((c) => c.repo === repo);
 
 /**
@@ -817,19 +856,22 @@ export const getMockLiveExecutionByRepo = (
 /**
  * Get sessions by repository name
  */
-export const getMockSessionsByRepoName = (repoName: string): Session[] =>
+export const getMockSessionsByRepoName = (repoName: string): Array<Session> =>
   mockSessions.filter((s) => s.repoName === repoName);
 
 /**
  * Get active sessions by repository name
  */
-export const getMockActiveSessionsByRepoName = (repoName: string): Session[] =>
+export const getMockActiveSessionsByRepoName = (repoName: string): Array<Session> =>
   mockSessions.filter((s) => s.repoName === repoName && s.state === "active");
 
 /**
  * Get session count per repository
  */
-export const getMockSessionCountByRepo = (): Record<string, { active: number; total: number }> => {
+export const getMockSessionCountByRepo = (): Record<
+  string,
+  { active: number; total: number }
+> => {
   const counts: Record<string, { active: number; total: number }> = {};
 
   mockSessions.forEach((session) => {

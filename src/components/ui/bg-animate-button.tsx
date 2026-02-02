@@ -1,8 +1,8 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva } from "class-variance-authority"
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const outerDivVariants = cva("relative inline-block overflow-hidden ", {
   variants: {
@@ -24,7 +24,7 @@ const outerDivVariants = cva("relative inline-block overflow-hidden ", {
   defaultVariants: {
     size: "default",
   },
-})
+});
 
 const innerSpanVariants = cva(
   [
@@ -66,8 +66,8 @@ const innerSpanVariants = cva(
       animation: "spin",
       gradient: "forest",
     },
-  }
-)
+  },
+);
 
 const buttonVariants = cva(
   "relative px-6 py-2    transition-all duration-150 ease-in-out disabled:pointer-events-none disabled:opacity-50 text-sm  overflow-hidden",
@@ -110,18 +110,17 @@ const buttonVariants = cva(
       shadow: "base",
       rounded: "xl",
     },
-  }
-)
+  },
+);
 
-export interface UnifiedButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "success" | "secondary" | "destructive" | "ghost"
-  size?: "sm" | "lg" | "default"
-  shadow?: "flat" | "soft" | "base" | "deep" | "deeper"
-  rounded?: "full" | "xl" | "2xl" | "3xl" | "sm" | "xs" | "base"
-  asChild?: boolean
-  showBackground?: boolean
-  animation?: "spin" | "pulse" | "spin-slow" | "spin-fast" | "spin"
+export interface UnifiedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "success" | "secondary" | "destructive" | "ghost";
+  size?: "sm" | "lg" | "default";
+  shadow?: "flat" | "soft" | "base" | "deep" | "deeper";
+  rounded?: "full" | "xl" | "2xl" | "3xl" | "sm" | "xs" | "base";
+  asChild?: boolean;
+  showBackground?: boolean;
+  animation?: "spin" | "pulse" | "spin-slow" | "spin-fast" | "spin";
   gradient?:
     | "sunrise"
     | "ocean"
@@ -129,7 +128,7 @@ export interface UnifiedButtonProps
     | "default"
     | "forest"
     | "sunset"
-    | "nebula"
+    | "nebula";
 }
 
 const BgAnimateButton = React.forwardRef<HTMLButtonElement, UnifiedButtonProps>(
@@ -146,9 +145,9 @@ const BgAnimateButton = React.forwardRef<HTMLButtonElement, UnifiedButtonProps>(
       asChild = false,
       ...props
     },
-    ref
+    ref,
   ) => {
-    const Comp = asChild ? Slot : "button"
+    const Comp = asChild ? Slot : "button";
 
     return (
       <Comp
@@ -166,11 +165,11 @@ const BgAnimateButton = React.forwardRef<HTMLButtonElement, UnifiedButtonProps>(
           {props.children || "Button"}
         </div>
       </Comp>
-    )
-  }
-)
+    );
+  },
+);
 
-BgAnimateButton.displayName = "BgAnimateButton"
+BgAnimateButton.displayName = "BgAnimateButton";
 
-export { BgAnimateButton }
-export default BgAnimateButton
+export { BgAnimateButton };
+export default BgAnimateButton;

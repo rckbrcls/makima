@@ -1,23 +1,24 @@
-import { useState, type ReactNode } from "react"
-import { Button } from "@/components/ui/button"
+import {  useState } from "react";
+import { Bot, Loader2, X } from "lucide-react";
+import type {ReactNode} from "react";
+import type { Agent, AgentProvider, CreateAgentRequest } from "./types";
+import { Button } from "@/components/ui/button";
 import {
   ExpandableScreen,
   ExpandableScreenContent,
   ExpandableScreenTrigger,
   useExpandableScreen,
-} from "@/components/ui/expandable-screen"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/expandable-screen";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Bot, Loader2, X } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import type { Agent, AgentProvider, CreateAgentRequest } from "./types"
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 // ============================================================================
 // Model Options
@@ -29,39 +30,39 @@ const modelOptions = [
   { value: "gpt-4o", label: "GPT-4o", provider: "cli" },
   { value: "gemini-pro", label: "Gemini Pro", provider: "cli" },
   { value: "custom", label: "Custom Model", provider: "cli" },
-]
+];
 
-const providerOptions: { value: AgentProvider; label: string }[] = [
+const providerOptions: Array<{ value: AgentProvider; label: string }> = [
   { value: "cli", label: "CLI Agent" },
   { value: "local", label: "Local Model (Coming Soon)" },
   { value: "api", label: "API Provider (Coming Soon)" },
-]
+];
 
 // ============================================================================
 // Component
 // ============================================================================
 
 interface CreateAgentDialogProps {
-  children?: ReactNode
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-  onCreateAgent: (request: CreateAgentRequest) => Promise<Agent | null>
+  children?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onCreateAgent: (request: CreateAgentRequest) => Promise<Agent | null>;
 }
 
 export function CreateAgentDialog({
   children,
   onCreateAgent,
 }: CreateAgentDialogProps) {
-  const [name, setName] = useState("")
-  const [provider, setProvider] = useState<AgentProvider>("cli")
-  const [model, setModel] = useState("claude-3-5-sonnet")
-  const [repos, setRepos] = useState<string[]>([])
-  const [repoInput, setRepoInput] = useState("")
+  const [name, setName] = useState("");
+  const [provider, setProvider] = useState<AgentProvider>("cli");
+  const [model, setModel] = useState("claude-3-5-sonnet");
+  const [repos, setRepos] = useState<Array<string>>([]);
+  const [repoInput, setRepoInput] = useState("");
 
   return (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border pt-6">
+      <ExpandableScreenContent className="bg-background border-border border pt-6">
         <CreateAgentForm
           name={name}
           setName={setName}
@@ -77,21 +78,21 @@ export function CreateAgentDialog({
         />
       </ExpandableScreenContent>
     </ExpandableScreen>
-  )
+  );
 }
 
 interface CreateAgentFormProps {
-  name: string
-  setName: (v: string) => void
-  provider: AgentProvider
-  setProvider: (v: AgentProvider) => void
-  model: string
-  setModel: (v: string) => void
-  repos: string[]
-  setRepos: (v: string[]) => void
-  repoInput: string
-  setRepoInput: (v: string) => void
-  onCreateAgent: (request: CreateAgentRequest) => Promise<Agent | null>
+  name: string;
+  setName: (v: string) => void;
+  provider: AgentProvider;
+  setProvider: (v: AgentProvider) => void;
+  model: string;
+  setModel: (v: string) => void;
+  repos: Array<string>;
+  setRepos: (v: Array<string>) => void;
+  repoInput: string;
+  setRepoInput: (v: string) => void;
+  onCreateAgent: (request: CreateAgentRequest) => Promise<Agent | null>;
 }
 
 function CreateAgentForm({
@@ -107,15 +108,15 @@ function CreateAgentForm({
   setRepoInput,
   onCreateAgent,
 }: CreateAgentFormProps) {
-  const { collapse } = useExpandableScreen()
-  const [isLoading, setIsLoading] = useState(false)
+  const { collapse } = useExpandableScreen();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!name.trim()) return
+    if (!name.trim()) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     const request: CreateAgentRequest = {
       name: name.trim(),
@@ -123,51 +124,51 @@ function CreateAgentForm({
       model: model !== "custom" ? model : undefined,
       skills: [], // TODO: Add skills selection in the builder page
       repos,
-    }
+    };
 
-    const agent = await onCreateAgent(request)
+    const agent = await onCreateAgent(request);
 
-    setIsLoading(false)
+    setIsLoading(false);
 
     if (agent) {
       // Reset form
-      setName("")
-      setProvider("cli")
-      setModel("claude-3-5-sonnet")
-      setRepos([])
-      setRepoInput("")
-      collapse()
+      setName("");
+      setProvider("cli");
+      setModel("claude-3-5-sonnet");
+      setRepos([]);
+      setRepoInput("");
+      collapse();
     }
-  }
+  };
 
   const handleAddRepo = () => {
-    const trimmed = repoInput.trim()
+    const trimmed = repoInput.trim();
     if (trimmed && !repos.includes(trimmed)) {
-      setRepos([...repos, trimmed])
-      setRepoInput("")
+      setRepos([...repos, trimmed]);
+      setRepoInput("");
     }
-  }
+  };
 
   const handleRemoveRepo = (repo: string) => {
-    setRepos(repos.filter((r) => r !== repo))
-  }
+    setRepos(repos.filter((r) => r !== repo));
+  };
 
   const handleRepoKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddRepo()
+      e.preventDefault();
+      handleAddRepo();
     }
-  }
+  };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
-        <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
+        <h2 className="flex items-center gap-2 text-lg leading-none font-semibold tracking-tight">
           <Bot className="size-5" />
           Create Agent
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Configure a new AI agent to run tasks in your projects.
         </p>
       </div>
@@ -213,11 +214,7 @@ function CreateAgentForm({
         {/* Model Selection */}
         <div className="space-y-2">
           <Label htmlFor="model">Model</Label>
-          <Select
-            value={model}
-            onValueChange={setModel}
-            disabled={isLoading}
-          >
+          <Select value={model} onValueChange={setModel} disabled={isLoading}>
             <SelectTrigger>
               <SelectValue placeholder="Select model" />
             </SelectTrigger>
@@ -259,12 +256,12 @@ function CreateAgentForm({
                 <Badge
                   key={repo}
                   variant="secondary"
-                  className="text-[0.6rem] pr-1"
+                  className="pr-1 text-[0.6rem]"
                 >
                   {repo.split("/").pop() ?? repo}
                   <button
                     type="button"
-                    className="ml-1 hover:text-destructive"
+                    className="hover:text-destructive ml-1"
                     onClick={() => handleRemoveRepo(repo)}
                   >
                     <X className="size-3" />
@@ -273,12 +270,12 @@ function CreateAgentForm({
               ))}
             </div>
           )}
-          <p className="text-[0.65rem] text-muted-foreground">
+          <p className="text-muted-foreground text-[0.65rem]">
             Add repository paths the agent can work with
           </p>
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
+        <div className="flex flex-col-reverse pt-4 sm:flex-row sm:justify-end sm:space-x-2">
           <Button
             type="button"
             variant="outline"
@@ -290,7 +287,7 @@ function CreateAgentForm({
           <Button type="submit" disabled={isLoading || !name.trim()}>
             {isLoading ? (
               <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Creating...
               </>
             ) : (
@@ -300,5 +297,5 @@ function CreateAgentForm({
         </div>
       </form>
     </div>
-  )
+  );
 }

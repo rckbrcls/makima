@@ -1,27 +1,24 @@
-import { Drawer, DrawerContent } from "@/components/ui/drawer"
-import { useUIStore } from "@/stores/ui-store"
-import { useCommandStore } from "@/stores/command-store"
-import { Button } from "@/components/ui/button"
+import { Plus, Square, Terminal as TerminalIcon } from "lucide-react";
+import { DirectionAwareTabs } from "../ui/direction-aware-tabs";
+import type { Command, RunCommandInput } from "@/components/repos/types";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { useUIStore } from "@/stores/ui-store";
+import { useCommandStore } from "@/stores/command-store";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Plus, Square, Terminal as TerminalIcon } from "lucide-react"
-import { CommandCard } from "@/components/repos/command-card"
-import { QuickComposer } from "@/components/repos/quick-composer"
-import { DirectionAwareTabs } from "../ui/direction-aware-tabs"
-import { filterByRepo } from "@/lib/command-hub/helpers"
-import type { Command, RunCommandInput } from "@/components/repos/types"
+} from "@/components/ui/card";
+import { CommandCard } from "@/components/repos/command-card";
+import { QuickComposer } from "@/components/repos/quick-composer";
+import { filterByRepo } from "@/lib/command-hub/helpers";
 
 export function TerminalDrawer() {
-  const {
-    terminalDrawerOpen,
-    setTerminalDrawerOpen,
-    selectedRepo,
-  } = useUIStore()
+  const { terminalDrawerOpen, setTerminalDrawerOpen, selectedRepo } =
+    useUIStore();
 
   const {
     commands,
@@ -30,18 +27,18 @@ export function TerminalDrawer() {
     addCommand,
     updateCommand,
     deleteCommand,
-  } = useCommandStore()
+  } = useCommandStore();
 
   // Ensure commands is typed as Command[]
-  const filteredCommands = filterByRepo<Command>(commands, selectedRepo)
+  const filteredCommands = filterByRepo<Command>(commands, selectedRepo);
 
   const stopAllForRepo = (repo: string | null) => {
-    if (!repo) return
-    const repoCommands = filteredCommands.filter((c) => c.status === "running")
+    if (!repo) return;
+    const repoCommands = filteredCommands.filter((c) => c.status === "running");
     repoCommands.forEach((c) => {
-      stopCommand({ repo, command: c.name })
-    })
-  }
+      stopCommand({ repo, command: c.name });
+    });
+  };
 
   const handleRunCommand = (command: Command) => {
     runCommand({
@@ -49,27 +46,26 @@ export function TerminalDrawer() {
       name: command.name,
       command: command.command,
       commandType: command.type,
-    })
-  }
+    });
+  };
 
   const handleRunCommandInput = (input: RunCommandInput) => {
-    runCommand(input)
-  }
+    runCommand(input);
+  };
 
   const handleDeleteCommand = (command: Command) => {
-    deleteCommand(command.repo, command.name)
-  }
-
+    deleteCommand(command.repo, command.name);
+  };
 
   const tabs = [
     {
       id: 0,
       label: "commands",
       content: (
-        <Card className="flex flex-col border-border bg-card h-full">
-          <CardHeader className="border-b border-border shrink-0">
+        <Card className="border-border bg-card flex h-full flex-col">
+          <CardHeader className="border-border shrink-0 border-b">
             <CardTitle className="flex items-center gap-2 text-base">
-              <TerminalIcon className="size-4 text-primary" />
+              <TerminalIcon className="text-primary size-4" />
               {selectedRepo || "No Repository Selected"}
             </CardTitle>
             {selectedRepo && (
@@ -85,7 +81,7 @@ export function TerminalDrawer() {
                       size="sm"
                       className="border-border bg-card"
                     >
-                      <Plus data-icon="inline-start" className="size-4 mr-2" />
+                      <Plus data-icon="inline-start" className="mr-2 size-4" />
                       Add command
                     </Button>
                   </QuickComposer>
@@ -96,14 +92,14 @@ export function TerminalDrawer() {
                     className="border-border bg-card"
                     onClick={() => stopAllForRepo(selectedRepo)}
                   >
-                    <Square data-icon="inline-start" className="size-4 mr-2" />
+                    <Square data-icon="inline-start" className="mr-2 size-4" />
                     Stop all
                   </Button>
                 </div>
               </CardAction>
             )}
           </CardHeader>
-          <CardContent className="flex flex-col gap-3 py-4 overflow-y-auto flex-1">
+          <CardContent className="flex flex-1 flex-col gap-3 overflow-y-auto py-4">
             {selectedRepo ? (
               filteredCommands.length > 0 ? (
                 filteredCommands.map((command, index) => (
@@ -117,12 +113,12 @@ export function TerminalDrawer() {
                   />
                 ))
               ) : (
-                <div className="text-center text-muted-foreground py-8">
+                <div className="text-muted-foreground py-8 text-center">
                   No commands found for this repository.
                 </div>
               )
             ) : (
-              <div className="text-center text-muted-foreground py-8">
+              <div className="text-muted-foreground py-8 text-center">
                 Select a repository to view commands.
               </div>
             )}
@@ -134,19 +130,23 @@ export function TerminalDrawer() {
       id: 1,
       label: "pipelines",
       content: (
-        <Card className="flex flex-col border-border bg-card h-full">
-          <CardContent className="flex items-center justify-center h-full text-muted-foreground">
+        <Card className="border-border bg-card flex h-full flex-col">
+          <CardContent className="text-muted-foreground flex h-full items-center justify-center">
             Pipelines coming soon...
           </CardContent>
         </Card>
-      )
-    }
-  ]
+      ),
+    },
+  ];
   return (
-    <Drawer direction="right" open={terminalDrawerOpen} onOpenChange={setTerminalDrawerOpen}>
-      <DrawerContent className="data-[vaul-drawer-direction=right]:rounded-l-4xl bg-card h-full w-[500px] p-2 pt-4 right-0 left-auto mt-0 rounded-none">
+    <Drawer
+      direction="right"
+      open={terminalDrawerOpen}
+      onOpenChange={setTerminalDrawerOpen}
+    >
+      <DrawerContent className="bg-card right-0 left-auto mt-0 h-full w-[500px] rounded-none p-2 pt-4 data-[vaul-drawer-direction=right]:rounded-l-4xl">
         <DirectionAwareTabs tabs={tabs} />
       </DrawerContent>
     </Drawer>
-  )
+  );
 }

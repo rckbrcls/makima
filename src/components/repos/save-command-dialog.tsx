@@ -1,22 +1,22 @@
-import { Button } from "@/components/ui/button"
+import type {ReactNode} from "react";
+import { Button } from "@/components/ui/button";
 import {
   ExpandableScreen,
   ExpandableScreenContent,
   ExpandableScreenTrigger,
   useExpandableScreen,
-} from "@/components/ui/expandable-screen"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { type ReactNode } from "react"
+} from "@/components/ui/expandable-screen";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface SaveCommandDialogProps {
-  children?: ReactNode
-  commandName: string
-  onCommandNameChange: (value: string) => void
-  composedCommand: string
-  repoName: string
-  editingCommand?: boolean
-  onSave: () => void
+  children?: ReactNode;
+  commandName: string;
+  onCommandNameChange: (value: string) => void;
+  composedCommand: string;
+  repoName: string;
+  editingCommand?: boolean;
+  onSave: () => void;
 }
 
 export function SaveCommandDialog({
@@ -31,7 +31,7 @@ export function SaveCommandDialog({
   return (
     <ExpandableScreen>
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border pt-6">
+      <ExpandableScreenContent className="bg-background border-border border pt-6">
         <SaveCommandForm
           commandName={commandName}
           onCommandNameChange={onCommandNameChange}
@@ -42,7 +42,7 @@ export function SaveCommandDialog({
         />
       </ExpandableScreenContent>
     </ExpandableScreen>
-  )
+  );
 }
 
 function SaveCommandForm({
@@ -53,20 +53,20 @@ function SaveCommandForm({
   editingCommand,
   onSave,
 }: Omit<SaveCommandDialogProps, "children">) {
-  const { collapse } = useExpandableScreen()
+  const { collapse } = useExpandableScreen();
 
   const handleSave = () => {
-    onSave()
-    collapse()
-  }
+    onSave();
+    collapse();
+  };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
-        <h2 className="text-lg font-semibold leading-none tracking-tight">
+        <h2 className="text-lg leading-none font-semibold tracking-tight">
           {editingCommand ? "Update Command" : "Save Command"}
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {editingCommand
             ? "Update the command details."
             : "Enter a name for this command to save it for future use."}
@@ -83,25 +83,25 @@ function SaveCommandForm({
             placeholder="e.g., build-desktop"
             onKeyDown={(event) => {
               if (event.key === "Enter" && commandName.trim()) {
-                handleSave()
+                handleSave();
               }
             }}
           />
         </div>
         <div className="space-y-2">
           <Label>Command</Label>
-          <div className="rounded-none border border-border/70 bg-muted/30 p-2 text-xs font-mono">
+          <div className="border-border/70 bg-muted/30 rounded-none border p-2 font-mono text-xs">
             {composedCommand || "(empty)"}
           </div>
         </div>
         <div className="space-y-2">
           <Label>Repository</Label>
-          <div className="rounded-none border border-border/70 bg-muted/30 p-2 text-xs">
+          <div className="border-border/70 bg-muted/30 rounded-none border p-2 text-xs">
             {repoName}
           </div>
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-2">
+        <div className="flex flex-col-reverse pt-2 sm:flex-row sm:justify-end sm:space-x-2">
           <Button variant="outline" onClick={() => collapse()}>
             Cancel
           </Button>
@@ -111,5 +111,5 @@ function SaveCommandForm({
         </div>
       </div>
     </div>
-  )
+  );
 }

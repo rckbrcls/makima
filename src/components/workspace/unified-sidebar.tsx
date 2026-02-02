@@ -1,56 +1,58 @@
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Copy,
+  Cpu,
+  ExternalLink,
+  FolderGit2,
+  FolderOpen,
+  GitBranch,
+  Loader2,
+  MessageSquarePlus,
+  Plus,
+  RotateCcw,
+  Search,
+  Terminal,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import type { Agent, Session } from "@/components/agents/types";
+import type { Repository } from "@/components/repos/types";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import {
-  FolderGit2,
-  Plus,
-  ChevronRight,
-  Cpu,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  MessageSquarePlus,
-  GitBranch,
-  Trash2,
-  FolderOpen,
-  Copy,
-  RotateCcw,
-  Terminal,
-  ExternalLink,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { Session, Agent } from "@/components/agents/types"
-import type { Repository } from "@/components/repos/types"
+} from "@/components/ui/context-menu";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 interface UnifiedSidebarProps {
-  repositories: Repository[]
-  sessions: Session[]
-  agents: Agent[]
-  selectedRepo: string | null
-  selectedSession: Session | null
-  isCreatingNewSession: boolean
-  runningCounts: Record<string, number>
-  onSelectRepo: (repo: string | null) => void
-  onSelectSession: (session: Session | null) => void
-  onNewSession: (repoName: string) => void
-  onDeleteRepository: (repo: string) => void
-  getPendingCount: (sessionId: string) => number
+  repositories: Array<Repository>;
+  sessions: Array<Session>;
+  agents: Array<Agent>;
+  selectedRepo: string | null;
+  selectedSession: Session | null;
+  isCreatingNewSession: boolean;
+  runningCounts: Record<string, number>;
+  onSelectRepo: (repo: string | null) => void;
+  onSelectSession: (session: Session | null) => void;
+  onNewSession: (repoName: string) => void;
+  onDeleteRepository: (repo: string) => void;
+  getPendingCount: (sessionId: string) => number;
 }
 
 // ============================================================================
@@ -58,22 +60,28 @@ interface UnifiedSidebarProps {
 // ============================================================================
 
 interface SessionItemProps {
-  session: Session
-  agent: Agent | undefined
-  isSelected: boolean
-  onClick: () => void
-  pendingCount: number
+  session: Session;
+  agent: Agent | undefined;
+  isSelected: boolean;
+  onClick: () => void;
+  pendingCount: number;
 }
 
-function SessionItem({ session, agent, isSelected, onClick, pendingCount }: SessionItemProps) {
+function SessionItem({
+  session,
+  agent,
+  isSelected,
+  onClick,
+  pendingCount,
+}: SessionItemProps) {
   const stateConfig = {
     active: { icon: Loader2, color: "text-blue-500", animate: true },
     done: { icon: CheckCircle2, color: "text-green-500", animate: false },
     failed: { icon: XCircle, color: "text-red-500", animate: false },
-  }
+  };
 
-  const config = stateConfig[session.state]
-  const StateIcon = config.icon
+  const config = stateConfig[session.state];
+  const StateIcon = config.icon;
 
   return (
     <ContextMenu>
@@ -81,9 +89,9 @@ function SessionItem({ session, agent, isSelected, onClick, pendingCount }: Sess
         <button
           onClick={onClick}
           className={cn(
-            "w-full text-left px-3 py-2 rounded-md transition-all text-sm",
+            "w-full rounded-md px-3 py-2 text-left text-sm transition-all",
             "hover:bg-muted",
-            isSelected && "bg-accent text-primary"
+            isSelected && "bg-accent text-primary",
           )}
         >
           <div className="flex items-center gap-2">
@@ -91,22 +99,27 @@ function SessionItem({ session, agent, isSelected, onClick, pendingCount }: Sess
               className={cn(
                 "size-3.5 shrink-0",
                 config.color,
-                config.animate && "animate-spin"
+                config.animate && "animate-spin",
               )}
             />
             <span className="flex-1 truncate">{session.goal}</span>
             {pendingCount > 0 && (
-              <Badge className="text-[9px] h-4 px-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+              <Badge className="h-4 bg-yellow-100 px-1 text-[9px] text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
                 {pendingCount}
               </Badge>
             )}
           </div>
           {agent && (
-            <div className="flex items-center gap-1 mt-0.5 ml-5 text-xs text-muted-foreground">
+            <div className="text-muted-foreground mt-0.5 ml-5 flex items-center gap-1 text-xs">
               <Cpu className="size-2.5" />
               <span>{agent.name}</span>
               <span className="mx-1">·</span>
-              <span>{new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span>
+                {new Date(session.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
             </div>
           )}
         </button>
@@ -136,7 +149,7 @@ function SessionItem({ session, agent, isSelected, onClick, pendingCount }: Sess
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
-  )
+  );
 }
 
 // ============================================================================
@@ -144,19 +157,19 @@ function SessionItem({ session, agent, isSelected, onClick, pendingCount }: Sess
 // ============================================================================
 
 interface RepoGroupProps {
-  repo: Repository
-  sessions: Session[]
-  agents: Agent[]
-  isExpanded: boolean
-  isSelected: boolean
-  selectedSession: Session | null
-  isCreatingNewSession: boolean
-  runningCount: number
-  onToggle: () => void
-  onSelectSession: (session: Session | null) => void
-  onNewSession: () => void
-  onDelete: () => void
-  getPendingCount: (sessionId: string) => number
+  repo: Repository;
+  sessions: Array<Session>;
+  agents: Array<Agent>;
+  isExpanded: boolean;
+  isSelected: boolean;
+  selectedSession: Session | null;
+  isCreatingNewSession: boolean;
+  runningCount: number;
+  onToggle: () => void;
+  onSelectSession: (session: Session | null) => void;
+  onNewSession: () => void;
+  onDelete: () => void;
+  getPendingCount: (sessionId: string) => number;
 }
 
 function RepoGroup({
@@ -174,17 +187,14 @@ function RepoGroup({
   onDelete,
   getPendingCount,
 }: RepoGroupProps) {
-  const activeSessions = sessions.filter((s) => s.state === "active")
-  const historySessions = sessions.filter((s) => s.state !== "active")
-  const totalActive = activeSessions.length
+  const activeSessions = sessions.filter((s) => s.state === "active");
+  const historySessions = sessions.filter((s) => s.state !== "active");
+  const totalActive = activeSessions.length;
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
       <div
-        className={cn(
-          "rounded-lg transition-all",
-          isSelected && "bg-muted"
-        )}
+        className={cn("rounded-lg transition-all", isSelected && "bg-muted")}
       >
         {/* Repo Header with Context Menu */}
         <ContextMenu>
@@ -192,28 +202,28 @@ function RepoGroup({
             <CollapsibleTrigger asChild>
               <button
                 className={cn(
-                  "w-full flex items-center gap-2 px-3 py-2.5 text-left rounded-lg transition-all",
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all",
                   "hover:bg-muted",
-                  isExpanded && "bg-muted"
+                  isExpanded && "bg-muted",
                 )}
               >
                 <ChevronRight
                   className={cn(
-                    "size-4 text-muted-foreground transition-transform",
-                    isExpanded && "rotate-90"
+                    "text-muted-foreground size-4 transition-transform",
+                    isExpanded && "rotate-90",
                   )}
                 />
-                <FolderGit2 className="size-4 text-primary" />
-                <div className="flex-1 min-w-0">
+                <FolderGit2 className="text-primary size-4" />
+                <div className="min-w-0 flex-1">
                   <span className="text-sm font-medium">{repo.name}</span>
                 </div>
                 {totalActive > 0 && (
-                  <Badge variant="outline" className="text-[10px] h-5">
+                  <Badge variant="outline" className="h-5 text-[10px]">
                     {totalActive}
                   </Badge>
                 )}
                 {runningCount > 0 && (
-                  <Badge className="text-[10px] h-5 bg-green-100 text-green-700 border-green-500 dark:bg-green-900 dark:text-green-300">
+                  <Badge className="h-5 border-green-500 bg-green-100 text-[10px] text-green-700 dark:bg-green-900 dark:text-green-300">
                     {runningCount}
                   </Badge>
                 )}
@@ -248,9 +258,9 @@ function RepoGroup({
 
         {/* Expanded Content */}
         <CollapsibleContent>
-          <div className="pl-4 pr-2 pb-2 space-y-1">
+          <div className="space-y-1 pr-2 pb-2 pl-4">
             {/* Repo Info */}
-            <div className="flex items-center gap-2 px-3 py-1 text-xs text-muted-foreground">
+            <div className="text-muted-foreground flex items-center gap-2 px-3 py-1 text-xs">
               <GitBranch className="size-3" />
               <span>{repo.branch}</span>
             </div>
@@ -259,9 +269,9 @@ function RepoGroup({
             <button
               onClick={onNewSession}
               className={cn(
-                "w-full flex items-center gap-2 px-3 py-2 rounded-md transition-all text-sm",
+                "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-all",
                 "hover:bg-accent text-primary",
-                isCreatingNewSession && isSelected && "bg-accent"
+                isCreatingNewSession && isSelected && "bg-accent",
               )}
             >
               <MessageSquarePlus className="size-3.5" />
@@ -271,7 +281,7 @@ function RepoGroup({
             {/* Active Sessions */}
             {activeSessions.length > 0 && (
               <div className="pt-1">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-3 py-1">
+                <p className="text-muted-foreground px-3 py-1 text-[10px] font-medium tracking-wider uppercase">
                   Active
                 </p>
                 {activeSessions.map((session) => (
@@ -279,7 +289,10 @@ function RepoGroup({
                     key={session.id}
                     session={session}
                     agent={agents.find((a) => a.id === session.agentId)}
-                    isSelected={selectedSession?.id === session.id && !isCreatingNewSession}
+                    isSelected={
+                      selectedSession?.id === session.id &&
+                      !isCreatingNewSession
+                    }
                     onClick={() => onSelectSession(session)}
                     pendingCount={getPendingCount(session.id)}
                   />
@@ -290,7 +303,7 @@ function RepoGroup({
             {/* History Sessions */}
             {historySessions.length > 0 && (
               <div className="pt-1">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-3 py-1">
+                <p className="text-muted-foreground px-3 py-1 text-[10px] font-medium tracking-wider uppercase">
                   History
                 </p>
                 {historySessions.slice(0, 5).map((session) => (
@@ -298,13 +311,16 @@ function RepoGroup({
                     key={session.id}
                     session={session}
                     agent={agents.find((a) => a.id === session.agentId)}
-                    isSelected={selectedSession?.id === session.id && !isCreatingNewSession}
+                    isSelected={
+                      selectedSession?.id === session.id &&
+                      !isCreatingNewSession
+                    }
                     onClick={() => onSelectSession(session)}
                     pendingCount={getPendingCount(session.id)}
                   />
                 ))}
                 {historySessions.length > 5 && (
-                  <p className="text-xs text-muted-foreground px-3 py-1">
+                  <p className="text-muted-foreground px-3 py-1 text-xs">
                     +{historySessions.length - 5} more
                   </p>
                 )}
@@ -313,7 +329,7 @@ function RepoGroup({
 
             {/* Empty State */}
             {sessions.length === 0 && (
-              <p className="text-xs text-muted-foreground px-3 py-2">
+              <p className="text-muted-foreground px-3 py-2 text-xs">
                 No sessions yet
               </p>
             )}
@@ -321,7 +337,7 @@ function RepoGroup({
         </CollapsibleContent>
       </div>
     </Collapsible>
-  )
+  );
 }
 
 // ============================================================================
@@ -342,69 +358,84 @@ export function UnifiedSidebar({
   onDeleteRepository,
   getPendingCount,
 }: UnifiedSidebarProps) {
+  const [searchQuery, setSearchQuery] = useState("");
   // Track which repos are expanded
   const [expandedRepos, setExpandedRepos] = useState<Set<string>>(() => {
-    if (selectedRepo) return new Set([selectedRepo])
-    return new Set()
-  })
+    if (selectedRepo) return new Set([selectedRepo]);
+    return new Set();
+  });
+
+  const filteredSessions = sessions.filter((session) =>
+    session.goal.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   const toggleRepo = (repoName: string) => {
     setExpandedRepos((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(repoName)) {
-        next.delete(repoName)
+        next.delete(repoName);
       } else {
-        next.add(repoName)
+        next.add(repoName);
       }
-      return next
-    })
-    onSelectRepo(repoName)
-  }
+      return next;
+    });
+    onSelectRepo(repoName);
+  };
 
   const handleNewSession = (repoName: string) => {
-    setExpandedRepos((prev) => new Set(prev).add(repoName))
-    onSelectRepo(repoName)
-    onNewSession(repoName)
-  }
+    setExpandedRepos((prev) => new Set(prev).add(repoName));
+    onSelectRepo(repoName);
+    onNewSession(repoName);
+  };
 
   const handleSelectSession = (session: Session | null) => {
     if (!session) {
-      onSelectSession(null)
-      return
+      onSelectSession(null);
+      return;
     }
-    setExpandedRepos((prev) => new Set(prev).add(session.repoName))
-    onSelectRepo(session.repoName)
-    onSelectSession(session)
-  }
+    setExpandedRepos((prev) => new Set(prev).add(session.repoName));
+    onSelectRepo(session.repoName);
+    onSelectSession(session);
+  };
 
   // Group sessions by repo
-  const sessionsByRepo = sessions.reduce((acc, session) => {
-    if (!acc[session.repoName]) {
-      acc[session.repoName] = []
-    }
-    acc[session.repoName].push(session)
-    return acc
-  }, {} as Record<string, Session[]>)
+  const sessionsByRepo = filteredSessions.reduce(
+    (acc, session) => {
+      if (!acc[session.repoName]) {
+        acc[session.repoName] = [];
+      }
+      acc[session.repoName].push(session);
+      return acc;
+    },
+    {} as Record<string, Array<Session>>,
+  );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden border-r border-border bg-card">
+    <div className="border-border bg-card flex h-full flex-col overflow-hidden border-r">
       {/* Header */}
-      <div className="flex-none p-3 border-b border-border">
-        <div className="flex items-center justify-between">
+      <div className="border-border flex-none border-b p-3">
+        <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Workspace</h2>
           <Button variant="ghost" size="icon" className="size-7">
             <Plus className="size-4" />
           </Button>
         </div>
+        <div className="relative">
+          <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4" />
+          <Input
+            placeholder="Search sessions..."
+            className="border-border bg-background h-9 rounded-lg pl-8 text-xs"
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
-
       {/* Repository List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 space-y-1 overflow-y-auto p-2">
         {repositories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center px-4">
-            <FolderGit2 className="size-10 text-muted mb-2" />
-            <p className="text-sm text-muted-foreground">No repositories</p>
-            <p className="text-xs text-muted-foreground mt-1">
+          <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+            <FolderGit2 className="text-muted mb-2 size-10" />
+            <p className="text-muted-foreground text-sm">No repositories</p>
+            <p className="text-muted-foreground mt-1 text-xs">
               Add a repository to get started
             </p>
           </div>
@@ -418,7 +449,9 @@ export function UnifiedSidebar({
               isExpanded={expandedRepos.has(repo.name)}
               isSelected={selectedRepo === repo.name}
               selectedSession={selectedSession}
-              isCreatingNewSession={isCreatingNewSession && selectedRepo === repo.name}
+              isCreatingNewSession={
+                isCreatingNewSession && selectedRepo === repo.name
+              }
               runningCount={runningCounts[repo.name] ?? 0}
               onToggle={() => toggleRepo(repo.name)}
               onSelectSession={handleSelectSession}
@@ -430,5 +463,5 @@ export function UnifiedSidebar({
         )}
       </div>
     </div>
-  )
+  );
 }

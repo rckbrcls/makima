@@ -60,7 +60,7 @@ export interface Agent {
   provider: AgentProvider;
   model?: string;
   status: AgentStatus;
-  skills: AgentSkill[];
+  skills: Array<AgentSkill>;
   createdAt: string;
   updatedAt: string;
 }
@@ -124,7 +124,7 @@ export interface Artifact {
 // ============================================================================
 
 export interface AgentWithRepos extends Agent {
-  repos: string[];
+  repos: Array<string>;
   currentSession?: Session;
 }
 
@@ -133,10 +133,10 @@ export interface ApprovalWithAction extends Approval {
 }
 
 export interface AgentDashboardState {
-  agents: AgentWithRepos[];
-  sessions: Session[];
-  pendingApprovals: ApprovalWithAction[];
-  recentEvents: AgentEvent[];
+  agents: Array<AgentWithRepos>;
+  sessions: Array<Session>;
+  pendingApprovals: Array<ApprovalWithAction>;
+  recentEvents: Array<AgentEvent>;
   globalMode: BridgeMode;
 }
 
@@ -148,8 +148,8 @@ export interface CreateAgentRequest {
   name: string;
   provider: AgentProvider;
   model?: string;
-  skills: AgentSkill[];
-  repos: string[];
+  skills: Array<AgentSkill>;
+  repos: Array<string>;
 }
 
 export interface StartSessionRequest {
@@ -182,12 +182,12 @@ export interface ApprovalCardData {
 
 export interface SessionWithDetails extends Session {
   agent: Agent;
-  actions: Action[];
-  events: AgentEvent[];
+  actions: Array<Action>;
+  events: Array<AgentEvent>;
 }
 
 export interface SessionWithAgents extends Session {
-  agents: Agent[];
+  agents: Array<Agent>;
   actionCount: number;
   pendingCount: number;
 }
@@ -205,7 +205,7 @@ export interface AgentWithStats extends Agent {
 
 export interface RunCommandPayload {
   command: string;
-  args?: string[];
+  args?: Array<string>;
   cwd?: string;
   timeout?: number;
   safeToAutoRun?: boolean;
@@ -243,7 +243,7 @@ export interface GitPayload {
   operation: "status" | "diff" | "checkout" | "commit";
   branch?: string;
   message?: string;
-  files?: string[];
+  files?: Array<string>;
 }
 
 export interface NotifyPayload {
@@ -262,10 +262,10 @@ export interface AgentQuestion {
   id: string;
   sessionId: string;
   question: string;
-  options?: AgentQuestionOption[];
+  options?: Array<AgentQuestionOption>;
   multiSelect?: boolean;
   answered: boolean;
-  answer?: string | string[];
+  answer?: string | Array<string>;
   createdAt: string;
 }
 
@@ -314,7 +314,7 @@ export interface ModeChangedEvent {
 export type ActionRisk = "low" | "medium" | "high";
 
 export const getActionRisk = (actionType: ActionType): ActionRisk => {
-  const lowRisk: ActionType[] = [
+  const lowRisk: Array<ActionType> = [
     "read_file",
     "list_files",
     "git_status",
@@ -322,7 +322,7 @@ export const getActionRisk = (actionType: ActionType): ActionRisk => {
     "notify",
     "sleep",
   ];
-  const mediumRisk: ActionType[] = ["search_web", "open_url"];
+  const mediumRisk: Array<ActionType> = ["search_web", "open_url"];
 
   if (lowRisk.includes(actionType)) return "low";
   if (mediumRisk.includes(actionType)) return "medium";

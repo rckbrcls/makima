@@ -2,11 +2,11 @@ import { create } from "zustand";
 import type {
   Command,
   DashboardState,
+  ExecutionLogLine,
   NewRepositoryInput,
   Repository,
   RunCommandInput,
   StopCommandInput,
-  ExecutionLogLine,
 } from "@/components/repos/types";
 import { toast } from "@/components/ui/sonner";
 import { mockCommandHubDashboard } from "@/mocks";
@@ -35,7 +35,7 @@ interface CommandStore extends DashboardState {
   addCommand: (command: Command) => Promise<void>;
   updateCommand: (command: Command) => Promise<void>;
   deleteCommand: (repo: string, name: string) => Promise<boolean>;
-  getExecutionLogs: (executionId: number) => Promise<ExecutionLogLine[]>;
+  getExecutionLogs: (executionId: number) => Promise<Array<ExecutionLogLine>>;
 
   // State setters (internal use mostly, but exposed if needed)
   setState: (fn: (state: DashboardState) => Partial<DashboardState>) => void;
@@ -298,7 +298,7 @@ export const useCommandStore = create<CommandStore>((set, get) => ({
       return [
         { line: "Mock log line 1", stream: "stdout" as const },
         { line: "Mock log line 2", stream: "stdout" as const },
-      ] as ExecutionLogLine[];
+      ] as Array<ExecutionLogLine>;
     } catch {
       return [];
     }

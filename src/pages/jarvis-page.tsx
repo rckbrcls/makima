@@ -1,34 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { TextureOverlay } from "@/components/ui/texture-overlay"
-import { ConfigPanel } from "@/components/jarvis/config-panel"
-import {
-  AutomationKey,
-  ChannelKey,
-  IntegrationKey,
-  MemoryKey,
-  NotificationKey,
-  PluginKey,
-  SafetyKey,
-  ToolKey,
-  automationDefaults,
-  channelDefaults,
-  integrationDefaults,
-  memoryDefaults,
-  notificationDefaults,
-  pluginDefaults,
-  safetyDefaults,
-  toolDefaults,
-} from "@/components/jarvis/config-types"
-import { cn } from "@/lib/utils"
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -69,83 +39,122 @@ import {
   Wrench,
   XCircle,
   Zap,
-} from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type {
+  AutomationKey,
+  ChannelKey,
+  IntegrationKey,
+  MemoryKey,
+  NotificationKey,
+  PluginKey,
+  SafetyKey,
+  ToolKey} from "@/components/jarvis/config-types";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { TextureOverlay } from "@/components/ui/texture-overlay";
+import { ConfigPanel } from "@/components/jarvis/config-panel";
+import {
+  automationDefaults,
+  channelDefaults,
+  integrationDefaults,
+  memoryDefaults,
+  notificationDefaults,
+  pluginDefaults,
+  safetyDefaults,
+  toolDefaults,
+} from "@/components/jarvis/config-types";
+import { cn } from "@/lib/utils";
 
-
-
-
-
-type ConversationStatus = "idle" | "running" | "error"
-type ConversationState = "active" | "finished" | "error"
-type GlobalState = "ok" | "warning" | "error"
-type MessageState = "normal" | "thinking" | "streaming" | "error"
-type MessageRole = "user" | "assistant"
-type RunStatus = "running" | "success" | "error" | "cancelled"
+type ConversationStatus = "idle" | "running" | "error";
+type ConversationState = "active" | "finished" | "error";
+type GlobalState = "ok" | "warning" | "error";
+type MessageState = "normal" | "thinking" | "streaming" | "error";
+type MessageRole = "user" | "assistant";
+type RunStatus = "running" | "success" | "error" | "cancelled";
 
 interface MessageMeta {
-  provider: string
-  model: string
-  tone: string
+  provider: string;
+  model: string;
+  tone: string;
 }
 
 interface ChatMessage {
-  id: string
-  role: MessageRole
-  state: MessageState
-  content: string
-  createdAt: number
-  meta: MessageMeta
-  streamedChars?: number
+  id: string;
+  role: MessageRole;
+  state: MessageState;
+  content: string;
+  createdAt: number;
+  meta: MessageMeta;
+  streamedChars?: number;
 }
 
 interface ExecutionStep {
-  id: string
-  label: string
-  status: "pending" | "running" | "success" | "error"
+  id: string;
+  label: string;
+  status: "pending" | "running" | "success" | "error";
 }
 
 interface ExecutionRun {
-  id: string
-  title: string
-  command: string
-  status: RunStatus
-  duration: string
-  output: string
-  startedAt: number
-  finishedAt?: number
-  summary: string
-  steps: ExecutionStep[]
-  logs: string[]
+  id: string;
+  title: string;
+  command: string;
+  status: RunStatus;
+  duration: string;
+  output: string;
+  startedAt: number;
+  finishedAt?: number;
+  summary: string;
+  steps: Array<ExecutionStep>;
+  logs: Array<string>;
 }
 
 type ChatItem =
   | { id: string; kind: "message"; message: ChatMessage }
-  | { id: string; kind: "execution"; run: ExecutionRun }
+  | { id: string; kind: "execution"; run: ExecutionRun };
 
 interface Conversation {
-  id: string
-  title: string
-  summary: string
-  status: ConversationStatus
-  state: ConversationState
-  createdAt: number
-  updatedAt: number
-  globalState?: GlobalState
-  items: ChatItem[]
+  id: string;
+  title: string;
+  summary: string;
+  status: ConversationStatus;
+  state: ConversationState;
+  createdAt: number;
+  updatedAt: number;
+  globalState?: GlobalState;
+  items: Array<ChatItem>;
 }
 
-const baseTimestamp = Date.now()
-const minutes = (value: number) => value * 60 * 1000
-const hours = (value: number) => value * 60 * 60 * 1000
+const baseTimestamp = Date.now();
+const minutes = (value: number) => value * 60 * 1000;
+const hours = (value: number) => value * 60 * 60 * 1000;
 
 const defaultMessageMeta: MessageMeta = {
   provider: "openclaw",
   model: "claw-sonic",
   tone: "balanced",
-}
+};
 
-const mockConversations: Conversation[] = [
+const mockConversations: Array<Conversation> = [
   {
     id: "conv-refactor",
     title: "Refactor repo",
@@ -162,7 +171,8 @@ const mockConversations: Conversation[] = [
           id: "msg-101",
           role: "user",
           state: "normal",
-          content: "Can you refactor the UI to be chat-first and keep the settings panel?",
+          content:
+            "Can you refactor the UI to be chat-first and keep the settings panel?",
           createdAt: baseTimestamp - hours(2),
           meta: defaultMessageMeta,
         },
@@ -249,7 +259,8 @@ const mockConversations: Conversation[] = [
           id: "msg-202",
           role: "assistant",
           state: "normal",
-          content: "Ok. I will assemble the workflow with cache and sequential steps.",
+          content:
+            "Ok. I will assemble the workflow with cache and sequential steps.",
           createdAt: baseTimestamp - hours(6) + minutes(14),
           meta: { provider: "openclaw", model: "claw-sonic", tone: "direct" },
         },
@@ -287,9 +298,14 @@ const mockConversations: Conversation[] = [
           id: "msg-203",
           role: "assistant",
           state: "normal",
-          content: "CI applied and validated. Do you want to add a deploy preview?",
+          content:
+            "CI applied and validated. Do you want to add a deploy preview?",
           createdAt: baseTimestamp - hours(6) + minutes(17),
-          meta: { provider: "openclaw", model: "claw-vision", tone: "balanced" },
+          meta: {
+            provider: "openclaw",
+            model: "claw-vision",
+            tone: "balanced",
+          },
         },
       },
     ],
@@ -323,7 +339,8 @@ const mockConversations: Conversation[] = [
           id: "msg-302",
           role: "assistant",
           state: "error",
-          content: "Failed to resolve external dependencies. I need permission to review the full logs.",
+          content:
+            "Failed to resolve external dependencies. I need permission to review the full logs.",
           createdAt: baseTimestamp - hours(9) + minutes(33),
           meta: defaultMessageMeta,
         },
@@ -371,7 +388,8 @@ const mockConversations: Conversation[] = [
           id: "msg-401",
           role: "user",
           state: "normal",
-          content: "I need to migrate the entire layout without breaking the configuration.",
+          content:
+            "I need to migrate the entire layout without breaking the configuration.",
           createdAt: baseTimestamp - hours(14) + minutes(5),
           meta: { provider: "openclaw", model: "claw-sonic", tone: "concise" },
         },
@@ -407,7 +425,8 @@ const mockConversations: Conversation[] = [
           id: "msg-404",
           role: "assistant",
           state: "normal",
-          content: "Step 2: embed settings in the Expandable and maintain local states.",
+          content:
+            "Step 2: embed settings in the Expandable and maintain local states.",
           createdAt: baseTimestamp - hours(14) + minutes(11),
           meta: { provider: "openclaw", model: "claw-sonic", tone: "concise" },
         },
@@ -444,7 +463,8 @@ const mockConversations: Conversation[] = [
           id: "msg-405",
           role: "assistant",
           state: "normal",
-          content: "I have a draft. Do you want me to prepare the list of mocks?",
+          content:
+            "I have a draft. Do you want me to prepare the list of mocks?",
           createdAt: baseTimestamp - hours(14) + minutes(14),
           meta: { provider: "openclaw", model: "gpt-4o", tone: "creative" },
         },
@@ -480,7 +500,8 @@ const mockConversations: Conversation[] = [
           id: "msg-406",
           role: "assistant",
           state: "normal",
-          content: "No problem. I will continue in mock mode to validate flows.",
+          content:
+            "No problem. I will continue in mock mode to validate flows.",
           createdAt: baseTimestamp - hours(13) + minutes(24),
           meta: { provider: "openclaw", model: "gpt-4o", tone: "balanced" },
         },
@@ -497,127 +518,163 @@ const mockConversations: Conversation[] = [
     updatedAt: baseTimestamp - minutes(10),
     items: [],
   },
-]
+];
 
 const mockResponsePool = [
   "Understood. I will focus on the chat-first experience and keep the settings panel intact.",
   "Perfect. I will set up rich mocks for executions, errors, and local history.",
   "Right. I will simulate streaming and different states for openClaw.",
-]
+];
 
-const conversationStatusMeta: Record<ConversationStatus, { label: string; className: string }> = {
+const conversationStatusMeta: Record<
+  ConversationStatus,
+  { label: string; className: string }
+> = {
   idle: { label: "Idle", className: "border-emerald-400 text-emerald-400" },
-  running: { label: "Running", className: "border-amber-400 text-amber-400" },
+  running: { label: "Running", className: "border-yellow-400 text-yellow-400" },
   error: { label: "Error", className: "border-rose-400 text-rose-400" },
-}
+};
 
-const conversationStateMeta: Record<ConversationState, { label: string; className: string }> = {
+const conversationStateMeta: Record<
+  ConversationState,
+  { label: string; className: string }
+> = {
   active: { label: "Active", className: "border-sky-400 text-sky-400" },
-  finished: { label: "Finished", className: "border-emerald-400 text-emerald-400" },
+  finished: {
+    label: "Finished",
+    className: "border-emerald-400 text-emerald-400",
+  },
   error: { label: "Error", className: "border-rose-400 text-rose-400" },
-}
+};
 
-const runStatusMeta: Record<RunStatus, { label: string; className: string; icon: LucideIcon }> = {
-  running: { label: "Running", className: "border-amber-400 text-amber-400", icon: Loader2 },
-  success: { label: "Success", className: "border-emerald-400 text-emerald-400", icon: CheckCircle2 },
-  error: { label: "Error", className: "border-rose-400 text-rose-400", icon: XCircle },
-  cancelled: { label: "Interrupted", className: "border-orange-400 text-orange-400", icon: PauseCircle },
-}
+const runStatusMeta: Record<
+  RunStatus,
+  { label: string; className: string; icon: LucideIcon }
+> = {
+  running: {
+    label: "Running",
+    className: "border-yellow-400 text-yellow-400",
+    icon: Loader2,
+  },
+  success: {
+    label: "Success",
+    className: "border-emerald-400 text-emerald-400",
+    icon: CheckCircle2,
+  },
+  error: {
+    label: "Error",
+    className: "border-rose-400 text-rose-400",
+    icon: XCircle,
+  },
+  cancelled: {
+    label: "Interrupted",
+    className: "border-orange-400 text-orange-400",
+    icon: PauseCircle,
+  },
+};
 
 const inputStateMeta = {
   idle: { label: "Idle", className: "bg-emerald-400" },
-  thinking: { label: "Thinking", className: "bg-amber-400" },
+  thinking: { label: "Thinking", className: "bg-yellow-400" },
   executing: { label: "Executing", className: "bg-sky-400" },
-}
+};
 
 const formatRelativeTime = (timestamp: number) => {
-  const diff = Math.max(0, Date.now() - timestamp)
-  const diffMinutes = Math.floor(diff / 60000)
-  if (diffMinutes < 1) return "now"
-  if (diffMinutes < 60) return `${diffMinutes}m`
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours}h`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays}d`
-}
+  const diff = Math.max(0, Date.now() - timestamp);
+  const diffMinutes = Math.floor(diff / 60000);
+  if (diffMinutes < 1) return "now";
+  if (diffMinutes < 60) return `${diffMinutes}m`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d`;
+};
 
 const formatClock = (timestamp: number) =>
-  new Date(timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+  new Date(timestamp).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 const getConversationPreview = (conversation: Conversation) => {
-  const lastItem = conversation.items[conversation.items.length - 1]
-  if (!lastItem) return "No messages yet."
-  if (lastItem.kind === "execution") return `Run: ${lastItem.run.title}`
-  if (!lastItem.message.content) return "No messages yet."
+  const lastItem = conversation.items[conversation.items.length - 1];
+  if (!lastItem) return "No messages yet.";
+  if (lastItem.kind === "execution") return `Run: ${lastItem.run.title}`;
+  if (!lastItem.message.content) return "No messages yet.";
   return lastItem.message.content.length > 80
     ? `${lastItem.message.content.slice(0, 80)}...`
-    : lastItem.message.content
-}
+    : lastItem.message.content;
+};
 
-const buildMessageId = () => `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+const buildMessageId = () =>
+  `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
 export function JarvisPage() {
-  const [profileName, setProfileName] = useState("Jarvis")
-  const [codename, setCodename] = useState("openClaw")
-  const [environment, setEnvironment] = useState("dev")
-  const [region, setRegion] = useState("us-east")
-  const [language, setLanguage] = useState("en-US")
-  const [tone, setTone] = useState("balanced")
-  const [provider, setProvider] = useState("openclaw")
-  const [model, setModel] = useState("claw-sonic")
-  const [temperature, setTemperature] = useState("0.4")
-  const [maxTokens, setMaxTokens] = useState("4096")
-  const [contextWindow, setContextWindow] = useState("128k")
+  const [profileName, setProfileName] = useState("Jarvis");
+  const [codename, setCodename] = useState("openClaw");
+  const [environment, setEnvironment] = useState("dev");
+  const [region, setRegion] = useState("us-east");
+  const [language, setLanguage] = useState("en-US");
+  const [tone, setTone] = useState("balanced");
+  const [provider, setProvider] = useState("openclaw");
+  const [model, setModel] = useState("claw-sonic");
+  const [temperature, setTemperature] = useState("0.4");
+  const [maxTokens, setMaxTokens] = useState("4096");
+  const [contextWindow, setContextWindow] = useState("128k");
   const [systemPrompt, setSystemPrompt] = useState(
-    "You are Jarvis, an openClaw orchestrator, focused on precision and safety."
-  )
-  const [tools, setTools] = useState(toolDefaults)
-  const [channels, setChannels] = useState(channelDefaults)
-  const [plugins, setPlugins] = useState(pluginDefaults)
-  const [safety, setSafety] = useState(safetyDefaults)
-  const [automation, setAutomation] = useState(automationDefaults)
-  const [memory, setMemory] = useState(memoryDefaults)
-  const [integrations, setIntegrations] = useState(integrationDefaults)
-  const [notifications, setNotifications] = useState(notificationDefaults)
-  const [logLevel, setLogLevel] = useState("info")
-  const [traceSample, setTraceSample] = useState("15")
-  const [runtimeConcurrency, setRuntimeConcurrency] = useState("3")
-  const [executionTimeout, setExecutionTimeout] = useState("180")
-  const [gpuEnabled, setGpuEnabled] = useState(false)
+    "You are Jarvis, an openClaw orchestrator, focused on precision and safety.",
+  );
+  const [tools, setTools] = useState(toolDefaults);
+  const [channels, setChannels] = useState(channelDefaults);
+  const [plugins, setPlugins] = useState(pluginDefaults);
+  const [safety, setSafety] = useState(safetyDefaults);
+  const [automation, setAutomation] = useState(automationDefaults);
+  const [memory, setMemory] = useState(memoryDefaults);
+  const [integrations, setIntegrations] = useState(integrationDefaults);
+  const [notifications, setNotifications] = useState(notificationDefaults);
+  const [logLevel, setLogLevel] = useState("info");
+  const [traceSample, setTraceSample] = useState("15");
+  const [runtimeConcurrency, setRuntimeConcurrency] = useState("3");
+  const [executionTimeout, setExecutionTimeout] = useState("180");
+  const [gpuEnabled, setGpuEnabled] = useState(false);
 
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations)
+  const [conversations, setConversations] =
+    useState<Array<Conversation>>(mockConversations);
   const [activeConversationId, setActiveConversationId] = useState<string>(
-    mockConversations[0]?.id ?? "\""
-  )
-  const [composerValue, setComposerValue] = useState("")
-  const [composerRows, setComposerRows] = useState(1)
-  const [isConfigOpen, setIsConfigOpen] = useState(false)
-  const [activeRunId, setActiveRunId] = useState<string | null>(null)
+    mockConversations[0]?.id ?? '"',
+  );
+  const [composerValue, setComposerValue] = useState("");
+  const [composerRows, setComposerRows] = useState(1);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
   useEffect(() => {
-    const lines = composerValue.split("\n").length
-    setComposerRows(Math.min(6, Math.max(1, lines)))
-  }, [composerValue])
+    const lines = composerValue.split("\n").length;
+    setComposerRows(Math.min(6, Math.max(1, lines)));
+  }, [composerValue]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setConversations((prev) => {
-        let didUpdate = false
+        let didUpdate = false;
         const next = prev.map((conversation) => {
-          let itemsChanged = false
-          let hasStreaming = false
-          let hasThinking = false
+          let itemsChanged = false;
+          let hasStreaming = false;
+          let hasThinking = false;
           const nextItems = conversation.items.map((item) => {
-            if (item.kind !== "message") return item
+            if (item.kind !== "message") return item;
             if (item.message.state === "streaming") {
-              const current = item.message.streamedChars ?? 0
-              if (current >= item.message.content.length) return item
-              const step = Math.floor(Math.random() * 4) + 2
-              const nextCount = Math.min(item.message.content.length, current + step)
-              const done = nextCount >= item.message.content.length
-              itemsChanged = true
-              didUpdate = true
-              hasStreaming = !done
+              const current = item.message.streamedChars ?? 0;
+              if (current >= item.message.content.length) return item;
+              const step = Math.floor(Math.random() * 4) + 2;
+              const nextCount = Math.min(
+                item.message.content.length,
+                current + step,
+              );
+              const done = nextCount >= item.message.content.length;
+              itemsChanged = true;
+              didUpdate = true;
+              hasStreaming = !done;
               return {
                 ...item,
                 message: {
@@ -625,116 +682,124 @@ export function JarvisPage() {
                   streamedChars: nextCount,
                   state: done ? "normal" : "streaming",
                 },
-              }
+              };
             }
             if (item.message.state === "thinking") {
-              hasThinking = true
+              hasThinking = true;
             }
-            return item
-          })
+            return item;
+          });
 
-          if (!itemsChanged) return conversation
+          if (!itemsChanged) return conversation;
 
           const hasRunningExecution = nextItems.some(
-            (item) => item.kind === "execution" && item.run.status === "running"
-          )
+            (item) =>
+              item.kind === "execution" && item.run.status === "running",
+          );
 
           const nextStatus: ConversationStatus =
             conversation.state === "error"
               ? "error"
               : hasRunningExecution || hasStreaming || hasThinking
                 ? "running"
-                : "idle"
+                : "idle";
 
           return {
             ...conversation,
             items: nextItems,
             status: nextStatus,
-          }
-        })
+          };
+        });
 
-        return didUpdate ? next : prev
-      })
-    }, 90)
+        return didUpdate ? next : prev;
+      });
+    }, 90);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   const handleToolChange = (key: ToolKey, checked: boolean) => {
-    setTools((prev) => ({ ...prev, [key]: checked }))
-  }
+    setTools((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handleChannelChange = (key: ChannelKey, checked: boolean) => {
-    setChannels((prev) => ({ ...prev, [key]: checked }))
-  }
+    setChannels((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handlePluginChange = (key: PluginKey, checked: boolean) => {
-    setPlugins((prev) => ({ ...prev, [key]: checked }))
-  }
+    setPlugins((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handleSafetyChange = (key: SafetyKey, checked: boolean) => {
-    setSafety((prev) => ({ ...prev, [key]: checked }))
-  }
+    setSafety((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handleAutomationChange = (key: AutomationKey, checked: boolean) => {
-    setAutomation((prev) => ({ ...prev, [key]: checked }))
-  }
+    setAutomation((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handleMemoryChange = (key: MemoryKey, checked: boolean) => {
-    setMemory((prev) => ({ ...prev, [key]: checked }))
-  }
+    setMemory((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handleIntegrationChange = (key: IntegrationKey, checked: boolean) => {
-    setIntegrations((prev) => ({ ...prev, [key]: checked }))
-  }
+    setIntegrations((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const handleNotificationChange = (key: NotificationKey, checked: boolean) => {
-    setNotifications((prev) => ({ ...prev, [key]: checked }))
-  }
+    setNotifications((prev) => ({ ...prev, [key]: checked }));
+  };
 
   const activeConversation = useMemo(
-    () => conversations.find((conversation) => conversation.id === activeConversationId),
-    [conversations, activeConversationId]
-  )
+    () =>
+      conversations.find(
+        (conversation) => conversation.id === activeConversationId,
+      ),
+    [conversations, activeConversationId],
+  );
 
   const activeRun = useMemo(() => {
-    if (!activeRunId) return null
+    if (!activeRunId) return null;
     for (const conversation of conversations) {
       for (const item of conversation.items) {
         if (item.kind === "execution" && item.run.id === activeRunId) {
-          return item.run
+          return item.run;
         }
       }
     }
-    return null
-  }, [activeRunId, conversations])
+    return null;
+  }, [activeRunId, conversations]);
 
   const hasRunningExecution = Boolean(
     activeConversation?.items.some(
-      (item) => item.kind === "execution" && item.run.status === "running"
-    )
-  )
+      (item) => item.kind === "execution" && item.run.status === "running",
+    ),
+  );
 
   const isThinking = Boolean(
     activeConversation?.items.some(
-      (item) => item.kind === "message" && item.message.state === "thinking"
-    )
-  )
+      (item) => item.kind === "message" && item.message.state === "thinking",
+    ),
+  );
 
   const isStreaming = Boolean(
     activeConversation?.items.some(
-      (item) => item.kind === "message" && item.message.state === "streaming"
-    )
-  )
+      (item) => item.kind === "message" && item.message.state === "streaming",
+    ),
+  );
 
-  const inputState = hasRunningExecution ? "executing" : isThinking || isStreaming ? "thinking" : "idle"
+  const inputState = hasRunningExecution
+    ? "executing"
+    : isThinking || isStreaming
+      ? "thinking"
+      : "idle";
 
-  const toolCount = Object.values(tools).filter(Boolean).length
-  const channelCount = Object.values(channels).filter(Boolean).length
-  const pluginCount = Object.values(plugins).filter(Boolean).length
+  const toolCount = Object.values(tools).filter(Boolean).length;
+  const channelCount = Object.values(channels).filter(Boolean).length;
+  const pluginCount = Object.values(plugins).filter(Boolean).length;
 
   const handleNewConversation = () => {
-    const now = Date.now()
+    const now = Date.now();
     const newConversation: Conversation = {
       id: `conv-${now}`,
       title: "New conversation",
@@ -744,20 +809,21 @@ export function JarvisPage() {
       createdAt: now,
       updatedAt: now,
       items: [],
-    }
-    setConversations((prev) => [newConversation, ...prev])
-    setActiveConversationId(newConversation.id)
-  }
+    };
+    setConversations((prev) => [newConversation, ...prev]);
+    setActiveConversationId(newConversation.id);
+  };
 
   const handleSendMessage = () => {
-    if (!activeConversation || !composerValue.trim()) return
-    if (hasRunningExecution) return
+    if (!activeConversation || !composerValue.trim()) return;
+    if (hasRunningExecution) return;
 
-    const now = Date.now()
-    const messageId = buildMessageId()
-    const thinkingId = buildMessageId()
-    const streamingId = buildMessageId()
-    const responseText = mockResponsePool[Math.floor(Math.random() * mockResponsePool.length)]
+    const now = Date.now();
+    const messageId = buildMessageId();
+    const thinkingId = buildMessageId();
+    const streamingId = buildMessageId();
+    const responseText =
+      mockResponsePool[Math.floor(Math.random() * mockResponsePool.length)];
 
     const userMessage: ChatItem = {
       id: messageId,
@@ -770,7 +836,7 @@ export function JarvisPage() {
         createdAt: now,
         meta: { provider, model, tone },
       },
-    }
+    };
 
     const thinkingMessage: ChatItem = {
       id: thinkingId,
@@ -783,15 +849,16 @@ export function JarvisPage() {
         createdAt: now + 200,
         meta: { provider, model, tone },
       },
-    }
+    };
 
     setConversations((prev) =>
       prev.map((conversation) => {
-        if (conversation.id !== activeConversation.id) return conversation
+        if (conversation.id !== activeConversation.id) return conversation;
         const nextTitle =
-          conversation.title === "New conversation" || conversation.items.length === 0
+          conversation.title === "New conversation" ||
+          conversation.items.length === 0
             ? composerValue.trim().slice(0, 32)
-            : conversation.title
+            : conversation.title;
         return {
           ...conversation,
           title: nextTitle,
@@ -799,128 +866,148 @@ export function JarvisPage() {
           status: "running",
           updatedAt: now,
           items: [...conversation.items, userMessage, thinkingMessage],
-        }
-      })
-    )
+        };
+      }),
+    );
 
-    setComposerValue("")
+    setComposerValue("");
 
     setTimeout(() => {
       setConversations((prev) =>
         prev.map((conversation) => {
-          if (conversation.id !== activeConversation.id) return conversation
+          if (conversation.id !== activeConversation.id) return conversation;
 
           const nextItems = conversation.items.map((item) =>
             item.id === thinkingId
               ? {
-                id: streamingId,
-                kind: "message" as const,
-                message: {
                   id: streamingId,
-                  role: "assistant",
-                  state: "streaming",
-                  content: responseText,
-                  createdAt: Date.now(),
-                  meta: { provider, model, tone },
-                  streamedChars: 0,
-                },
-              }
-              : item
-          )
+                  kind: "message" as const,
+                  message: {
+                    id: streamingId,
+                    role: "assistant",
+                    state: "streaming",
+                    content: responseText,
+                    createdAt: Date.now(),
+                    meta: { provider, model, tone },
+                    streamedChars: 0,
+                  },
+                }
+              : item,
+          );
 
           return {
             ...conversation,
             status: "running",
             updatedAt: Date.now(),
             items: nextItems,
-          }
-        })
-      )
-    }, 650)
-  }
+          };
+        }),
+      );
+    }, 650);
+  };
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden bg-background text-foreground">
+    <div className="bg-background text-foreground relative h-full min-h-0 overflow-hidden">
       <TextureOverlay texture="noise" className="mix-blend-overlay" />
       <div className="relative z-10 flex h-full min-h-0">
-        <aside className="flex w-[280px] flex-col border-r border-border bg-card">
+        <aside className="border-border bg-card flex w-[280px] flex-col border-r">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="size-9 rounded-lg bg-muted flex items-center justify-center">
-                  <MessagesSquare className="size-4 text-primary" />
+                <div className="bg-muted flex size-9 items-center justify-center rounded-lg">
+                  <MessagesSquare className="text-primary size-4" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Chats</p>
                 </div>
               </div>
-              <Button size="icon" variant="ghost" onClick={handleNewConversation}>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleNewConversation}
+              >
                 <Plus className="size-4" />
               </Button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+          <div className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
             {conversations.map((conversation) => {
-              const statusMeta = conversationStatusMeta[conversation.status]
-              const stateMeta = conversationStateMeta[conversation.state]
-              const isActive = conversation.id === activeConversationId
+              const statusMeta = conversationStatusMeta[conversation.status];
+              const stateMeta = conversationStateMeta[conversation.state];
+              const isActive = conversation.id === activeConversationId;
 
               return (
                 <button
                   key={conversation.id}
                   onClick={() => setActiveConversationId(conversation.id)}
                   className={cn(
-                    "w-full text-left rounded-xl border p-3 transition-colors",
+                    "w-full rounded-xl border p-3 text-left transition-colors",
                     isActive
                       ? "border-primary/15 bg-primary/10"
-                      : "border-border bg-card hover:bg-muted/30"
+                      : "border-border bg-card hover:bg-muted/30",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">{conversation.title}</p>
+                        <p className="text-foreground text-sm font-medium">
+                          {conversation.title}
+                        </p>
                         {conversation.globalState === "error" ? (
                           <AlertTriangle className="size-3 text-rose-400" />
                         ) : null}
                       </div>
-                      <p className="text-xs text-muted-foreground">{conversation.summary}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {conversation.summary}
+                      </p>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-muted-foreground text-[10px]">
                       {formatRelativeTime(conversation.updatedAt)}
                     </span>
                   </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground mt-2 text-xs">
                     {getConversationPreview(conversation)}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className={cn("text-[10px]", statusMeta.className)}>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-[10px]", statusMeta.className)}
+                    >
                       {statusMeta.label}
                     </Badge>
-                    <Badge variant="outline" className={cn("text-[10px]", stateMeta.className)}>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-[10px]", stateMeta.className)}
+                    >
                       {stateMeta.label}
                     </Badge>
                   </div>
                 </button>
-              )
+              );
             })}
           </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <div className="flex flex-wrap items-start gap-4 px-6 py-4 bg-card border-b border-border">
+          <div className="bg-card border-border flex flex-wrap items-start gap-4 border-b px-6 py-4">
             <div className="flex items-start gap-3">
-              <div className="size-10 rounded-lg bg-muted flex items-center justify-center">
-                <Bot className="size-5 text-primary" />
+              <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
+                <Bot className="text-primary size-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold">{activeConversation?.title ?? "Conversations"}</h2>
+                  <h2 className="text-lg font-semibold">
+                    {activeConversation?.title ?? "Conversations"}
+                  </h2>
                   {activeConversation ? (
                     <Badge
                       variant="outline"
-                      className={cn("text-[10px]", conversationStateMeta[activeConversation.state].className)}
+                      className={cn(
+                        "text-[10px]",
+                        conversationStateMeta[activeConversation.state]
+                          .className,
+                      )}
                     >
                       {conversationStateMeta[activeConversation.state].label}
                     </Badge>
@@ -928,14 +1015,19 @@ export function JarvisPage() {
                   {activeConversation ? (
                     <Badge
                       variant="outline"
-                      className={cn("text-[10px]", conversationStatusMeta[activeConversation.status].className)}
+                      className={cn(
+                        "text-[10px]",
+                        conversationStatusMeta[activeConversation.status]
+                          .className,
+                      )}
                     >
                       {conversationStatusMeta[activeConversation.status].label}
                     </Badge>
                   ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {activeConversation?.summary ?? "Select a conversation to start."}
+                <p className="text-muted-foreground text-xs">
+                  {activeConversation?.summary ??
+                    "Select a conversation to start."}
                 </p>
               </div>
             </div>
@@ -1025,19 +1117,20 @@ export function JarvisPage() {
                     <div>
                       <p className="font-medium">Global error detected</p>
                       <p className="text-xs text-red-200">
-                        This conversation indicates a critical failure. The local history has been preserved.
+                        This conversation indicates a critical failure. The
+                        local history has been preserved.
                       </p>
                     </div>
                   </div>
                 </div>
               ) : null}
 
-              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
                 {activeConversation && activeConversation.items.length > 0 ? (
                   activeConversation.items.map((item) => {
                     if (item.kind === "execution") {
-                      const statusMeta = runStatusMeta[item.run.status]
-                      const StatusIcon = statusMeta.icon
+                      const statusMeta = runStatusMeta[item.run.status];
+                      const StatusIcon = statusMeta.icon;
 
                       return (
                         <div key={item.id} className="max-w-3xl">
@@ -1047,30 +1140,50 @@ export function JarvisPage() {
                                 <div className="flex items-start gap-3">
                                   <div
                                     className={cn(
-                                      "size-10 rounded-lg border flex items-center justify-center",
-                                      statusMeta.className
+                                      "flex size-10 items-center justify-center rounded-lg border",
+                                      statusMeta.className,
                                     )}
                                   >
                                     <StatusIcon className="size-4" />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-semibold">{item.run.title}</p>
-                                    <p className="text-xs text-muted-foreground font-mono">{item.run.command}</p>
+                                    <p className="text-sm font-semibold">
+                                      {item.run.title}
+                                    </p>
+                                    <p className="text-muted-foreground font-mono text-xs">
+                                      {item.run.command}
+                                    </p>
                                   </div>
                                 </div>
-                                <Badge variant="outline" className={cn("text-[10px]", statusMeta.className)}>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-[10px]",
+                                    statusMeta.className,
+                                  )}
+                                >
                                   {statusMeta.label}
                                 </Badge>
                               </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                              <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
                                 <span>Duration: {item.run.duration}</span>
-                                <span>Start: {formatClock(item.run.startedAt)}</span>
-                                {item.run.finishedAt ? <span>End: {formatClock(item.run.finishedAt)}</span> : null}
+                                <span>
+                                  Start: {formatClock(item.run.startedAt)}
+                                </span>
+                                {item.run.finishedAt ? (
+                                  <span>
+                                    End: {formatClock(item.run.finishedAt)}
+                                  </span>
+                                ) : null}
                               </div>
-                              <p className="text-sm text-foreground">{item.run.output}</p>
-                              <p className="text-xs text-muted-foreground">{item.run.summary}</p>
+                              <p className="text-foreground text-sm">
+                                {item.run.output}
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {item.run.summary}
+                              </p>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1081,35 +1194,58 @@ export function JarvisPage() {
                             </CardContent>
                           </Card>
                         </div>
-                      )
+                      );
                     }
 
-                    const isUser = item.message.role === "user"
-                    const isError = item.message.state === "error"
-                    const isThinkingMessage = item.message.state === "thinking"
-                    const isStreamingMessage = item.message.state === "streaming"
+                    const isUser = item.message.role === "user";
+                    const isError = item.message.state === "error";
+                    const isThinkingMessage = item.message.state === "thinking";
+                    const isStreamingMessage =
+                      item.message.state === "streaming";
                     const visibleText = isStreamingMessage
-                      ? item.message.content.slice(0, item.message.streamedChars ?? 0)
-                      : item.message.content
+                      ? item.message.content.slice(
+                          0,
+                          item.message.streamedChars ?? 0,
+                        )
+                      : item.message.content;
 
                     return (
                       <div
                         key={item.id}
-                        className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+                        className={cn(
+                          "flex w-full",
+                          isUser ? "justify-end" : "justify-start",
+                        )}
                       >
-                        <div className={cn("max-w-3xl", isUser ? "text-right" : "text-left")}
+                        <div
+                          className={cn(
+                            "max-w-3xl",
+                            isUser ? "text-right" : "text-left",
+                          )}
                         >
-                          <div className={cn("flex items-center gap-2 text-xs text-muted-foreground", isUser && "justify-end")}
+                          <div
+                            className={cn(
+                              "text-muted-foreground flex items-center gap-2 text-xs",
+                              isUser && "justify-end",
+                            )}
                           >
                             <div
                               className={cn(
-                                "size-6 rounded-full border flex items-center justify-center",
-                                isUser ? "border-primary bg-primary/10" : "border-border bg-muted"
+                                "flex size-6 items-center justify-center rounded-full border",
+                                isUser
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border bg-muted",
                               )}
                             >
-                              {isUser ? <User className="size-3" /> : <Bot className="size-3" />}
+                              {isUser ? (
+                                <User className="size-3" />
+                              ) : (
+                                <Bot className="size-3" />
+                              )}
                             </div>
-                            <span className="font-medium">{isUser ? "You" : "openClaw"}</span>
+                            <span className="font-medium">
+                              {isUser ? "You" : "openClaw"}
+                            </span>
                             <span>{formatClock(item.message.createdAt)}</span>
                             <Badge variant="outline" className="text-[9px]">
                               {item.message.meta.model}
@@ -1120,41 +1256,52 @@ export function JarvisPage() {
                           </div>
                           <div
                             className={cn(
-                              "mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed shadow-sm whitespace-pre-wrap",
+                              "mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
                               isUser
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : isError
                                   ? "border-red-900 bg-red-950 text-red-200"
-                                  : "border-border bg-card"
+                                  : "border-border bg-card",
                             )}
                           >
                             {isThinkingMessage ? (
-                              <span className="text-xs text-muted-foreground">Thinking...</span>
+                              <span className="text-muted-foreground text-xs">
+                                Thinking...
+                              </span>
                             ) : (
                               <span>
                                 {visibleText}
                                 {isStreamingMessage ? (
-                                  <span className="inline-block w-2 animate-pulse">▍</span>
+                                  <span className="inline-block w-2 animate-pulse">
+                                    ▍
+                                  </span>
                                 ) : null}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     <Card className="border-border bg-card">
-                      <CardContent className="py-8 px-6 text-center space-y-3">
+                      <CardContent className="space-y-3 px-6 py-8 text-center">
                         <p className="text-sm font-semibold">No messages yet</p>
-                        <p className="text-xs text-muted-foreground">
-                          Start the conversation. The history is local and this interface simulates memory.
+                        <p className="text-muted-foreground text-xs">
+                          Start the conversation. The history is local and this
+                          interface simulates memory.
                         </p>
                         <div className="flex flex-wrap justify-center gap-2">
-                          <Badge variant="outline" className="text-[10px]">Refactor repo</Badge>
-                          <Badge variant="outline" className="text-[10px]">Setup CI</Badge>
-                          <Badge variant="outline" className="text-[10px]">Debug build error</Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            Refactor repo
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            Setup CI
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            Debug build error
+                          </Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -1162,13 +1309,22 @@ export function JarvisPage() {
                 )}
               </div>
 
-              <div className="border-t border-border bg-card px-6 py-4">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+              <div className="border-border bg-card border-t px-6 py-4">
+                <div className="text-muted-foreground mb-2 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className={cn("size-2 rounded-full", inputStateMeta[inputState].className)} />
+                    <span
+                      className={cn(
+                        "size-2 rounded-full",
+                        inputStateMeta[inputState].className,
+                      )}
+                    />
                     <span>State: {inputStateMeta[inputState].label}</span>
                   </div>
-                  <span>{hasRunningExecution ? "Input blocked during execution" : ""}</span>
+                  <span>
+                    {hasRunningExecution
+                      ? "Input blocked during execution"
+                      : ""}
+                  </span>
                 </div>
                 <div className="flex items-end gap-3">
                   <Textarea
@@ -1194,64 +1350,75 @@ export function JarvisPage() {
         </section>
       </div>
 
-      {
-        activeRun ? (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black p-6"
-            onClick={() => setActiveRunId(null)}
+      {activeRun ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black p-6"
+          onClick={() => setActiveRunId(null)}
+        >
+          <Card
+            className="border-border bg-background max-h-[85vh] w-full max-w-4xl overflow-hidden"
+            onClick={(event) => event.stopPropagation()}
           >
-            <Card
-              className="w-full max-w-4xl max-h-[85vh] overflow-hidden border-border bg-background"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <CardHeader className="border-b border-border">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base">{activeRun.title}</CardTitle>
-                    <CardDescription>{activeRun.command}</CardDescription>
-                  </div>
-                  <Badge variant="outline" className={cn("text-[10px]", runStatusMeta[activeRun.status].className)}>
-                    {runStatusMeta[activeRun.status].label}
-                  </Badge>
+            <CardHeader className="border-border border-b">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">{activeRun.title}</CardTitle>
+                  <CardDescription>{activeRun.command}</CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2 py-6">
-                <div className="space-y-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Timeline</p>
-                  <div className="space-y-2">
-                    {activeRun.steps.map((step) => (
-                      <div
-                        key={step.id}
-                        className={cn(
-                          "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
-                          step.status === "success"
-                            ? "border-emerald-400 text-emerald-400"
-                            : step.status === "error"
-                              ? "border-rose-400 text-rose-400"
-                              : step.status === "running"
-                                ? "border-amber-400 text-amber-400"
-                                : "border-border/60 text-muted-foreground"
-                        )}
-                      >
-                        <span>{step.label}</span>
-                        <span className="text-[10px] uppercase">{step.status}</span>
-                      </div>
-                    ))}
-                  </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[10px]",
+                    runStatusMeta[activeRun.status].className,
+                  )}
+                >
+                  {runStatusMeta[activeRun.status].label}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-6 py-6 md:grid-cols-2">
+              <div className="space-y-3">
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  Timeline
+                </p>
+                <div className="space-y-2">
+                  {activeRun.steps.map((step) => (
+                    <div
+                      key={step.id}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
+                        step.status === "success"
+                          ? "border-emerald-400 text-emerald-400"
+                          : step.status === "error"
+                            ? "border-rose-400 text-rose-400"
+                            : step.status === "running"
+                              ? "border-yellow-400 text-yellow-400"
+                              : "border-border/60 text-muted-foreground",
+                      )}
+                    >
+                      <span>{step.label}</span>
+                      <span className="text-[10px] uppercase">
+                        {step.status}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-3">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Full logs</p>
-                  <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs font-mono whitespace-pre-wrap max-h-[320px] overflow-y-auto">
-                    {activeRun.logs.join("\n")}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{activeRun.summary}</p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  Full logs
+                </p>
+                <div className="border-border/60 bg-muted/30 max-h-[320px] overflow-y-auto rounded-lg border p-3 font-mono text-xs whitespace-pre-wrap">
+                  {activeRun.logs.join("\n")}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : null
-      }
+                <p className="text-muted-foreground text-xs">
+                  {activeRun.summary}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
-
-  )
+  );
 }

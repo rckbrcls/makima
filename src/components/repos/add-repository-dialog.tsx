@@ -1,11 +1,11 @@
 import {
+  
   useEffect,
   useId,
   useMemo,
   useRef,
-  useState,
-  type ReactNode,
-} from "react"
+  useState
+} from "react";
 import {
   FolderGit2,
   FolderOpen,
@@ -13,46 +13,47 @@ import {
   Link2,
   RefreshCw,
   Tag,
-} from "lucide-react"
-import { invoke, isTauri } from "@tauri-apps/api/core"
+} from "lucide-react";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import type {ReactNode} from "react";
 
-import { Button } from "@/components/ui/button"
+import type { NewRepositoryInput } from "./types";
+import { Button } from "@/components/ui/button";
 import {
   ExpandableScreen,
   ExpandableScreenContent,
   ExpandableScreenTrigger,
   useExpandableScreen,
-} from "@/components/ui/expandable-screen"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/expandable-screen";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { toast } from "@/components/ui/sonner"
-import type { NewRepositoryInput } from "./types"
+} from "@/components/ui/select";
+import { toast } from "@/components/ui/sonner";
 
 interface AddRepositoryDialogProps {
-  children: ReactNode
-  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean
+  children: ReactNode;
+  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean;
 }
 
-const defaultBranch = "main"
+const defaultBranch = "main";
 const isTauriAvailable = () => {
   try {
-    return isTauri()
+    return isTauri();
   } catch {
-    return false
+    return false;
   }
-}
+};
 
 type RepoBranches = {
-  current?: string | null
-  branches: string[]
-}
+  current?: string | null;
+  branches: Array<string>;
+};
 
 export function AddRepositoryDialog({
   children,
@@ -63,185 +64,187 @@ export function AddRepositoryDialog({
   return (
     <ExpandableScreen layoutId="add-repository-dialog">
       <ExpandableScreenTrigger>{children}</ExpandableScreenTrigger>
-      <ExpandableScreenContent className="bg-background border border-border pt-6">
+      <ExpandableScreenContent className="bg-background border-border border pt-6">
         <AddRepositoryForm onAddRepository={onAddRepository} />
       </ExpandableScreenContent>
     </ExpandableScreen>
-  )
+  );
 }
 
 function AddRepositoryForm({
   onAddRepository,
 }: {
-  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean
+  onAddRepository: (input: NewRepositoryInput) => Promise<boolean> | boolean;
 }) {
-  const { collapse } = useExpandableScreen()
-  const id = useId()
-  const nameId = `${id}-name`
-  const pathId = `${id}-path`
-  const branchId = `${id}-branch`
-  const techId = `${id}-tech`
+  const { collapse } = useExpandableScreen();
+  const id = useId();
+  const nameId = `${id}-name`;
+  const pathId = `${id}-path`;
+  const branchId = `${id}-branch`;
+  const techId = `${id}-tech`;
 
-  const [name, setName] = useState("")
-  const [path, setPath] = useState("")
-  const [branch, setBranch] = useState(defaultBranch)
-  const [tech, setTech] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoadingBranches, setIsLoadingBranches] = useState(false)
-  const [branches, setBranches] = useState<string[]>([])
-  const [canPickFolder, setCanPickFolder] = useState(false)
+  const [name, setName] = useState("");
+  const [path, setPath] = useState("");
+  const [branch, setBranch] = useState(defaultBranch);
+  const [tech, setTech] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [branches, setBranches] = useState<Array<string>>([]);
+  const [canPickFolder, setCanPickFolder] = useState(false);
 
-  const branchRef = useRef(branch)
+  const branchRef = useRef(branch);
   useEffect(() => {
-    branchRef.current = branch
-  }, [branch])
+    branchRef.current = branch;
+  }, [branch]);
 
-  const canSubmit = name.trim().length > 0 && path.trim().length > 0
+  const canSubmit = name.trim().length > 0 && path.trim().length > 0;
 
   const parsedTech = useMemo(() => {
     return tech
       .split(",")
       .map((value) => value.trim())
-      .filter(Boolean)
-  }, [tech])
+      .filter(Boolean);
+  }, [tech]);
 
   const resetForm = () => {
-    setName("")
-    setPath("")
-    setBranch(defaultBranch)
-    setTech("")
-    setBranches([])
-  }
+    setName("");
+    setPath("");
+    setBranch(defaultBranch);
+    setTech("");
+    setBranches([]);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!canSubmit || isSubmitting) return
+    event.preventDefault();
+    if (!canSubmit || isSubmitting) return;
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     const result = await onAddRepository({
       name: name.trim(),
       path: path.trim(),
       branch: branch.trim() || defaultBranch,
       tech: parsedTech,
-    })
-    setIsSubmitting(false)
+    });
+    setIsSubmitting(false);
 
     if (result !== false) {
-      resetForm()
-      collapse()
+      resetForm();
+      collapse();
     }
-  }
+  };
 
   useEffect(() => {
-    let active = true
+    let active = true;
     if (!isTauriAvailable()) {
-      setCanPickFolder(false)
-      return
+      setCanPickFolder(false);
+      return;
     }
 
     import("@tauri-apps/plugin-dialog")
       .then(() => {
-        if (active) setCanPickFolder(true)
+        if (active) setCanPickFolder(true);
       })
       .catch(() => {
-        if (active) setCanPickFolder(false)
-      })
+        if (active) setCanPickFolder(false);
+      });
 
     return () => {
-      active = false
-    }
-  }, [])
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
-    const trimmed = path.trim()
+    const trimmed = path.trim();
     if (!trimmed || !isTauriAvailable()) {
-      setBranches([])
-      return
+      setBranches([]);
+      return;
     }
 
-    let active = true
-    setIsLoadingBranches(true)
+    let active = true;
+    setIsLoadingBranches(true);
     const timer = setTimeout(async () => {
       try {
         const result = await invoke<RepoBranches>("makima_repo_branches", {
           path: trimmed,
-        })
-        if (!active) return
-        setBranches(result.branches)
+        });
+        if (!active) return;
+        setBranches(result.branches);
 
-        const current = result.current?.trim()
+        const current = result.current?.trim();
         if (
           current &&
           (!branchRef.current.trim() || branchRef.current === defaultBranch)
         ) {
-          setBranch(current)
+          setBranch(current);
         }
       } catch (error) {
-        if (!active) return
-        setBranches([])
+        if (!active) return;
+        setBranches([]);
       } finally {
-        if (active) setIsLoadingBranches(false)
+        if (active) setIsLoadingBranches(false);
       }
-    }, 400)
+    }, 400);
 
     return () => {
-      active = false
-      clearTimeout(timer)
-    }
-  }, [path])
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [path]);
 
   const handlePickFolder = async () => {
-    if (!isTauriAvailable()) return
+    if (!isTauriAvailable()) return;
     try {
-      const { open: openDialog } = await import("@tauri-apps/plugin-dialog")
+      const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
       const selection = await openDialog({
         directory: true,
         multiple: false,
-      })
+      });
       if (typeof selection === "string" && selection.trim()) {
-        setPath(selection)
+        setPath(selection);
       }
     } catch (error) {
       toast.error("Failed to open folder picker", {
         description: String(error),
-      })
+      });
     }
-  }
+  };
 
   const handleRefreshBranches = async () => {
-    if (!path.trim() || !isTauriAvailable()) return
-    setIsLoadingBranches(true)
+    if (!path.trim() || !isTauriAvailable()) return;
+    setIsLoadingBranches(true);
     try {
       const result = await invoke<RepoBranches>("makima_repo_branches", {
         path: path.trim(),
-      })
-      setBranches(result.branches)
-      const current = result.current?.trim()
+      });
+      setBranches(result.branches);
+      const current = result.current?.trim();
       if (current && (!branch.trim() || branch === defaultBranch)) {
-        setBranch(current)
+        setBranch(current);
       }
     } catch (error) {
-      setBranches([])
+      setBranches([]);
       toast.error("Failed to load branches", {
         description: String(error),
-      })
+      });
     } finally {
-      setIsLoadingBranches(false)
+      setIsLoadingBranches(false);
     }
-  }
+  };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <div className="flex flex-col space-y-1.5 p-6 pb-2 text-center sm:text-left">
-        <h2 className="text-lg font-semibold leading-none tracking-tight">Add repository</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-lg leading-none font-semibold tracking-tight">
+          Add repository
+        </h2>
+        <p className="text-muted-foreground text-sm">
           Register a local repo so Makima can run and track commands.
         </p>
       </div>
       <form className="grid gap-4 p-6 pt-2" onSubmit={handleSubmit}>
         <div className="grid gap-2">
           <Label htmlFor={nameId} className="flex items-center gap-2">
-            <FolderGit2 className="size-4 text-muted-foreground" />
+            <FolderGit2 className="text-muted-foreground size-4" />
             Repository name
           </Label>
           <Input
@@ -255,7 +258,7 @@ function AddRepositoryForm({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={pathId} className="flex items-center gap-2">
-            <Link2 className="size-4 text-muted-foreground" />
+            <Link2 className="text-muted-foreground size-4" />
             Local path
           </Label>
           <div className="flex gap-2">
@@ -280,7 +283,7 @@ function AddRepositoryForm({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={branchId} className="flex items-center gap-2">
-            <GitBranch className="size-4 text-muted-foreground" />
+            <GitBranch className="text-muted-foreground size-4" />
             Default branch
           </Label>
           <div className="flex gap-2">
@@ -307,7 +310,9 @@ function AddRepositoryForm({
               variant="outline"
               size="icon"
               onClick={handleRefreshBranches}
-              disabled={!path.trim() || isLoadingBranches || !isTauriAvailable()}
+              disabled={
+                !path.trim() || isLoadingBranches || !isTauriAvailable()
+              }
               aria-label="Refresh branches"
             >
               <RefreshCw
@@ -318,7 +323,7 @@ function AddRepositoryForm({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={techId} className="flex items-center gap-2">
-            <Tag className="size-4 text-muted-foreground" />
+            <Tag className="text-muted-foreground size-4" />
             Tech stack (comma separated)
           </Label>
           <Input
@@ -329,12 +334,8 @@ function AddRepositoryForm({
             onChange={(event) => setTech(event.target.value)}
           />
         </div>
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => collapse()}
-          >
+        <div className="flex flex-col-reverse pt-4 sm:flex-row sm:justify-end sm:space-x-2">
+          <Button type="button" variant="outline" onClick={() => collapse()}>
             Cancel
           </Button>
           <Button type="submit" disabled={!canSubmit || isSubmitting}>
@@ -343,5 +344,5 @@ function AddRepositoryForm({
         </div>
       </form>
     </div>
-  )
+  );
 }

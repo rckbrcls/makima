@@ -14,17 +14,17 @@ export function repoStatusColor(status: string): string {
 }
 
 export function filterByRepo<T extends { repo: string }>(
-  items: T[],
+  items: Array<T>,
   selectedRepo: string | null,
-): T[] {
+): Array<T> {
   if (!selectedRepo) return items;
   return items.filter((i) => i.repo === selectedRepo);
 }
 
 export function groupByRepo<T extends { repo: string }>(
-  items: T[],
-): Record<string, T[]> {
-  const map: Record<string, T[]> = {};
+  items: Array<T>,
+): Record<string, Array<T>> {
+  const map: Record<string, Array<T>> = {};
   for (const item of items) {
     (map[item.repo] ??= []).push(item);
   }
@@ -33,12 +33,12 @@ export function groupByRepo<T extends { repo: string }>(
 
 export function getRepo(
   name: string,
-  repositories: Repository[],
+  repositories: Array<Repository>,
 ): Repository | undefined {
   return repositories.find((r) => r.name === name);
 }
 
-export function computeStats(items: ExecutionHistoryItem[]): HistoryStats {
+export function computeStats(items: Array<ExecutionHistoryItem>): HistoryStats {
   if (items.length === 0)
     return { totalRuns: 0, successRate: "–", avgDuration: "–" };
   const successes = items.filter((i) => i.status === "success").length;
@@ -58,7 +58,7 @@ export function computeStats(items: ExecutionHistoryItem[]): HistoryStats {
   };
 }
 
-export function runningCount(repoName: string, commands: Command[]): number {
+export function runningCount(repoName: string, commands: Array<Command>): number {
   return commands.filter((c) => c.repo === repoName && c.status === "running")
     .length;
 }

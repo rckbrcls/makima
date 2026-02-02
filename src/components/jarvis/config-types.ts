@@ -226,7 +226,7 @@ export const channelItems: Array<{
     description: "Bridge for macOS/iOS",
     icon: Smartphone,
     tag: "Plugin required",
-    tagClassName: "border-yellow-400 text-amber-500",
+    tagClassName: "border-yellow-400 text-yellow-500",
   },
   {
     key: "webChat",

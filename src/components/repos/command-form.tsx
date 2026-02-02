@@ -1,33 +1,33 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import type { CommandType } from "./types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { languages } from "@/lib/command-hub/data/framework-commands"
-import { useTemplateSelector } from "@/hooks/use-template-selector"
-import type { CommandType } from "./types"
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { languages } from "@/lib/command-hub/data/framework-commands";
+import { useTemplateSelector } from "@/hooks/use-template-selector";
 
 interface CommandFormProps {
-  repoName: string
-  commandName: string
-  baseCommand: string
-  args: string
-  notes: string
-  onCommandNameChange: (value: string) => void
-  onBaseCommandChange: (value: string) => void
-  onArgsChange: (value: string) => void
-  onNotesChange: (value: string) => void
+  repoName: string;
+  commandName: string;
+  baseCommand: string;
+  args: string;
+  notes: string;
+  onCommandNameChange: (value: string) => void;
+  onBaseCommandChange: (value: string) => void;
+  onArgsChange: (value: string) => void;
+  onNotesChange: (value: string) => void;
   onTemplateApply?: (data: {
-    commandName: string
-    baseCommand: string
-    args: string
-    commandType: CommandType
-  }) => void
+    commandName: string;
+    baseCommand: string;
+    args: string;
+    commandType: CommandType;
+  }) => void;
 }
 
 export function CommandForm({
@@ -42,83 +42,83 @@ export function CommandForm({
   onNotesChange,
   onTemplateApply,
 }: CommandFormProps) {
-  const template = useTemplateSelector()
+  const template = useTemplateSelector();
 
   const handleLanguageChange = (languageId: string) => {
-    template.setLanguage(languageId)
+    template.setLanguage(languageId);
     if (languageId === "custom") {
-      onCommandNameChange("")
-      onBaseCommandChange("pnpm run")
-      onArgsChange("")
+      onCommandNameChange("");
+      onBaseCommandChange("pnpm run");
+      onArgsChange("");
     }
-  }
+  };
 
   const handleFrameworkChange = (frameworkId: string) => {
-    template.setFramework(frameworkId)
+    template.setFramework(frameworkId);
     if (frameworkId === "custom" || !template.selectedLanguageData) {
-      onCommandNameChange("")
-      onBaseCommandChange("pnpm run")
-      onArgsChange("")
-      return
+      onCommandNameChange("");
+      onBaseCommandChange("pnpm run");
+      onArgsChange("");
+      return;
     }
     if (template.selectedFrameworkData?.requiresPackageManager) {
-      template.setPackageManager("pnpm")
+      template.setPackageManager("pnpm");
     }
-  }
+  };
 
   const handlePackageManagerChange = (
-    packageManager: "pnpm" | "npm" | "yarn"
+    packageManager: "pnpm" | "npm" | "yarn",
   ) => {
-    template.setPackageManager(packageManager)
+    template.setPackageManager(packageManager);
     if (template.state.command !== "custom" && template.selectedCommandData) {
-      const applied = template.applyCommand()
+      const applied = template.applyCommand();
       if (applied) {
-        onBaseCommandChange(applied.baseCommand)
+        onBaseCommandChange(applied.baseCommand);
       }
     }
-  }
+  };
 
   const handleCommandChange = (commandId: string) => {
-    template.setCommand(commandId)
+    template.setCommand(commandId);
     if (commandId === "custom" || !template.selectedFrameworkData) {
-      return
+      return;
     }
-    const applied = template.applyCommand()
+    const applied = template.applyCommand();
     if (applied) {
-      onCommandNameChange(applied.commandName)
-      onBaseCommandChange(applied.baseCommand)
-      onArgsChange(applied.args)
+      onCommandNameChange(applied.commandName);
+      onBaseCommandChange(applied.baseCommand);
+      onArgsChange(applied.args);
       onTemplateApply?.({
         commandName: applied.commandName,
         baseCommand: applied.baseCommand,
         args: applied.args,
         commandType: applied.commandType,
-      })
+      });
     }
-  }
+  };
 
   const handleFieldChange = (
     field: "commandName" | "baseCommand" | "args",
-    value: string
+    value: string,
   ) => {
     if (template.state.command !== "custom") {
-      template.setCommand("custom")
+      template.setCommand("custom");
     }
     if (field === "commandName") {
-      onCommandNameChange(value)
+      onCommandNameChange(value);
     } else if (field === "baseCommand") {
-      onBaseCommandChange(value)
+      onBaseCommandChange(value);
     } else {
-      onArgsChange(value)
+      onArgsChange(value);
     }
-  }
+  };
 
   return (
     <Card>
       <CardContent>
         <div className="space-y-4">
           {!repoName && (
-            <div className="rounded-none border border-destructive/30 bg-destructive/10 p-2 text-[0.65rem] text-destructive">
+            <div className="border-destructive/30 bg-destructive/10 text-destructive rounded-none border p-2 text-[0.65rem]">
               No repository selected. Please select a repository to continue.
             </div>
           )}
@@ -129,7 +129,7 @@ export function CommandForm({
             <CardContent>
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-2">
-                  <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                     language
                   </label>
                   <Select
@@ -137,7 +137,7 @@ export function CommandForm({
                     onValueChange={handleLanguageChange}
                     disabled={!repoName}
                   >
-                    <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
+                    <SelectTrigger className="border-border bg-card h-9 w-full text-xs">
                       <SelectValue placeholder="Select a language (optional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -151,7 +151,7 @@ export function CommandForm({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                     framework
                   </label>
                   <Select
@@ -159,7 +159,7 @@ export function CommandForm({
                     onValueChange={handleFrameworkChange}
                     disabled={!repoName || template.state.language === "custom"}
                   >
-                    <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
+                    <SelectTrigger className="border-border bg-card h-9 w-full text-xs">
                       <SelectValue
                         placeholder={
                           template.state.language === "custom"
@@ -180,7 +180,7 @@ export function CommandForm({
                 </div>
                 {template.selectedFrameworkData?.requiresPackageManager ? (
                   <div className="space-y-2">
-                    <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                    <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                       package manager
                     </label>
                     <Select
@@ -190,7 +190,7 @@ export function CommandForm({
                         !repoName || template.state.framework === "custom"
                       }
                     >
-                      <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
+                      <SelectTrigger className="border-border bg-card h-9 w-full text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -202,17 +202,17 @@ export function CommandForm({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                    <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                       package manager
                     </label>
-                    <div className="h-9 w-full border-border bg-card text-xs flex items-center px-3 rounded-none border text-muted-foreground">
+                    <div className="border-border bg-card text-muted-foreground flex h-9 w-full items-center rounded-none border px-3 text-xs">
                       Not required
                     </div>
                   </div>
                 )}
               </div>
-              <div className="space-y-2 mt-4">
-                <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="mt-4 space-y-2">
+                <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                   command
                 </label>
                 <Select
@@ -220,7 +220,7 @@ export function CommandForm({
                   onValueChange={handleCommandChange}
                   disabled={!repoName || template.state.framework === "custom"}
                 >
-                  <SelectTrigger className="h-9 w-full border-border bg-card text-xs">
+                  <SelectTrigger className="border-border bg-card h-9 w-full text-xs">
                     <SelectValue
                       placeholder={
                         template.state.framework === "custom"
@@ -243,11 +243,11 @@ export function CommandForm({
           </Card>
           <div className="grid min-h-0 gap-4 sm:grid-cols-[1.2fr_1fr]">
             <div className="space-y-3">
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                 command name
               </label>
               <Input
-                className="h-9 border-border bg-card text-xs"
+                className="border-border bg-card h-9 text-xs"
                 placeholder="Optional: e.g., build-desktop"
                 value={commandName}
                 onChange={(event) =>
@@ -255,22 +255,22 @@ export function CommandForm({
                 }
                 disabled={!repoName}
               />
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                 base command
               </label>
               <Input
-                className="h-9 border-border bg-card text-xs"
+                className="border-border bg-card h-9 text-xs"
                 value={baseCommand}
                 onChange={(event) =>
                   handleFieldChange("baseCommand", event.target.value)
                 }
                 disabled={!repoName}
               />
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                 arguments
               </label>
               <Input
-                className="h-9 border-border bg-card text-xs"
+                className="border-border bg-card h-9 text-xs"
                 placeholder="build --filter=desktop"
                 value={args}
                 onChange={(event) =>
@@ -280,17 +280,17 @@ export function CommandForm({
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+              <label className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
                 notes and variables
               </label>
               <Textarea
-                className="min-h-[124px] border-border bg-card text-xs"
+                className="border-border bg-card min-h-[124px] text-xs"
                 placeholder="ENV=production\nCACHE=false\n"
                 value={notes}
                 onChange={(event) => onNotesChange(event.target.value)}
                 disabled={!repoName}
               />
-              <div className="rounded-none border border-border/70 bg-accent/60 p-3 text-[0.65rem] text-muted-foreground">
+              <div className="border-border/70 bg-accent/60 text-muted-foreground rounded-none border p-3 text-[0.65rem]">
                 Tip: use {"{{repo}}"} and {"{{branch}}"} to inject context in
                 real-time.
               </div>
@@ -299,5 +299,5 @@ export function CommandForm({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { Store } from "@tauri-apps/plugin-store";
 import type { BridgeMode } from "@/components/agents/types";
 

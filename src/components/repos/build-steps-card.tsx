@@ -1,21 +1,21 @@
-import { Badge } from "@/components/ui/badge"
+import { CircleDot } from "lucide-react";
+import type { Pipeline, Repository } from "./types";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { CircleDot } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { repoStatusColor, getRepo } from "@/lib/command-hub/helpers"
-import type { Pipeline, Repository } from "./types"
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { getRepo, repoStatusColor } from "@/lib/command-hub/helpers";
 
 interface BuildStepsCardProps {
-  pipelines: Pipeline[]
-  selectedRepo: string | null
-  repositories: Repository[]
+  pipelines: Array<Pipeline>;
+  selectedRepo: string | null;
+  repositories: Array<Repository>;
 }
 
 export function BuildStepsCard({
@@ -24,8 +24,8 @@ export function BuildStepsCard({
   repositories,
 }: BuildStepsCardProps) {
   return (
-    <Card className="shrink-0 border-border/60 bg-card">
-      <CardHeader className="border-b border-border/60">
+    <Card className="border-border/60 bg-card shrink-0">
+      <CardHeader className="border-border/60 border-b">
         <CardTitle className="text-sm">Build steps</CardTitle>
         <CardDescription>Progress visualization per step.</CardDescription>
       </CardHeader>
@@ -33,13 +33,13 @@ export function BuildStepsCard({
         {pipelines.map((p) => (
           <div key={p.repo} className="space-y-3">
             {selectedRepo === null && (
-              <div className="flex items-center gap-2 text-[0.65rem] font-medium text-foreground">
+              <div className="text-foreground flex items-center gap-2 text-[0.65rem] font-medium">
                 <CircleDot
                   className={cn(
                     "size-2.5",
                     repoStatusColor(
-                      getRepo(p.repo, repositories)?.status ?? "idle"
-                    )
+                      getRepo(p.repo, repositories)?.status ?? "idle",
+                    ),
                   )}
                 />
                 {p.repo}
@@ -56,11 +56,11 @@ export function BuildStepsCard({
                   className={cn(
                     "text-[0.6rem] uppercase",
                     step.state === "done" &&
-                    "border-chart-1/50 bg-chart-1/15 text-chart-1",
+                      "border-chart-1/50 bg-chart-1/15 text-chart-1",
                     step.state === "running" &&
-                    "border-chart-4/50 bg-chart-4/15 text-chart-4",
+                      "border-chart-4/50 bg-chart-4/15 text-chart-4",
                     step.state === "pending" &&
-                    "border-border bg-card text-muted-foreground"
+                      "border-border bg-card text-muted-foreground",
                   )}
                 >
                   {step.state}
@@ -70,11 +70,11 @@ export function BuildStepsCard({
             {selectedRepo === null && <Separator className="bg-border/60" />}
           </div>
         ))}
-        <div className="flex items-center gap-2 text-[0.65rem] text-muted-foreground">
-          <CircleDot className="size-3 text-chart-4" />
+        <div className="text-muted-foreground flex items-center gap-2 text-[0.65rem]">
+          <CircleDot className="text-chart-4 size-3" />
           Estimated build at 14:41
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,15 +1,15 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 export const DistortedGlass = ({ className }: { className?: string }) => {
   return (
     <>
       <div
         className={cn(
-          "relative hidden h-[50px] w-[360px] overflow-hidden rounded-b-2xl lg:w-[600px]  xl:block xl:w-full",
-          className
+          "relative hidden h-[50px] w-[360px] overflow-hidden rounded-b-2xl lg:w-[600px] xl:block xl:w-full",
+          className,
         )}
       >
-        <div className="pointer-events-none absolute bottom-0  z-10 size-full overflow-hidden rounded-b-2xl  border border-[#f5f5f51a]">
+        <div className="pointer-events-none absolute bottom-0 z-10 size-full overflow-hidden rounded-b-2xl border border-[#f5f5f51a]">
           <div className="glass-effect size-full"></div>
         </div>
         <svg>
@@ -49,5 +49,5 @@ export const DistortedGlass = ({ className }: { className?: string }) => {
         }
       `}</style>
     </>
-  )
-}
+  );
+};

@@ -1,20 +1,20 @@
+import type { RunQueueItem } from "./types";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import type { RunQueueItem } from "./types"
+} from "@/components/ui/card";
 
 interface ExecutionQueueCardProps {
-  queue: RunQueueItem[]
+  queue: Array<RunQueueItem>;
 }
 
 export function ExecutionQueueCard({ queue }: ExecutionQueueCardProps) {
   return (
-    <Card className="flex flex-col border-border/60 bg-card">
-      <CardHeader className="border-b border-border/60">
+    <Card className="border-border/60 bg-card flex flex-col">
+      <CardHeader className="border-border/60 border-b">
         <CardTitle className="text-sm">Execution queue</CardTitle>
         <CardDescription>What comes next in the pipeline.</CardDescription>
       </CardHeader>
@@ -22,20 +22,20 @@ export function ExecutionQueueCard({ queue }: ExecutionQueueCardProps) {
         {queue.map((item) => (
           <div
             key={item.id}
-            className="space-y-1 border border-border bg-card p-3"
+            className="border-border bg-card space-y-1 border p-3"
           >
-            <div className="flex items-center justify-between text-xs font-medium text-foreground">
+            <div className="text-foreground flex items-center justify-between text-xs font-medium">
               <span>{item.name}</span>
-              <span className="text-[0.65rem] text-muted-foreground">
+              <span className="text-muted-foreground text-[0.65rem]">
                 {item.queuedAt}
               </span>
             </div>
-            <div className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+            <div className="text-muted-foreground text-[0.65rem] tracking-[0.2em] uppercase">
               {item.repo}
             </div>
           </div>
         ))}
       </CardContent>
     </Card>
-  )
+  );
 }

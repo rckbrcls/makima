@@ -1,5 +1,8 @@
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { AlertTriangle, Clock, Pencil, Play, Trash2 } from "lucide-react";
+import { QuickComposer } from "./quick-composer";
+import type { Command } from "./types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +14,7 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardAction,
@@ -20,23 +23,26 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { AlertTriangle, Clock, Pencil, Play, Trash2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { statusStyles, typeIcons } from "@/lib/command-hub/constants"
-import type { Command } from "./types"
-import { QuickComposer } from "./quick-composer"
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { statusStyles, typeIcons } from "@/lib/command-hub/constants";
 
 interface CommandCardProps {
-  command: Command
-  index: number
-  onRun?: (command: Command) => void
-  onDelete?: (command: Command) => void
-  onUpdateCommand?: (command: Command) => void | Promise<void>
+  command: Command;
+  index: number;
+  onRun?: (command: Command) => void;
+  onDelete?: (command: Command) => void;
+  onUpdateCommand?: (command: Command) => void | Promise<void>;
 }
 
-export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }: CommandCardProps) {
-  const Icon = typeIcons[command.type]
+export function CommandCard({
+  command,
+  index,
+  onRun,
+  onDelete,
+  onUpdateCommand,
+}: CommandCardProps) {
+  const Icon = typeIcons[command.type];
 
   // If command is running, editing should be disabled.
   // We can condition the rendering of QuickComposer or pass disabled state to it.
@@ -45,20 +51,20 @@ export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }
   // If disabled, just render disabled button.
   // If enabled, wrap with QuickComposer.
 
-  const isRunning = command.status === "running"
-  const canEdit = !isRunning && !!onUpdateCommand
+  const isRunning = command.status === "running";
+  const canEdit = !isRunning && !!onUpdateCommand;
 
   return (
     <Card
       size="sm"
       className={cn(
-        "border-border bg-card animate-in fade-in slide-in-from-bottom-8 duration-700 shrink-0",
-        index % 2 === 0 ? "delay-200" : "delay-300"
+        "border-border bg-card animate-in fade-in slide-in-from-bottom-8 shrink-0 duration-700",
+        index % 2 === 0 ? "delay-200" : "delay-300",
       )}
     >
-      <CardHeader className="border-b border-border/60">
+      <CardHeader className="border-border/60 border-b">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <span className="flex size-7 items-center justify-center border border-border bg-muted text-foreground/80">
+          <span className="border-border bg-muted text-foreground/80 flex size-7 items-center justify-center border">
             <Icon className="size-4" />
           </span>
           {command.name}
@@ -67,7 +73,10 @@ export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className={cn("text-[0.6rem] uppercase", statusStyles[command.status])}
+              className={cn(
+                "text-[0.6rem] uppercase",
+                statusStyles[command.status],
+              )}
             >
               {command.status}
             </Badge>
@@ -77,7 +86,7 @@ export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }
                 repoName={command.repo}
                 editingCommand={command}
                 onUpdateCommand={onUpdateCommand}
-              // onRunCommand is likely not needed here for editing config, or we can add it if needed.
+                // onRunCommand is likely not needed here for editing config, or we can add it if needed.
               >
                 <Button
                   variant="ghost"
@@ -136,42 +145,42 @@ export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }
             </AlertDialog>
           </div>
         </CardAction>
-        <CardDescription className="text-[0.7rem] text-muted-foreground">
+        <CardDescription className="text-muted-foreground text-[0.7rem]">
           {command.command}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-[0.65rem] text-muted-foreground">
+        <div className="text-muted-foreground flex items-center justify-between text-[0.65rem]">
           <span>last run: {command.lastRun}</span>
           <span className="text-foreground/80">time: {command.duration}</span>
         </div>
-        <div className="h-1 w-full overflow-hidden border border-border bg-muted">
+        <div className="border-border bg-muted h-1 w-full overflow-hidden border">
           <div
             className={cn(
               "h-full",
               command.status === "running"
-                ? "w-3/4 bg-gradient-to-r from-chart-1 via-chart-2 to-chart-1/80 bg-[length:200%_100%] animate-[shimmer_2.8s_linear_infinite]"
+                ? "from-chart-1 via-chart-2 to-chart-1/80 w-3/4 animate-[shimmer_2.8s_linear_infinite] bg-gradient-to-r bg-[length:200%_100%]"
                 : command.status === "queued"
-                  ? "w-1/3 bg-chart-4/80"
+                  ? "bg-chart-4/80 w-1/3"
                   : command.status === "failed"
-                    ? "w-full bg-destructive/70"
+                    ? "bg-destructive/70 w-full"
                     : command.status === "stopped"
-                      ? "w-full bg-muted-foreground/70"
+                      ? "bg-muted-foreground/70 w-full"
                       : command.status === "success"
-                        ? "w-full bg-chart-1/70"
-                        : "w-0"
+                        ? "bg-chart-1/70 w-full"
+                        : "w-0",
             )}
           />
         </div>
       </CardContent>
       <CardFooter className="justify-between">
-        <div className="flex items-center gap-2 text-[0.65rem] text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-2 text-[0.65rem]">
           <Clock className="size-3" />
           scheduled at 14:30
         </div>
         <Button
           size="xs"
-          className="h-6 bg-primary text-primary-foreground hover:bg-primary/90"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-6"
           onClick={() => onRun?.(command)}
         >
           <Play data-icon="inline-start" />
@@ -179,5 +188,5 @@ export function CommandCard({ command, index, onRun, onDelete, onUpdateCommand }
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }

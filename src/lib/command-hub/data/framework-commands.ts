@@ -1,29 +1,29 @@
-import type { CommandType } from "@/components/repos/types"
+import type { CommandType } from "@/components/repos/types";
 
 export interface FrameworkCommand {
-  id: string
-  label: string
-  commandName: string
-  baseCommand: string
-  args: string
-  commandType: CommandType
-  description?: string
+  id: string;
+  label: string;
+  commandName: string;
+  baseCommand: string;
+  args: string;
+  commandType: CommandType;
+  description?: string;
 }
 
 export interface Framework {
-  id: string
-  label: string
-  requiresPackageManager?: boolean
-  commands: FrameworkCommand[]
+  id: string;
+  label: string;
+  requiresPackageManager?: boolean;
+  commands: Array<FrameworkCommand>;
 }
 
 export interface Language {
-  id: string
-  label: string
-  frameworks: Framework[]
+  id: string;
+  label: string;
+  frameworks: Array<Framework>;
 }
 
-export const languages: Language[] = [
+export const languages: Array<Language> = [
   {
     id: "javascript",
     label: "JavaScript/TypeScript",
@@ -1134,27 +1134,27 @@ export const languages: Language[] = [
       },
     ],
   },
-]
+];
 
 // Helper function to replace package manager in command
 export function replacePackageManager(
   command: string,
-  packageManager: "pnpm" | "npm" | "yarn"
+  packageManager: "pnpm" | "npm" | "yarn",
 ): string {
   if (packageManager === "pnpm") {
-    return command
+    return command;
   }
 
   // Replace pnpm with npm or yarn at the start
   let result = command.replace(/^pnpm\s+/, () => {
     if (packageManager === "npm") {
-      return "npm "
+      return "npm ";
     }
     if (packageManager === "yarn") {
-      return "yarn "
+      return "yarn ";
     }
-    return "pnpm "
-  })
+    return "pnpm ";
+  });
 
   // Handle yarn specific differences
   if (packageManager === "yarn") {
@@ -1172,15 +1172,15 @@ export function replacePackageManager(
       "preview",
       "generate",
       "serve",
-    ]
+    ];
     for (const script of simpleScripts) {
-      const regex = new RegExp(`^yarn\\s+run\\s+${script}(\\s|$)`)
+      const regex = new RegExp(`^yarn\\s+run\\s+${script}(\\s|$)`);
       if (regex.test(result)) {
-        result = result.replace(`yarn run ${script}`, `yarn ${script}`)
-        break
+        result = result.replace(`yarn run ${script}`, `yarn ${script}`);
+        break;
       }
     }
   }
 
-  return result
+  return result;
 }

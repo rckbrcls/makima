@@ -1,10 +1,10 @@
-import type React from "react"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight } from "lucide-react";
+import type React from "react";
 
 interface AnimatedShinyButtonProps {
-  children: React.ReactNode
-  className?: string
-  url?: string
+  children: React.ReactNode;
+  className?: string;
+  url?: string;
 }
 
 export function AnimatedShinyButton({
@@ -254,5 +254,5 @@ export function AnimatedShinyButton({
         </button>
       )}
     </>
-  )
+  );
 }
