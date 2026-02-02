@@ -120,6 +120,7 @@ Chat-first interface (ChatGPT/Cursor style):
 - Trailing commas
 - Tailwind classes auto-sorted by Prettier plugin
 - **No transparency in colors** - Never use opacity modifiers like `bg-card/70`, `border-border/50`, `text-foreground/80`. All components must have solid colors without transparency.
+- **Badges must have background** - Never use outline-only badges. All badges must have border, background, and text colors. Example: `border-sky-500 bg-sky-600 text-sky-950`.
 
 ## Key Type Definitions
 

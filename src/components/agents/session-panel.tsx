@@ -10,6 +10,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { ActionMessage, EventMessage } from "./session-chat-items";
+import { ModeToggleSafe } from "./mode-toggle-safe";
 import type {
   Action,
   AgentEvent,
@@ -277,7 +278,6 @@ export function SessionPanel({
     <Card className="border-border flex h-full flex-col overflow-hidden">
       {/* Minimal Header */}
       <div className="border-border bg-card flex flex-none items-center justify-between border-b px-4 py-2.5">
-        import {ModeToggleSafe} from "./mode-toggle-safe" //... //...
         <div className="flex items-center gap-2">
           <div className="bg-muted flex size-6 items-center justify-center rounded-full">
             <Cpu className="text-primary size-3.5" />

@@ -49,7 +49,8 @@ import type {
   NotificationKey,
   PluginKey,
   SafetyKey,
-  ToolKey} from "@/components/jarvis/config-types";
+  ToolKey
+} from "@/components/jarvis/config-types";
 import {
   Card,
   CardContent,
@@ -530,21 +531,21 @@ const conversationStatusMeta: Record<
   ConversationStatus,
   { label: string; className: string }
 > = {
-  idle: { label: "Idle", className: "border-emerald-400 text-emerald-400" },
-  running: { label: "Running", className: "border-yellow-400 text-yellow-400" },
-  error: { label: "Error", className: "border-rose-400 text-rose-400" },
+  idle: { label: "Idle", className: "border-emerald-500 bg-emerald-600 text-emerald-950" },
+  running: { label: "Running", className: "border-yellow-500 bg-yellow-600 text-yellow-950" },
+  error: { label: "Error", className: "border-red-500 bg-red-600 text-red-950" },
 };
 
 const conversationStateMeta: Record<
   ConversationState,
   { label: string; className: string }
 > = {
-  active: { label: "Active", className: "border-sky-400 text-sky-400" },
+  active: { label: "Active", className: "border-sky-500 bg-sky-600 text-sky-950" },
   finished: {
     label: "Finished",
-    className: "border-emerald-400 text-emerald-400",
+    className: "border-emerald-500 bg-emerald-600 text-emerald-950",
   },
-  error: { label: "Error", className: "border-rose-400 text-rose-400" },
+  error: { label: "Error", className: "border-red-500 bg-red-600 text-red-950" },
 };
 
 const runStatusMeta: Record<
@@ -553,30 +554,30 @@ const runStatusMeta: Record<
 > = {
   running: {
     label: "Running",
-    className: "border-yellow-400 text-yellow-400",
+    className: "border-yellow-500 bg-yellow-600 text-yellow-950",
     icon: Loader2,
   },
   success: {
     label: "Success",
-    className: "border-emerald-400 text-emerald-400",
+    className: "border-emerald-500 bg-emerald-600 text-emerald-950",
     icon: CheckCircle2,
   },
   error: {
     label: "Error",
-    className: "border-rose-400 text-rose-400",
+    className: "border-red-500 bg-red-600 text-red-950",
     icon: XCircle,
   },
   cancelled: {
     label: "Interrupted",
-    className: "border-orange-400 text-orange-400",
+    className: "border-orange-500 text-orange-500",
     icon: PauseCircle,
   },
 };
 
 const inputStateMeta = {
-  idle: { label: "Idle", className: "bg-emerald-400" },
-  thinking: { label: "Thinking", className: "bg-yellow-400" },
-  executing: { label: "Executing", className: "bg-sky-400" },
+  idle: { label: "Idle", className: "bg-emerald-500" },
+  thinking: { label: "Thinking", className: "bg-yellow-500" },
+  executing: { label: "Executing", className: "bg-sky-500" },
 };
 
 const formatRelativeTime = (timestamp: number) => {
@@ -856,7 +857,7 @@ export function JarvisPage() {
         if (conversation.id !== activeConversation.id) return conversation;
         const nextTitle =
           conversation.title === "New conversation" ||
-          conversation.items.length === 0
+            conversation.items.length === 0
             ? composerValue.trim().slice(0, 32)
             : conversation.title;
         return {
@@ -880,18 +881,18 @@ export function JarvisPage() {
           const nextItems = conversation.items.map((item) =>
             item.id === thinkingId
               ? {
+                id: streamingId,
+                kind: "message" as const,
+                message: {
                   id: streamingId,
-                  kind: "message" as const,
-                  message: {
-                    id: streamingId,
-                    role: "assistant",
-                    state: "streaming",
-                    content: responseText,
-                    createdAt: Date.now(),
-                    meta: { provider, model, tone },
-                    streamedChars: 0,
-                  },
-                }
+                  role: "assistant",
+                  state: "streaming",
+                  content: responseText,
+                  createdAt: Date.now(),
+                  meta: { provider, model, tone },
+                  streamedChars: 0,
+                },
+              }
               : item,
           );
 
@@ -955,12 +956,10 @@ export function JarvisPage() {
                           {conversation.title}
                         </p>
                         {conversation.globalState === "error" ? (
-                          <AlertTriangle className="size-3 text-rose-400" />
+                          <AlertTriangle className="size-3 text-rose-500" />
                         ) : null}
                       </div>
-                      <p className="text-muted-foreground text-xs">
-                        {conversation.summary}
-                      </p>
+
                     </div>
                     <span className="text-muted-foreground text-[10px]">
                       {formatRelativeTime(conversation.updatedAt)}
@@ -975,12 +974,6 @@ export function JarvisPage() {
                       className={cn("text-[10px]", statusMeta.className)}
                     >
                       {statusMeta.label}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={cn("text-[10px]", stateMeta.className)}
-                    >
-                      {stateMeta.label}
                     </Badge>
                   </div>
                 </button>
@@ -1010,18 +1003,6 @@ export function JarvisPage() {
                       )}
                     >
                       {conversationStateMeta[activeConversation.state].label}
-                    </Badge>
-                  ) : null}
-                  {activeConversation ? (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[10px]",
-                        conversationStatusMeta[activeConversation.status]
-                          .className,
-                      )}
-                    >
-                      {conversationStatusMeta[activeConversation.status].label}
                     </Badge>
                   ) : null}
                 </div>
@@ -1113,7 +1094,7 @@ export function JarvisPage() {
               {activeConversation?.globalState === "error" ? (
                 <div className="mx-6 mt-4 rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-200">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="size-4 text-red-400" />
+                    <AlertTriangle className="size-4 text-red-500" />
                     <div>
                       <p className="font-medium">Global error detected</p>
                       <p className="text-xs text-red-200">
@@ -1204,9 +1185,9 @@ export function JarvisPage() {
                       item.message.state === "streaming";
                     const visibleText = isStreamingMessage
                       ? item.message.content.slice(
-                          0,
-                          item.message.streamedChars ?? 0,
-                        )
+                        0,
+                        item.message.streamedChars ?? 0,
+                      )
                       : item.message.content;
 
                     return (
@@ -1388,11 +1369,11 @@ export function JarvisPage() {
                       className={cn(
                         "flex items-center justify-between rounded-lg border px-3 py-2 text-sm",
                         step.status === "success"
-                          ? "border-emerald-400 text-emerald-400"
+                          ? "border-emerald-500 bg-emerald-600 text-emerald-950"
                           : step.status === "error"
-                            ? "border-rose-400 text-rose-400"
+                            ? "border-red-500 bg-red-600 text-red-950"
                             : step.status === "running"
-                              ? "border-yellow-400 text-yellow-400"
+                              ? "border-yellow-500 bg-yellow-600 text-yellow-950"
                               : "border-border/60 text-muted-foreground",
                       )}
                     >
