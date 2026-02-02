@@ -6,12 +6,12 @@ const navItems = [
   {
     name: "Jarvis",
     icon: Bot,
-    to: "/jarvis",
+    to: "/",
   },
   {
     name: "Workspace",
     icon: FolderGit2,
-    to: "/",
+    to: "/workspace",
   },
   {
     name: "Agents",
