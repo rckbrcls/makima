@@ -9,8 +9,7 @@ import { AppSidebar } from "@/components/ui/app-sidebar";
 import { GlobalApprovalDrawer } from "@/components/agents/global-approval-drawer";
 import { TerminalDrawer } from "@/components/agents/terminal-drawer";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAgentState } from "@/hooks/use-agent-state";
-import { useUIStore } from "@/stores/ui-store";
+
 
 export const Route = createRootRoute({
   head: () => ({
@@ -49,7 +48,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <AppSidebar />
             <div className="ml-14 flex min-h-0 flex-1 flex-col ">
               <PageHeader />
-              <main className="relative z-0 mt-14 flex-1 ">
+              <main className="relative z-0 mt-14 flex-1 min-h-0 overflow-hidden">
                 {children}
               </main>
             </div>

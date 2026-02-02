@@ -138,6 +138,7 @@
   }
   html {
     @apply font-sans;
+    overscroll-behavior: none;
   }
   :root {
     --sidebar: oklch(0.985 0 0);
