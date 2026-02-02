@@ -119,19 +119,19 @@ const toolItems: Array<{
   tag?: string
   tagClassName?: string
 }> = [
-  { key: "fileRead", label: "File Read", description: "Read files and repositories", icon: FileText },
-  { key: "fileWrite", label: "File Write", description: "Local creation and editing", icon: Wrench },
-  { key: "shell", label: "Shell", description: "Commands and scripts", icon: Terminal },
-  { key: "git", label: "Git", description: "Commit, diff, and PRs", icon: GitBranch },
-  { key: "browser", label: "Browser", description: "Assisted navigation", icon: Globe },
-  { key: "webSearch", label: "Web Search", description: "Search and external sources", icon: Search },
-  { key: "memoryTools", label: "Memory", description: "Vectors and summary", icon: Database },
-  { key: "vision", label: "Vision", description: "Visual analysis", icon: Eye },
-  { key: "audio", label: "Audio", description: "Voice input and output", icon: Mic },
-  { key: "calendar", label: "Calendar", description: "Calendar and reminders", icon: Calendar },
-  { key: "email", label: "Email", description: "Send and read", icon: Mail },
-  { key: "database", label: "Database", description: "SQL and connectors", icon: Database },
-]
+    { key: "fileRead", label: "File Read", description: "Read files and repositories", icon: FileText },
+    { key: "fileWrite", label: "File Write", description: "Local creation and editing", icon: Wrench },
+    { key: "shell", label: "Shell", description: "Commands and scripts", icon: Terminal },
+    { key: "git", label: "Git", description: "Commit, diff, and PRs", icon: GitBranch },
+    { key: "browser", label: "Browser", description: "Assisted navigation", icon: Globe },
+    { key: "webSearch", label: "Web Search", description: "Search and external sources", icon: Search },
+    { key: "memoryTools", label: "Memory", description: "Vectors and summary", icon: Database },
+    { key: "vision", label: "Vision", description: "Visual analysis", icon: Eye },
+    { key: "audio", label: "Audio", description: "Voice input and output", icon: Mic },
+    { key: "calendar", label: "Calendar", description: "Calendar and reminders", icon: Calendar },
+    { key: "email", label: "Email", description: "Send and read", icon: Mail },
+    { key: "database", label: "Database", description: "SQL and connectors", icon: Database },
+  ]
 const channelDefaults = {
   whatsapp: false,
   telegram: true,
@@ -161,86 +161,86 @@ const channelItems: Array<{
   tag?: string
   tagClassName?: string
 }> = [
-  { key: "whatsapp", label: "WhatsApp", description: "Official and scalable support", icon: Phone },
-  { key: "telegram", label: "Telegram", description: "Bots, groups, and channels", icon: Send },
-  { key: "discord", label: "Discord", description: "Servers, threads, and DMs", icon: MessageSquare },
-  { key: "slack", label: "Slack", description: "Workspaces and internal channels", icon: MessagesSquare },
-  { key: "googleChat", label: "Google Chat", description: "Spaces and direct messages", icon: MessageCircle },
-  { key: "signal", label: "Signal", description: "Encrypted private conversations", icon: Shield },
-  {
-    key: "imessage",
-    label: "iMessage (BlueBubbles)",
-    description: "Bridge for macOS/iOS",
-    icon: Smartphone,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  { key: "webChat", label: "WebChat", description: "Widget and embed on websites", icon: Globe },
-  {
-    key: "microsoftTeams",
-    label: "Microsoft Teams",
-    description: "Corporate channels and bots",
-    icon: Users,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "line",
-    label: "LINE",
-    description: "Mobile messaging for Asia",
-    icon: MessageCircle,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "matrix",
-    label: "Matrix",
-    description: "Federated rooms and bridges",
-    icon: Grid3x3,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "nostr",
-    label: "Nostr",
-    description: "Decentralized protocols",
-    icon: Zap,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "tlon",
-    label: "Tlon",
-    description: "Private communities and groups",
-    icon: Hash,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "twitch",
-    label: "Twitch",
-    description: "Live chat and moderation",
-    icon: Tv,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "zalo",
-    label: "Zalo",
-    description: "Regional corporate messaging",
-    icon: MessageCircle,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-  {
-    key: "zaloPersonal",
-    label: "Zalo Personal",
-    description: "Personal accounts and automation",
-    icon: MessageCircle,
-    tag: "Plugin required",
-    tagClassName: "border-amber-400/40 text-amber-500",
-  },
-]
+    { key: "whatsapp", label: "WhatsApp", description: "Official and scalable support", icon: Phone },
+    { key: "telegram", label: "Telegram", description: "Bots, groups, and channels", icon: Send },
+    { key: "discord", label: "Discord", description: "Servers, threads, and DMs", icon: MessageSquare },
+    { key: "slack", label: "Slack", description: "Workspaces and internal channels", icon: MessagesSquare },
+    { key: "googleChat", label: "Google Chat", description: "Spaces and direct messages", icon: MessageCircle },
+    { key: "signal", label: "Signal", description: "Encrypted private conversations", icon: Shield },
+    {
+      key: "imessage",
+      label: "iMessage (BlueBubbles)",
+      description: "Bridge for macOS/iOS",
+      icon: Smartphone,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    { key: "webChat", label: "WebChat", description: "Widget and embed on websites", icon: Globe },
+    {
+      key: "microsoftTeams",
+      label: "Microsoft Teams",
+      description: "Corporate channels and bots",
+      icon: Users,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "line",
+      label: "LINE",
+      description: "Mobile messaging for Asia",
+      icon: MessageCircle,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "matrix",
+      label: "Matrix",
+      description: "Federated rooms and bridges",
+      icon: Grid3x3,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "nostr",
+      label: "Nostr",
+      description: "Decentralized protocols",
+      icon: Zap,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "tlon",
+      label: "Tlon",
+      description: "Private communities and groups",
+      icon: Hash,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "twitch",
+      label: "Twitch",
+      description: "Live chat and moderation",
+      icon: Tv,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "zalo",
+      label: "Zalo",
+      description: "Regional corporate messaging",
+      icon: MessageCircle,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+    {
+      key: "zaloPersonal",
+      label: "Zalo Personal",
+      description: "Personal accounts and automation",
+      icon: MessageCircle,
+      tag: "Plugin required",
+      tagClassName: "border-amber-400/40 text-amber-500",
+    },
+  ]
 const pluginDefaults = {
   voiceCall: false,
   microsoftTeams: false,
@@ -262,17 +262,17 @@ const pluginItems: Array<{
   description: string
   icon: LucideIcon
 }> = [
-  { key: "voiceCall", label: "Voice Call", description: "Voice input and output", icon: Mic },
-  { key: "microsoftTeams", label: "Microsoft Teams", description: "Official channel connector", icon: Users },
-  { key: "matrix", label: "Matrix", description: "Connector for federated networks", icon: Grid3x3 },
-  { key: "nostr", label: "Nostr", description: "Decentralized relay and identity", icon: Zap },
-  { key: "line", label: "LINE", description: "LINE channel activation", icon: MessageCircle },
-  { key: "tlon", label: "Tlon", description: "Connection to private communities", icon: Hash },
-  { key: "twitch", label: "Twitch", description: "Live chat integration", icon: Tv },
-  { key: "zalo", label: "Zalo", description: "Business connector", icon: MessageCircle },
-  { key: "zaloPersonal", label: "Zalo Personal", description: "Personal account connector", icon: MessageCircle },
-  { key: "bluebubbles", label: "BlueBubbles", description: "iMessage bridge", icon: Smartphone },
-]
+    { key: "voiceCall", label: "Voice Call", description: "Voice input and output", icon: Mic },
+    { key: "microsoftTeams", label: "Microsoft Teams", description: "Official channel connector", icon: Users },
+    { key: "matrix", label: "Matrix", description: "Connector for federated networks", icon: Grid3x3 },
+    { key: "nostr", label: "Nostr", description: "Decentralized relay and identity", icon: Zap },
+    { key: "line", label: "LINE", description: "LINE channel activation", icon: MessageCircle },
+    { key: "tlon", label: "Tlon", description: "Connection to private communities", icon: Hash },
+    { key: "twitch", label: "Twitch", description: "Live chat integration", icon: Tv },
+    { key: "zalo", label: "Zalo", description: "Business connector", icon: MessageCircle },
+    { key: "zaloPersonal", label: "Zalo Personal", description: "Personal account connector", icon: MessageCircle },
+    { key: "bluebubbles", label: "BlueBubbles", description: "iMessage bridge", icon: Smartphone },
+  ]
 const safetyDefaults = {
   approvals: true,
   safeMode: true,
@@ -1813,16 +1813,15 @@ export function JarvisPage() {
       <TextureOverlay texture="noise" className="mix-blend-overlay" />
 
       <div className="relative z-10 flex h-full min-h-0">
-        <aside className="flex w-[280px] flex-col border-r border-border/70 bg-card/40">
-          <div className="px-4 py-4 border-b border-border/70">
+        <aside className="flex w-[280px] flex-col border-r border-border bg-card">
+          <div className="px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="size-9 rounded-lg bg-muted flex items-center justify-center">
                   <MessagesSquare className="size-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">History</p>
-                  <p className="text-xs text-muted-foreground">Local, without openClaw memory</p>
+                  <p className="text-sm font-semibold">Chats</p>
                 </div>
               </div>
               <Button size="icon" variant="ghost" onClick={handleNewConversation}>
@@ -1831,13 +1830,7 @@ export function JarvisPage() {
             </div>
           </div>
 
-          <div className="px-4 py-3">
-            <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-              The history belongs to the app. openClaw does not have its own memory between conversations.
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-2">
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
             {conversations.map((conversation) => {
               const statusMeta = conversationStatusMeta[conversation.status]
               const stateMeta = conversationStateMeta[conversation.state]
@@ -1850,8 +1843,8 @@ export function JarvisPage() {
                   className={cn(
                     "w-full text-left rounded-xl border p-3 transition-colors",
                     isActive
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/70 bg-background hover:bg-muted/30"
+                      ? "border-primary/15 bg-primary/10"
+                      : "border-border bg-card hover:bg-muted/30"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -1891,7 +1884,7 @@ export function JarvisPage() {
             onToggle={() => setIsConfigOpen((prev) => !prev)}
             className="border-b border-border/70"
           >
-            <div className="flex flex-wrap items-start gap-4 px-6 py-4 bg-card/40">
+            <div className="flex flex-wrap items-start gap-4 px-6 py-4 bg-card">
               <div className="flex items-start gap-3">
                 <div className="size-10 rounded-lg bg-muted flex items-center justify-center">
                   <Bot className="size-5 text-primary" />
@@ -1964,12 +1957,12 @@ export function JarvisPage() {
 
           <div className="flex min-h-0 flex-1 flex-col">
             {activeConversation?.globalState === "error" ? (
-              <div className="mx-6 mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-200">
+              <div className="mx-6 mt-4 rounded-lg border border-red-900 bg-red-950 p-3 text-sm text-red-200">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="size-4 text-rose-400" />
+                  <AlertTriangle className="size-4 text-red-400" />
                   <div>
                     <p className="font-medium">Global error detected</p>
-                    <p className="text-xs text-rose-200/80">
+                    <p className="text-xs text-red-200">
                       This conversation indicates a critical failure. The local history has been preserved.
                     </p>
                   </div>
@@ -2069,8 +2062,8 @@ export function JarvisPage() {
                             isUser
                               ? "border-primary/40 bg-primary text-primary-foreground"
                               : isError
-                                ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
-                                : "border-border/60 bg-card/80"
+                                ? "border-red-900 bg-red-950 text-red-200"
+                                : "border-border bg-card"
                           )}
                         >
                           {isThinkingMessage ? (
