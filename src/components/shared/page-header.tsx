@@ -1,10 +1,10 @@
 export function PageHeader() {
   return (
     <header
-      className="border-border bg-card fixed top-0 right-0 left-0 z-50 flex h-14 items-center justify-between gap-4 border-b px-4"
+      className="border-border bg-card fixed top-0 right-0 pt-1 left-0 z-50 flex h-8 items-center justify-between gap-4 border-b px-4"
       data-tauri-drag-region
     >
-      <div className="ml-22 flex items-center">
+      <div className="ml-16 flex items-center">
         {/* <div className="flex size-6 items-center justify-center shrink-0 overflow-hidden">
           <img
             src="/white-logo.png"
@@ -17,7 +17,7 @@ export function PageHeader() {
             className="block h-full w-auto object-contain dark:hidden"
           />
         </div> */}
-        <span className="tracking-0 text-primary font-serif text-xl font-bold whitespace-nowrap">
+        <span className="tracking-0 text-primary font-serif text-xs font-bold whitespace-nowrap">
           MAKIMA
         </span>
       </div>

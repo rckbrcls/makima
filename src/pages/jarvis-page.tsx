@@ -863,7 +863,7 @@ export function JarvisPage() {
 
   return (
     <div className="bg-background text-foreground relative h-full min-h-0 overflow-hidden">
-      <TextureOverlay texture="noise" className="mix-blend-overlay" />
+      {/* <TextureOverlay texture="noise" className="mix-blend-overlay" /> */}
       <div className="relative z-10 flex h-full min-h-0">
         <aside className="border-border bg-card flex w-[280px] flex-col border-r">
           <div className="px-4 py-4">
@@ -935,9 +935,6 @@ export function JarvisPage() {
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="bg-card border-border flex flex-wrap items-start gap-4 border-b px-6 py-4">
             <div className="flex items-start gap-3">
-              <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
-                <Bot className="text-primary size-5" />
-              </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold">
