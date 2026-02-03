@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 import { ConfigPanel } from "@/components/jarvis/config-panel";
+import { Blob3D } from "@/components/visuals/blob-3d";
 import {
   automationDefaults,
   channelDefaults,
@@ -1216,26 +1217,7 @@ export function JarvisPage() {
                   })
                 ) : (
                   <div className="flex h-full items-center justify-center">
-                    <Card className="border-border bg-card">
-                      <CardContent className="space-y-3 px-6 py-8 text-center">
-                        <p className="text-sm font-semibold">No messages yet</p>
-                        <p className="text-muted-foreground text-xs">
-                          Start the conversation. The history is local and this
-                          interface simulates memory.
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          <Badge variant="outline" className="text-[10px]">
-                            Refactor repo
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px]">
-                            Setup CI
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px]">
-                            Debug build error
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <Blob3D className="h-[320px] w-full max-w-3xl sm:h-[360px]" />
                   </div>
                 )}
               </div>

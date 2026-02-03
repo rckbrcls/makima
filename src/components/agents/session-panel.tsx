@@ -27,6 +27,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Blob3D } from "@/components/visuals/blob-3d";
 
 // ============================================================================
 // Types
@@ -373,8 +374,12 @@ export function SessionPanel({
         >
           {!isSessionCreated ? (
             /* New Session Start View */
-            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center h-full">
-              <div className="max-w-md">
+            <div className="relative flex flex-1 flex-col items-center justify-center p-6 text-center h-full">
+              <div className="absolute inset-0">
+                <Blob3D className="h-full w-full" />
+              </div>
+              <div className="pointer-events-none absolute inset-0 bg-background/70" />
+              <div className="relative z-10 max-w-md">
                 <div className="bg-muted mx-auto mb-4 flex size-16 items-center justify-center rounded-full">
                   <Sparkles className="text-primary size-8" />
                 </div>
