@@ -26,12 +26,11 @@ export function ConversationSidebar({
             <Plus className="size-4" />
           </Button>
         </div>
-        <div className="relative">
+        <div className="relative border-b border-muted flex items-center h-9 ">
           <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4" />
           <Input
             placeholder="Search sessions..."
-            className="border-border bg-card h-9 rounded-lg pl-8 text-xs"
-            // onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 text-xs bg-transparent text-muted-foreground border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
       </div>
@@ -46,10 +45,10 @@ export function ConversationSidebar({
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
               className={cn(
-                "w-full rounded-xl border p-3 text-left transition-colors",
+                "w-full rounded-lg border p-3 text-left transition-colors",
                 isActive
-                  ? "border-primary/15 bg-primary/10"
-                  : "border-border bg-card hover:bg-muted/30",
+                  ? "glass-selected"
+                  : "glass glass-hover ",
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -67,7 +66,7 @@ export function ConversationSidebar({
                   {formatRelativeTime(conversation.updatedAt)}
                 </span>
               </div>
-              <div className="text-muted-foreground mt-2 text-xs">
+              {/* <div className="text-muted-foreground mt-2 text-xs">
                 {getConversationPreview(conversation)}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -77,7 +76,7 @@ export function ConversationSidebar({
                 >
                   {statusMeta.label}
                 </Badge>
-              </div>
+              </div> */}
             </button>
           );
         })}

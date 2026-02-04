@@ -3,11 +3,19 @@ import { animate, motion, useMotionValue, useTransform } from "motion/react";
 
 export interface ITypewriterProps {
   delay: number;
+  textsDelay?: number;
   texts: Array<string>;
   baseText?: string;
+  className?: string;
 }
 
-export function Typewriter({ delay, texts, baseText = "" }: ITypewriterProps) {
+export function Typewriter({
+  delay,
+  textsDelay,
+  texts,
+  baseText = "",
+  className,
+}: ITypewriterProps) {
   const [animationComplete, setAnimationComplete] = useState(false);
   const count = useMotionValue(0);
   const rounded = useTransform(count, (latest) => Math.round(latest));
@@ -29,10 +37,10 @@ export function Typewriter({ delay, texts, baseText = "" }: ITypewriterProps) {
   }, [count, baseText.length, delay]);
 
   return (
-    <span>
+    <span className={className}>
       <motion.span>{displayText}</motion.span>
       {animationComplete && (
-        <RepeatedTextAnimation texts={texts} delay={delay + 1} />
+        <RepeatedTextAnimation texts={texts} delay={textsDelay ?? 1.5} />
       )}
       <BlinkingCursor />
     </span>
@@ -111,7 +119,7 @@ function BlinkingCursor() {
     <motion.div
       variants={cursorVariants}
       animate="blinking"
-      className="inline-block h-5 w-[1px] translate-y-1 bg-neutral-900"
+      className="inline-block h-[1.1em] w-[1.5px] translate-y-1 bg-current align-bottom"
     />
   );
 }

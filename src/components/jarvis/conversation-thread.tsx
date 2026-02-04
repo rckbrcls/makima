@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Blob3D } from "@/components/visuals/blob-3d";
 import { cn } from "@/lib/utils";
+import { Typewriter } from "../ui/typewriter";
 
 interface ConversationThreadProps {
   activeConversation?: Conversation;
@@ -16,6 +17,17 @@ export function ConversationThread({
   activeConversation,
   onViewRun,
 }: ConversationThreadProps) {
+
+  const defaultTexts = [
+    "Create a responsive landing page for a SaaS product",
+    "Explain how React hooks work with examples",
+    "Generate a Python script to scrape data from a website",
+    "Design a modern dashboard with dark mode support",
+    "Help me debug a memory leak in my Node.js application",
+    "Write a SQL query to analyze user retention rates",
+    "Build a reusable button component with Tailwind CSS",
+  ];
+
   return (
     <>
       {activeConversation?.globalState === "error" ? (
@@ -42,7 +54,7 @@ export function ConversationThread({
 
               return (
                 <div key={item.id} className="max-w-3xl">
-                  <Card className="border-border bg-card shadow-sm">
+                  <Card className="border-none">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
@@ -107,84 +119,97 @@ export function ConversationThread({
               : item.message.content;
 
             return (
-              <div
-                key={item.id}
-                className={cn(
-                  "flex w-full",
-                  isUser ? "justify-end" : "justify-start",
-                )}
-              >
+              <>
                 <div
+                  key={item.id}
                   className={cn(
-                    "max-w-3xl",
-                    isUser ? "text-right" : "text-left",
+                    "flex w-full",
+                    isUser ? "justify-end" : "justify-start",
                   )}
                 >
                   <div
                     className={cn(
-                      "text-muted-foreground flex items-center gap-2 text-xs",
-                      isUser && "justify-end",
+                      "max-w-3xl",
+                      isUser ? "text-right" : "text-left",
                     )}
                   >
                     <div
                       className={cn(
-                        "flex size-6 items-center justify-center rounded-full border",
-                        isUser
-                          ? "border-primary bg-primary/10"
-                          : "border-border bg-muted",
+                        "text-muted-foreground flex items-center gap-2 text-xs",
+                        isUser && "justify-end",
                       )}
                     >
-                      {isUser ? (
-                        <User className="size-3" />
+                      <div
+                        className={cn(
+                          "flex size-6 items-center justify-center rounded-full border",
+                          isUser
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-muted",
+                        )}
+                      >
+                        {isUser ? (
+                          <User className="size-3" />
+                        ) : (
+                          <Bot className="size-3" />
+                        )}
+                      </div>
+                      <span className="font-medium">
+                        {isUser ? "You" : "openClaw"}
+                      </span>
+                      <span>{formatClock(item.message.createdAt)}</span>
+                      <Badge variant="outline" className="text-[9px]">
+                        {item.message.meta.model}
+                      </Badge>
+                      <Badge variant="outline" className="text-[9px]">
+                        {item.message.meta.tone}
+                      </Badge>
+                    </div>
+                    <div
+                      className={cn(
+                        "mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
+                        isUser
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : isError
+                            ? "border-red-900 bg-red-950 text-red-200"
+                            : "border-border bg-card",
+                      )}
+                    >
+                      {isThinkingMessage ? (
+                        <span className="text-muted-foreground text-xs">
+                          Thinking...
+                        </span>
                       ) : (
-                        <Bot className="size-3" />
+                        <span>
+                          {visibleText}
+                          {isStreamingMessage ? (
+                            <span className="inline-block w-2 animate-pulse">▍</span>
+                          ) : null}
+                        </span>
                       )}
                     </div>
-                    <span className="font-medium">
-                      {isUser ? "You" : "openClaw"}
-                    </span>
-                    <span>{formatClock(item.message.createdAt)}</span>
-                    <Badge variant="outline" className="text-[9px]">
-                      {item.message.meta.model}
-                    </Badge>
-                    <Badge variant="outline" className="text-[9px]">
-                      {item.message.meta.tone}
-                    </Badge>
                   </div>
-                  <div
-                    className={cn(
-                      "mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
-                      isUser
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : isError
-                          ? "border-red-900 bg-red-950 text-red-200"
-                          : "border-border bg-card",
-                    )}
-                  >
-                    {isThinkingMessage ? (
-                      <span className="text-muted-foreground text-xs">
-                        Thinking...
-                      </span>
-                    ) : (
-                      <span>
-                        {visibleText}
-                        {isStreamingMessage ? (
-                          <span className="inline-block w-2 animate-pulse">▍</span>
-                        ) : null}
-                      </span>
-                    )}
-                  </div>
+
                 </div>
-              </div>
+                <div className="h-30" />
+              </>
             );
           })
         ) : (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex h-full items-center justify-center w-full relative">
             <Blob3D className="h-[320px] w-full max-w-3xl sm:h-[360px]" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Typewriter
+                className="font-serif text-2xl text-center max-w-xl px-4 pointer-events-auto"
+                baseText="Hello, I'm Makima. How can I help you today? "
+                delay={1}
+                textsDelay={2}
+                texts={defaultTexts}
+              />
+            </div>
           </div>
         )}
-        <div className="h-30" />
-      </div>
+
+      </div >
     </>
   );
 }

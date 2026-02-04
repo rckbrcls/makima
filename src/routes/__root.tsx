@@ -45,7 +45,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
           <div className="relative flex h-svh flex-row ">
-            <AppSidebar />
+            {/* <AppSidebar /> */}
             <div className="flex min-h-0 flex-1 flex-col ">
               <PageHeader />
               <main className="relative z-0 flex-1 min-h-0 overflow-hidden">
