@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import useMeasure from "react-use-measure";
 import type { ReactNode } from "react";
@@ -28,6 +28,7 @@ function DirectionAwareTabs({
   const [direction, setDirection] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [ref, bounds] = useMeasure();
+  const lastScrollTime = useRef(0);
 
   const content = useMemo(() => {
     const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content;
@@ -61,8 +62,38 @@ function DirectionAwareTabs({
     }),
   };
 
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // Only handle horizontal scrolls (or shift+scroll which browser converts to deltaX usually,
+    // but some browsers might treat shift+scroll as horizontal delta)
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : 0;
+
+    // Threshold to prevent accidental jitter
+    if (Math.abs(delta) < 20) return;
+
+    const now = Date.now();
+    // Throttle checks
+    if (now - lastScrollTime.current < 400) return;
+
+    const currentIndex = tabs.findIndex((t) => t.id === activeTab);
+    if (currentIndex === -1) return;
+
+    if (delta > 0) {
+      // Scrolling right -> Go to next tab
+      if (currentIndex < tabs.length - 1) {
+        handleTabClick(tabs[currentIndex + 1].id);
+        lastScrollTime.current = now;
+      }
+    } else {
+      // Scrolling left -> Go to prev tab
+      if (currentIndex > 0) {
+        handleTabClick(tabs[currentIndex - 1].id);
+        lastScrollTime.current = now;
+      }
+    }
+  };
+
   return (
-    <div className="flex w-full flex-col items-center">
+    <div className="flex w-full h-full flex-col items-center" onWheel={handleWheel}>
       <div
         className={cn(
           "glass shadow-inner-shadow flex cursor-pointer space-x-1 rounded-lg  px-[3px] py-[3.2px]",
