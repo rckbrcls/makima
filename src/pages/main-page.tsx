@@ -29,6 +29,7 @@ import {
   mockResponsePool,
 } from "@/components/main/jarvis-data";
 import type {
+  ChatItem,
   ChatMessage,
   Conversation,
   ConversationStatus,
