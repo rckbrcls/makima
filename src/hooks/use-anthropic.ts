@@ -21,16 +21,21 @@ export interface AnthropicChatStreamOptions {
   onComplete?: (stats?: StreamCompletionStats) => void
 }
 
+interface SessionHandlers {
+  onChunk: AnthropicChatStreamOptions['onChunk']
+  onError: AnthropicChatStreamOptions['onError']
+  onComplete?: AnthropicChatStreamOptions['onComplete']
+}
+
 export function useAnthropic() {
-  const [isStreaming, setIsStreaming] = useState(false)
+  const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set())
   const [isValidatingKey, setIsValidatingKey] = useState(false)
 
-  const activeSessionRef = useRef<string | null>(null)
-  const chunkHandlerRef = useRef<AnthropicChatStreamOptions['onChunk'] | null>(null)
-  const errorHandlerRef = useRef<AnthropicChatStreamOptions['onError'] | null>(null)
-  const completeHandlerRef = useRef<AnthropicChatStreamOptions['onComplete'] | null>(null)
+  const sessionsRef = useRef<Map<string, SessionHandlers>>(new Map())
   const unlistenChunkRef = useRef<UnlistenFn | null>(null)
   const unlistenErrorRef = useRef<UnlistenFn | null>(null)
+
+  const isStreaming = activeSessions.size > 0
 
   const validateApiKey = useCallback(async (apiKey: string): Promise<boolean> => {
     setIsValidatingKey(true)
@@ -59,11 +64,9 @@ export function useAnthropic() {
       onComplete,
     } = options
 
-    activeSessionRef.current = sessionId
-    chunkHandlerRef.current = onChunk
-    errorHandlerRef.current = onError
-    completeHandlerRef.current = onComplete ?? null
-    setIsStreaming(true)
+    // Register handlers for this session
+    sessionsRef.current.set(sessionId, { onChunk, onError, onComplete })
+    setActiveSessions((prev) => new Set(prev).add(sessionId))
 
     // Extract system message from messages if present
     let systemMessage = system
@@ -88,21 +91,29 @@ export function useAnthropic() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       onError(errorMessage)
-      setIsStreaming(false)
-      activeSessionRef.current = null
+      sessionsRef.current.delete(sessionId)
+      setActiveSessions((prev) => {
+        const next = new Set(prev)
+        next.delete(sessionId)
+        return next
+      })
     }
   }, [])
 
-  const cancelStream = useCallback(async () => {
-    if (!activeSessionRef.current) return false
+  const cancelStream = useCallback(async (sessionId: string) => {
+    if (!sessionsRef.current.has(sessionId)) return false
 
     try {
       const wasCancelled = await invoke<boolean>('anthropic_cancel_stream', {
-        sessionId: activeSessionRef.current,
+        sessionId,
       })
       if (wasCancelled) {
-        setIsStreaming(false)
-        activeSessionRef.current = null
+        sessionsRef.current.delete(sessionId)
+        setActiveSessions((prev) => {
+          const next = new Set(prev)
+          next.delete(sessionId)
+          return next
+        })
       }
       return wasCancelled
     } catch {
@@ -117,17 +128,20 @@ export function useAnthropic() {
         (event) => {
           const { session_id, content, done, usage } = event.payload
 
-          if (session_id !== activeSessionRef.current) return
+          const handlers = sessionsRef.current.get(session_id)
+          if (!handlers) return
 
-          if (chunkHandlerRef.current) {
-            chunkHandlerRef.current(content, done)
-          }
+          handlers.onChunk(content, done)
 
           if (done) {
-            setIsStreaming(false)
-            activeSessionRef.current = null
-            if (completeHandlerRef.current) {
-              completeHandlerRef.current({
+            sessionsRef.current.delete(session_id)
+            setActiveSessions((prev) => {
+              const next = new Set(prev)
+              next.delete(session_id)
+              return next
+            })
+            if (handlers.onComplete) {
+              handlers.onComplete({
                 promptTokens: usage?.input_tokens,
                 completionTokens: usage?.output_tokens,
                 totalTokens: usage
@@ -144,14 +158,17 @@ export function useAnthropic() {
         (event) => {
           const { session_id, error } = event.payload
 
-          if (session_id !== activeSessionRef.current) return
+          const handlers = sessionsRef.current.get(session_id)
+          if (!handlers) return
 
-          if (errorHandlerRef.current) {
-            errorHandlerRef.current(error)
-          }
+          handlers.onError(error)
 
-          setIsStreaming(false)
-          activeSessionRef.current = null
+          sessionsRef.current.delete(session_id)
+          setActiveSessions((prev) => {
+            const next = new Set(prev)
+            next.delete(session_id)
+            return next
+          })
         }
       )
     }
@@ -166,6 +183,7 @@ export function useAnthropic() {
 
   return {
     isStreaming,
+    activeSessions,
     isValidatingKey,
     validateApiKey,
     startChatStream,

@@ -10,6 +10,12 @@ import type {
   StreamErrorEvent,
 } from '@/lib/ollama-types'
 
+interface SessionHandlers {
+  onChunk: ChatStreamOptions['onChunk']
+  onError: ChatStreamOptions['onError']
+  onComplete?: ChatStreamOptions['onComplete']
+}
+
 export function useOllama() {
   const [connectionState, setConnectionState] = useState<OllamaConnectionState>({
     isConnected: false,
@@ -17,17 +23,16 @@ export function useOllama() {
   })
   const [models, setModels] = useState<OllamaModelInfo[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
-  const [isStreaming, setIsStreaming] = useState(false)
+  const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set())
   const [pullingModel, setPullingModel] = useState<string | null>(null)
   const [pullProgress, setPullProgress] = useState<number | null>(null)
 
-  const activeSessionRef = useRef<string | null>(null)
-  const chunkHandlerRef = useRef<ChatStreamOptions['onChunk'] | null>(null)
-  const errorHandlerRef = useRef<ChatStreamOptions['onError'] | null>(null)
-  const completeHandlerRef = useRef<ChatStreamOptions['onComplete'] | null>(null)
+  const sessionsRef = useRef<Map<string, SessionHandlers>>(new Map())
   const unlistenChunkRef = useRef<UnlistenFn | null>(null)
   const unlistenErrorRef = useRef<UnlistenFn | null>(null)
   const unlistenPullRef = useRef<UnlistenFn | null>(null)
+
+  const isStreaming = activeSessions.size > 0
 
   const checkHealth = useCallback(async () => {
     setConnectionState((prev) => ({ ...prev, isChecking: true }))
@@ -74,11 +79,9 @@ export function useOllama() {
       const { sessionId, model, messages, temperature, maxTokens, onChunk, onError, onComplete } =
         options
 
-      activeSessionRef.current = sessionId
-      chunkHandlerRef.current = onChunk
-      errorHandlerRef.current = onError
-      completeHandlerRef.current = onComplete ?? null
-      setIsStreaming(true)
+      // Register handlers for this session
+      sessionsRef.current.set(sessionId, { onChunk, onError, onComplete })
+      setActiveSessions((prev) => new Set(prev).add(sessionId))
 
       try {
         await invoke('ollama_chat_stream', {
@@ -91,23 +94,31 @@ export function useOllama() {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
         onError(errorMessage)
-        setIsStreaming(false)
-        activeSessionRef.current = null
+        sessionsRef.current.delete(sessionId)
+        setActiveSessions((prev) => {
+          const next = new Set(prev)
+          next.delete(sessionId)
+          return next
+        })
       }
     },
     [],
   )
 
-  const cancelStream = useCallback(async () => {
-    if (!activeSessionRef.current) return false
+  const cancelStream = useCallback(async (sessionId: string) => {
+    if (!sessionsRef.current.has(sessionId)) return false
 
     try {
       const wasCancelled = await invoke<boolean>('ollama_cancel_stream', {
-        sessionId: activeSessionRef.current,
+        sessionId,
       })
       if (wasCancelled) {
-        setIsStreaming(false)
-        activeSessionRef.current = null
+        sessionsRef.current.delete(sessionId)
+        setActiveSessions((prev) => {
+          const next = new Set(prev)
+          next.delete(sessionId)
+          return next
+        })
       }
       return wasCancelled
     } catch {
@@ -150,17 +161,20 @@ export function useOllama() {
         (event) => {
           const { session_id, content, done, total_duration, eval_count } = event.payload
 
-          if (session_id !== activeSessionRef.current) return
+          const handlers = sessionsRef.current.get(session_id)
+          if (!handlers) return
 
-          if (chunkHandlerRef.current) {
-            chunkHandlerRef.current(content, done)
-          }
+          handlers.onChunk(content, done)
 
           if (done) {
-            setIsStreaming(false)
-            activeSessionRef.current = null
-            if (completeHandlerRef.current) {
-              completeHandlerRef.current({
+            sessionsRef.current.delete(session_id)
+            setActiveSessions((prev) => {
+              const next = new Set(prev)
+              next.delete(session_id)
+              return next
+            })
+            if (handlers.onComplete) {
+              handlers.onComplete({
                 totalDuration: total_duration,
                 evalCount: eval_count,
               })
@@ -174,14 +188,17 @@ export function useOllama() {
         (event) => {
           const { session_id, error } = event.payload
 
-          if (session_id !== activeSessionRef.current) return
+          const handlers = sessionsRef.current.get(session_id)
+          if (!handlers) return
 
-          if (errorHandlerRef.current) {
-            errorHandlerRef.current(error)
-          }
+          handlers.onError(error)
 
-          setIsStreaming(false)
-          activeSessionRef.current = null
+          sessionsRef.current.delete(session_id)
+          setActiveSessions((prev) => {
+            const next = new Set(prev)
+            next.delete(session_id)
+            return next
+          })
         },
       )
 
@@ -222,6 +239,7 @@ export function useOllama() {
     models,
     isLoadingModels,
     isStreaming,
+    activeSessions,
     pullingModel,
     pullProgress,
     checkHealth,

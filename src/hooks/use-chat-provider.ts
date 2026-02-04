@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useOllama } from './use-ollama'
 import { useOpenAI } from './use-openai'
 import { useAnthropic } from './use-anthropic'
+import { useAuth } from './use-auth'
 import type { ChatMessage, Provider, StreamCompletionStats } from '@/lib/provider-types'
 
 export interface UnifiedChatStreamOptions {
@@ -22,6 +23,7 @@ export function useChatProvider() {
   const ollama = useOllama()
   const openai = useOpenAI()
   const anthropic = useAnthropic()
+  const auth = useAuth()
 
   const isStreaming = useMemo(
     () => ollama.isStreaming || openai.isStreaming || anthropic.isStreaming,
@@ -35,7 +37,7 @@ export function useChatProvider() {
         provider,
         model,
         messages,
-        apiKey,
+        apiKey: providedApiKey,
         system,
         temperature,
         maxTokens,
@@ -61,9 +63,16 @@ export function useChatProvider() {
             },
           })
 
-        case 'openai':
+        case 'openai': {
+          // Resolve credentials (environment > manual)
+          let apiKey = providedApiKey
           if (!apiKey) {
-            onError('OpenAI API key is required')
+            const resolved = await auth.resolveOpenAICredentials()
+            apiKey = resolved?.api_key
+          }
+
+          if (!apiKey) {
+            onError('OpenAI API key is required. Set OPENAI_API_KEY or configure in settings.')
             return
           }
           return openai.startChatStream({
@@ -77,10 +86,20 @@ export function useChatProvider() {
             onError,
             onComplete,
           })
+        }
 
-        case 'anthropic':
+        case 'anthropic': {
+          // Resolve credentials (environment > Claude Code Keychain > manual)
+          let apiKey = providedApiKey
           if (!apiKey) {
-            onError('Anthropic API key is required')
+            const resolved = await auth.resolveAnthropicCredentials()
+            apiKey = resolved?.api_key
+          }
+
+          if (!apiKey) {
+            onError(
+              'Anthropic API key is required. Set ANTHROPIC_API_KEY, install Claude Code, or configure in settings.'
+            )
             return
           }
           return anthropic.startChatStream({
@@ -95,23 +114,24 @@ export function useChatProvider() {
             onError,
             onComplete,
           })
+        }
 
         default:
           onError(`Unknown provider: ${provider}`)
       }
     },
-    [ollama, openai, anthropic]
+    [ollama, openai, anthropic, auth]
   )
 
   const cancelStream = useCallback(
-    async (provider: Provider) => {
+    async (provider: Provider, sessionId: string) => {
       switch (provider) {
         case 'ollama':
-          return ollama.cancelStream()
+          return ollama.cancelStream(sessionId)
         case 'openai':
-          return openai.cancelStream()
+          return openai.cancelStream(sessionId)
         case 'anthropic':
-          return anthropic.cancelStream()
+          return anthropic.cancelStream(sessionId)
         default:
           return false
       }
@@ -139,6 +159,12 @@ export function useChatProvider() {
     startChatStream,
     cancelStream,
     validateApiKey,
+    auth: {
+      status: auth.authStatus,
+      isLoading: auth.isLoading,
+      hasClaudeCode: auth.hasClaudeCode,
+      refresh: auth.checkAuthStatus,
+    },
     ollama: {
       connectionState: ollama.connectionState,
       models: ollama.models,

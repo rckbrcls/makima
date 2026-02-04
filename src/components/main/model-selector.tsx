@@ -8,6 +8,7 @@ import {
   KeyIcon,
   Loader2,
   Settings2,
+  TerminalIcon,
   Trash2,
   Wifi,
   WifiOff,
@@ -16,6 +17,7 @@ import type { OllamaModelInfo } from '@/lib/ollama-types'
 import { POPULAR_MODELS } from '@/lib/ollama-types'
 import type { ModelInfo, Provider } from '@/lib/provider-types'
 import { OPENAI_MODELS, ANTHROPIC_MODELS } from '@/lib/provider-types'
+import type { AuthStatus } from '@/lib/auth-types'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,8 +50,7 @@ interface ModelSelectorProps {
   onPullModel: (model: string) => void
   onDeleteModel: (model: string) => void
   onRefresh: () => void
-  hasOpenAIKey: boolean
-  hasAnthropicKey: boolean
+  authStatus?: AuthStatus | null
 }
 
 export function ModelSelector({
@@ -64,9 +65,12 @@ export function ModelSelector({
   onPullModel,
   onDeleteModel,
   onRefresh,
-  hasOpenAIKey,
-  hasAnthropicKey,
+  authStatus,
 }: ModelSelectorProps) {
+  const hasOpenAIKey = authStatus?.openai.is_configured ?? false
+  const hasAnthropicKey = authStatus?.anthropic.is_configured ?? false
+  const anthropicSource = authStatus?.anthropic.source
+  const openaiSource = authStatus?.openai.source
   const [isManageOpen, setIsManageOpen] = useState(false)
   const [isApiKeyOpen, setIsApiKeyOpen] = useState(false)
   const [apiKeyInitialTab, setApiKeyInitialTab] = useState<'openai' | 'anthropic'>('openai')
@@ -168,6 +172,11 @@ export function ModelSelector({
           <DropdownMenuLabel className="flex items-center gap-2 text-xs">
             <Cloud className="size-3.5" />
             OpenAI
+            {hasOpenAIKey && openaiSource === 'environment' && (
+              <span className="ml-auto text-xs border border-amber-500 bg-amber-600 text-amber-950 px-1.5 py-0.5 rounded">
+                ENV
+              </span>
+            )}
             {!hasOpenAIKey && (
               <Button
                 variant="ghost"
@@ -208,6 +217,17 @@ export function ModelSelector({
           <DropdownMenuLabel className="flex items-center gap-2 text-xs">
             <Cloud className="size-3.5" />
             Anthropic
+            {hasAnthropicKey && anthropicSource === 'claude_code_keychain' && (
+              <span className="ml-auto text-xs border border-violet-500 bg-violet-600 text-violet-950 px-1.5 py-0.5 rounded flex items-center gap-1">
+                <TerminalIcon className="size-2.5" />
+                Claude Code
+              </span>
+            )}
+            {hasAnthropicKey && anthropicSource === 'environment' && (
+              <span className="ml-auto text-xs border border-amber-500 bg-amber-600 text-amber-950 px-1.5 py-0.5 rounded">
+                ENV
+              </span>
+            )}
             {!hasAnthropicKey && (
               <Button
                 variant="ghost"

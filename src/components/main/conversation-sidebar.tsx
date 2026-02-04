@@ -91,6 +91,14 @@ export function ConversationSidebar({
                         <p className="text-foreground text-sm font-medium">
                           {conversation.title}
                         </p>
+                        {conversation.status === "running" ? (
+                          <span className="relative flex size-2">
+                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-400" />
+                            <span className="relative inline-flex size-2 rounded-full bg-amber-500" />
+                          </span>
+                        ) : conversation.status === "idle" && conversation.items.length > 0 ? (
+                          <span className="size-2 rounded-full bg-emerald-500" />
+                        ) : null}
                         {conversation.globalState === "error" ? (
                           <AlertTriangle className="size-3 text-rose-500" />
                         ) : null}

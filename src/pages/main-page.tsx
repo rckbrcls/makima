@@ -36,16 +36,18 @@ import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 import { useConversations } from "@/hooks/use-conversations";
 import { useChatProvider } from "@/hooks/use-chat-provider";
-import { useSettingsStore } from "@/stores/settings-store";
 import type { ChatMessage, Provider } from "@/lib/provider-types";
 
-export function MainPage() {
-  const { providers } = useSettingsStore();
+interface StreamingState {
+  messageId: string;
+  accumulatedContent: string;
+  sessionId: string;
+}
 
+export function MainPage() {
   const {
-    isStreaming: isChatStreaming,
     startChatStream,
-    cancelStream: _cancelStream,
+    auth,
     ollama: {
       connectionState,
       models: ollamaModels,
@@ -96,9 +98,8 @@ export function MainPage() {
   const [isConfigOpen, _setIsConfigOpen] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
-  const streamingMessageIdRef = useRef<string | null>(null);
-  const streamingConversationIdRef = useRef<string | null>(null);
-  const accumulatedContentRef = useRef<string>("");
+  // Track streaming state per conversation
+  const streamingStatesRef = useRef<Map<string, StreamingState>>(new Map());
   const pendingMessagesRef = useRef<Map<string, { userMsg: ChatItem; assistantMsg: ChatItem }>>(new Map());
 
   useEffect(() => {
@@ -332,13 +333,14 @@ export function MainPage() {
 
   const handleSendMessage = useCallback(async () => {
     if (!activeConversation || !composerValue.trim()) return;
-    if (hasRunningExecution || isChatStreaming) return;
+    // Only block if this specific conversation is already streaming
+    if (hasRunningExecution || streamingStatesRef.current.has(activeConversation.id)) return;
     if (!model) return;
 
     // Check provider availability
     if (provider === "ollama" && !connectionState.isConnected) return;
-    if (provider === "openai" && !providers.openai.apiKey) return;
-    if (provider === "anthropic" && !providers.anthropic.apiKey) return;
+    if (provider === "openai" && !auth.status?.openai.is_configured) return;
+    if (provider === "anthropic" && !auth.status?.anthropic.is_configured) return;
 
     const now = Date.now();
     const messageId = buildMessageId();
@@ -347,9 +349,12 @@ export function MainPage() {
     const userContent = composerValue.trim();
     const conversationId = activeConversation.id;
 
-    streamingMessageIdRef.current = assistantId;
-    streamingConversationIdRef.current = conversationId;
-    accumulatedContentRef.current = "";
+    // Register streaming state for this conversation
+    streamingStatesRef.current.set(conversationId, {
+      messageId: assistantId,
+      accumulatedContent: "",
+      sessionId,
+    });
 
     const userMessage: ChatItem = {
       id: messageId,
@@ -429,31 +434,26 @@ export function MainPage() {
 
     conversationHistory.push({ role: "user", content: userContent });
 
-    const apiKey = provider === "openai"
-      ? providers.openai.apiKey
-      : provider === "anthropic"
-        ? providers.anthropic.apiKey
-        : undefined;
-
+    // API key is resolved automatically by useChatProvider
+    // (checks env vars, Claude Code keychain, then manual settings)
     startChatStream({
       sessionId,
       provider,
       model,
       messages: conversationHistory,
-      apiKey,
       temperature: parseFloat(temperature) || 0.7,
       maxTokens: parseInt(maxTokens) || 4096,
       onChunk: (content, done) => {
-        accumulatedContentRef.current += content;
-        const currentContent = accumulatedContentRef.current;
-        const currentMessageId = streamingMessageIdRef.current;
-        const currentConversationId = streamingConversationIdRef.current;
+        const state = streamingStatesRef.current.get(conversationId);
+        if (!state) return;
 
-        if (!currentMessageId || !currentConversationId) return;
+        state.accumulatedContent += content;
+        const currentContent = state.accumulatedContent;
+        const currentMessageId = state.messageId;
 
         setConversations((prev) =>
           prev.map((conversation) => {
-            if (conversation.id !== currentConversationId) return conversation;
+            if (conversation.id !== conversationId) return conversation;
 
             const nextItems = conversation.items.map((item) => {
               if (item.id !== currentMessageId || item.kind !== "message") return item;
@@ -478,7 +478,7 @@ export function MainPage() {
         );
 
         if (done) {
-          addMessage(currentConversationId, {
+          addMessage(conversationId, {
             id: currentMessageId,
             role: "assistant",
             state: "normal",
@@ -490,22 +490,19 @@ export function MainPage() {
           });
 
           pendingMessagesRef.current.delete(sessionId);
-          streamingMessageIdRef.current = null;
-          streamingConversationIdRef.current = null;
-          accumulatedContentRef.current = "";
+          streamingStatesRef.current.delete(conversationId);
         }
       },
       onError: (error) => {
-        const currentMessageId = streamingMessageIdRef.current;
-        const currentConversationId = streamingConversationIdRef.current;
+        const state = streamingStatesRef.current.get(conversationId);
+        if (!state) return;
 
-        if (!currentMessageId || !currentConversationId) return;
-
+        const currentMessageId = state.messageId;
         const errorContent = error || "An error occurred";
 
         setConversations((prev) =>
           prev.map((conversation) => {
-            if (conversation.id !== currentConversationId) return conversation;
+            if (conversation.id !== conversationId) return conversation;
 
             const nextItems = conversation.items.map((item) => {
               if (item.id !== currentMessageId || item.kind !== "message") return item;
@@ -528,7 +525,7 @@ export function MainPage() {
           }),
         );
 
-        addMessage(currentConversationId, {
+        addMessage(conversationId, {
           id: currentMessageId,
           role: "assistant",
           state: "error",
@@ -540,27 +537,24 @@ export function MainPage() {
         });
 
         pendingMessagesRef.current.delete(sessionId);
-        streamingMessageIdRef.current = null;
-        streamingConversationIdRef.current = null;
-        accumulatedContentRef.current = "";
+        streamingStatesRef.current.delete(conversationId);
       },
     });
   }, [
     activeConversation,
     composerValue,
     hasRunningExecution,
-    isChatStreaming,
     connectionState.isConnected,
     model,
     provider,
-    providers.openai.apiKey,
-    providers.anthropic.apiKey,
+    auth.status,
     tone,
     temperature,
     maxTokens,
     startChatStream,
     addMessage,
     updateConversation,
+    setConversations,
   ]);
 
   const tab = (
@@ -680,8 +674,7 @@ export function MainPage() {
                     onPullModel={pullModel}
                     onDeleteModel={deleteModel}
                     onRefresh={fetchModels}
-                    hasOpenAIKey={Boolean(providers.openai.apiKey)}
-                    hasAnthropicKey={Boolean(providers.anthropic.apiKey)}
+                    authStatus={auth.status}
                   />
                 }
               />

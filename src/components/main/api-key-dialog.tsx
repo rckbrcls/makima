@@ -1,5 +1,11 @@
-import { useState, useCallback } from 'react'
-import { CheckIcon, KeyIcon, Loader2Icon, XIcon } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import {
+  CheckIcon,
+  KeyIcon,
+  Loader2Icon,
+  XIcon,
+  TerminalIcon,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useChatProvider } from '@/hooks/use-chat-provider'
 import type { Provider } from '@/lib/provider-types'
+import type { AuthSource } from '@/lib/auth-types'
 
 interface APIKeyDialogProps {
   open: boolean
@@ -24,15 +31,60 @@ interface APIKeyDialogProps {
 
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid'
 
+function AuthSourceBadge({ source }: { source: AuthSource }) {
+  if (source === 'none') return null
+
+  const config: Record<AuthSource, { icon: typeof KeyIcon; label: string; className: string }> = {
+    environment: {
+      icon: TerminalIcon,
+      label: 'Environment',
+      className: 'border-amber-500 bg-amber-600 text-amber-950',
+    },
+    claude_code_keychain: {
+      icon: KeyIcon,
+      label: 'Claude Code',
+      className: 'border-violet-500 bg-violet-600 text-violet-950',
+    },
+    manual: {
+      icon: KeyIcon,
+      label: 'API Key',
+      className: 'border-sky-500 bg-sky-600 text-sky-950',
+    },
+    none: {
+      icon: XIcon,
+      label: 'None',
+      className: 'border-zinc-500 bg-zinc-600 text-zinc-950',
+    },
+  }
+
+  const { icon: Icon, label, className } = config[source]
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border ${className}`}
+    >
+      <Icon className="size-3" />
+      {label}
+    </span>
+  )
+}
+
 export function APIKeyDialog({ open, onOpenChange, initialTab = 'openai' }: APIKeyDialogProps) {
   const { providers, setProviderConfig } = useSettingsStore()
-  const { validateApiKey } = useChatProvider()
+  const { validateApiKey, auth } = useChatProvider()
 
   const [activeTab, setActiveTab] = useState<'openai' | 'anthropic'>(initialTab)
   const [openaiKey, setOpenaiKey] = useState(providers.openai.apiKey ?? '')
   const [anthropicKey, setAnthropicKey] = useState(providers.anthropic.apiKey ?? '')
   const [openaiStatus, setOpenaiStatus] = useState<ValidationStatus>('idle')
   const [anthropicStatus, setAnthropicStatus] = useState<ValidationStatus>('idle')
+
+  // Refresh auth status when dialog opens
+  useEffect(() => {
+    if (open) {
+      auth.refresh()
+    }
+  }, [open, auth.refresh])
 
   const handleTestConnection = useCallback(
     async (provider: 'openai' | 'anthropic') => {
@@ -80,6 +132,9 @@ export function APIKeyDialog({ open, onOpenChange, initialTab = 'openai' }: APIK
     }
   }
 
+  const anthropicAuthStatus = auth.status?.anthropic
+  const openaiAuthStatus = auth.status?.openai
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -89,7 +144,8 @@ export function APIKeyDialog({ open, onOpenChange, initialTab = 'openai' }: APIK
             API Keys
           </DialogTitle>
           <DialogDescription>
-            Configure your API keys to use cloud models from OpenAI and Anthropic.
+            Configure your API keys to use cloud models. The app automatically detects credentials
+            from Claude Code and environment variables.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,8 +160,31 @@ export function APIKeyDialog({ open, onOpenChange, initialTab = 'openai' }: APIK
           </TabsList>
 
           <TabsContent value="openai" className="mt-4 space-y-4">
+            {/* Current Status */}
+            {openaiAuthStatus && (
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                <div className="flex items-center gap-2">
+                  {openaiAuthStatus.is_configured ? (
+                    <CheckIcon className="size-4 text-emerald-500" />
+                  ) : (
+                    <XIcon className="size-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm">
+                    {openaiAuthStatus.is_configured ? 'Configured' : 'Not configured'}
+                  </span>
+                </div>
+                <AuthSourceBadge source={openaiAuthStatus.source} />
+              </div>
+            )}
+
+            {openaiAuthStatus?.source === 'environment' && (
+              <p className="text-xs text-muted-foreground">
+                Using <code className="bg-muted px-1 rounded">OPENAI_API_KEY</code> from environment.
+              </p>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="openai-key">API Key</Label>
+              <Label htmlFor="openai-key">API Key (Manual Override)</Label>
               <div className="flex gap-2">
                 <Input
                   id="openai-key"
@@ -149,8 +228,47 @@ export function APIKeyDialog({ open, onOpenChange, initialTab = 'openai' }: APIK
           </TabsContent>
 
           <TabsContent value="anthropic" className="mt-4 space-y-4">
+            {/* Current Status */}
+            {anthropicAuthStatus && (
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                <div className="flex items-center gap-2">
+                  {anthropicAuthStatus.is_configured ? (
+                    <CheckIcon className="size-4 text-emerald-500" />
+                  ) : (
+                    <XIcon className="size-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm">
+                    {anthropicAuthStatus.is_configured ? 'Configured' : 'Not configured'}
+                  </span>
+                </div>
+                <AuthSourceBadge source={anthropicAuthStatus.source} />
+              </div>
+            )}
+
+            {anthropicAuthStatus?.source === 'claude_code_keychain' && (
+              <p className="text-xs text-emerald-600">
+                Using credentials from Claude Code CLI (Keychain).
+              </p>
+            )}
+
+            {anthropicAuthStatus?.source === 'environment' && (
+              <p className="text-xs text-muted-foreground">
+                Using <code className="bg-muted px-1 rounded">ANTHROPIC_API_KEY</code> from
+                environment.
+              </p>
+            )}
+
+            {auth.hasClaudeCode && anthropicAuthStatus?.source !== 'claude_code_keychain' && (
+              <div className="flex items-center gap-2 p-2 rounded border border-violet-500 bg-violet-600/10">
+                <TerminalIcon className="size-4 text-violet-500" />
+                <span className="text-xs text-violet-400">
+                  Claude Code detected but credentials not accessible
+                </span>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="anthropic-key">API Key</Label>
+              <Label htmlFor="anthropic-key">API Key (Manual Override)</Label>
               <div className="flex gap-2">
                 <Input
                   id="anthropic-key"

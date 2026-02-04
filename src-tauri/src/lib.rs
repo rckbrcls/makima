@@ -9,6 +9,7 @@ use window_vibrancy::apply_blur;
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 mod anthropic;
+mod auth;
 mod database;
 mod ollama;
 mod openai;
@@ -17,6 +18,7 @@ mod providers;
 use anthropic::{
     anthropic_cancel_stream, anthropic_chat_stream, anthropic_validate_key, AnthropicState,
 };
+use auth::{auth_check_claude_code, auth_get_status, auth_resolve_anthropic, auth_resolve_openai};
 use database::{
     db_add_message, db_create_conversation, db_delete_conversation, db_get_conversation,
     db_list_conversations, db_update_conversation, db_update_message, initialize_database,
@@ -49,6 +51,10 @@ pub fn run() {
             anthropic_validate_key,
             anthropic_chat_stream,
             anthropic_cancel_stream,
+            auth_get_status,
+            auth_resolve_anthropic,
+            auth_resolve_openai,
+            auth_check_claude_code,
             db_list_conversations,
             db_get_conversation,
             db_create_conversation,

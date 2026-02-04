@@ -20,16 +20,21 @@ export interface OpenAIChatStreamOptions {
   onComplete?: (stats?: StreamCompletionStats) => void
 }
 
+interface SessionHandlers {
+  onChunk: OpenAIChatStreamOptions['onChunk']
+  onError: OpenAIChatStreamOptions['onError']
+  onComplete?: OpenAIChatStreamOptions['onComplete']
+}
+
 export function useOpenAI() {
-  const [isStreaming, setIsStreaming] = useState(false)
+  const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set())
   const [isValidatingKey, setIsValidatingKey] = useState(false)
 
-  const activeSessionRef = useRef<string | null>(null)
-  const chunkHandlerRef = useRef<OpenAIChatStreamOptions['onChunk'] | null>(null)
-  const errorHandlerRef = useRef<OpenAIChatStreamOptions['onError'] | null>(null)
-  const completeHandlerRef = useRef<OpenAIChatStreamOptions['onComplete'] | null>(null)
+  const sessionsRef = useRef<Map<string, SessionHandlers>>(new Map())
   const unlistenChunkRef = useRef<UnlistenFn | null>(null)
   const unlistenErrorRef = useRef<UnlistenFn | null>(null)
+
+  const isStreaming = activeSessions.size > 0
 
   const validateApiKey = useCallback(async (apiKey: string): Promise<boolean> => {
     setIsValidatingKey(true)
@@ -48,11 +53,9 @@ export function useOpenAI() {
     const { sessionId, model, messages, apiKey, temperature, maxTokens, onChunk, onError, onComplete } =
       options
 
-    activeSessionRef.current = sessionId
-    chunkHandlerRef.current = onChunk
-    errorHandlerRef.current = onError
-    completeHandlerRef.current = onComplete ?? null
-    setIsStreaming(true)
+    // Register handlers for this session
+    sessionsRef.current.set(sessionId, { onChunk, onError, onComplete })
+    setActiveSessions((prev) => new Set(prev).add(sessionId))
 
     try {
       await invoke('openai_chat_stream', {
@@ -66,21 +69,29 @@ export function useOpenAI() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       onError(errorMessage)
-      setIsStreaming(false)
-      activeSessionRef.current = null
+      sessionsRef.current.delete(sessionId)
+      setActiveSessions((prev) => {
+        const next = new Set(prev)
+        next.delete(sessionId)
+        return next
+      })
     }
   }, [])
 
-  const cancelStream = useCallback(async () => {
-    if (!activeSessionRef.current) return false
+  const cancelStream = useCallback(async (sessionId: string) => {
+    if (!sessionsRef.current.has(sessionId)) return false
 
     try {
       const wasCancelled = await invoke<boolean>('openai_cancel_stream', {
-        sessionId: activeSessionRef.current,
+        sessionId,
       })
       if (wasCancelled) {
-        setIsStreaming(false)
-        activeSessionRef.current = null
+        sessionsRef.current.delete(sessionId)
+        setActiveSessions((prev) => {
+          const next = new Set(prev)
+          next.delete(sessionId)
+          return next
+        })
       }
       return wasCancelled
     } catch {
@@ -95,17 +106,20 @@ export function useOpenAI() {
         (event) => {
           const { session_id, content, done, usage } = event.payload
 
-          if (session_id !== activeSessionRef.current) return
+          const handlers = sessionsRef.current.get(session_id)
+          if (!handlers) return
 
-          if (chunkHandlerRef.current) {
-            chunkHandlerRef.current(content, done)
-          }
+          handlers.onChunk(content, done)
 
           if (done) {
-            setIsStreaming(false)
-            activeSessionRef.current = null
-            if (completeHandlerRef.current) {
-              completeHandlerRef.current({
+            sessionsRef.current.delete(session_id)
+            setActiveSessions((prev) => {
+              const next = new Set(prev)
+              next.delete(session_id)
+              return next
+            })
+            if (handlers.onComplete) {
+              handlers.onComplete({
                 promptTokens: usage?.prompt_tokens,
                 completionTokens: usage?.completion_tokens,
                 totalTokens: usage?.total_tokens,
@@ -120,14 +134,17 @@ export function useOpenAI() {
         (event) => {
           const { session_id, error } = event.payload
 
-          if (session_id !== activeSessionRef.current) return
+          const handlers = sessionsRef.current.get(session_id)
+          if (!handlers) return
 
-          if (errorHandlerRef.current) {
-            errorHandlerRef.current(error)
-          }
+          handlers.onError(error)
 
-          setIsStreaming(false)
-          activeSessionRef.current = null
+          sessionsRef.current.delete(session_id)
+          setActiveSessions((prev) => {
+            const next = new Set(prev)
+            next.delete(session_id)
+            return next
+          })
         }
       )
     }
@@ -142,6 +159,7 @@ export function useOpenAI() {
 
   return {
     isStreaming,
+    activeSessions,
     isValidatingKey,
     validateApiKey,
     startChatStream,

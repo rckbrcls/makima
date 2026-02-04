@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { Store } from "@tauri-apps/plugin-store";
 import type { Provider } from "@/lib/provider-types";
+import type { AuthSourcePreference, AnthropicAuthSourcePreference } from "@/lib/auth-types";
 
 export type BridgeMode = "safe" | "auto";
 
@@ -37,10 +38,12 @@ interface SettingsState {
     openai: {
       enabled: boolean;
       apiKey?: string;
+      preferredAuthSource?: AuthSourcePreference;
     };
     anthropic: {
       enabled: boolean;
       apiKey?: string;
+      preferredAuthSource?: AnthropicAuthSourcePreference;
     };
   };
 
