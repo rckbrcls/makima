@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import useMeasure from "react-use-measure";
-import type { ReactNode} from "react";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -62,10 +62,10 @@ function DirectionAwareTabs({
   };
 
   return (
-    <div className="flex w-full flex-col items-start">
+    <div className="flex w-full flex-col items-center">
       <div
         className={cn(
-          "bg-card border-border shadow-inner-shadow flex cursor-pointer space-x-1 rounded-full border px-[3px] py-[3.2px]",
+          "bg-card border-border shadow-inner-shadow flex cursor-pointer space-x-1 rounded-lg border px-[3px] py-[3.2px]",
           className,
           rounded,
         )}
@@ -75,7 +75,7 @@ function DirectionAwareTabs({
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
             className={cn(
-              "relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-200 transition focus-visible:ring-1 focus-visible:outline-1 focus-visible:outline-none sm:text-sm",
+              "relative flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium text-neutral-200 transition focus-visible:ring-1 focus-visible:outline-1 focus-visible:outline-none sm:text-sm",
               activeTab === tab.id
                 ? "text-white"
                 : "text-neutral-200/80 hover:text-neutral-300/60",
@@ -87,7 +87,7 @@ function DirectionAwareTabs({
               <motion.span
                 layoutId="bubble"
                 className="bg-primary shadow-inner-shadow border-border absolute inset-0 z-10 border mix-blend-difference"
-                style={rounded ? { borderRadius: 9 } : { borderRadius: 9999 }}
+                style={rounded ? { borderRadius: 9 } : { borderRadius: 10 }}
                 transition={{ type: "spring", bounce: 0.19, duration: 0.4 }}
               />
             )}
@@ -102,7 +102,7 @@ function DirectionAwareTabs({
           initial={false}
           animate={{ height: bounds.height }}
         >
-          <div className="p-1" ref={ref}>
+          <div className="px-2" ref={ref}>
             <AnimatePresence
               custom={direction}
               mode="popLayout"
@@ -124,7 +124,7 @@ function DirectionAwareTabs({
           </div>
         </motion.div>
       </MotionConfig>
-    </div>
+    </div >
   );
 }
 export { DirectionAwareTabs };

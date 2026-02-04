@@ -406,7 +406,7 @@ export function UnifiedSidebar({
   );
 
   return (
-    <div className="border-border flex h-full flex-col overflow-hidden border-r">
+    <div className="border-border flex  h-full flex-col overflow-hidden border-r">
       {/* Header */}
       <div className="border-border flex-none border-b p-3">
         <div className="mb-2 flex items-center justify-between">
