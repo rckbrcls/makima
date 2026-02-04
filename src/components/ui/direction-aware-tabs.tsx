@@ -68,11 +68,11 @@ function DirectionAwareTabs({
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : 0;
 
     // Threshold to prevent accidental jitter
-    if (Math.abs(delta) < 20) return;
+    if (Math.abs(delta) < 30) return;
 
     const now = Date.now();
     // Throttle checks
-    if (now - lastScrollTime.current < 400) return;
+    if (now - lastScrollTime.current < 100) return;
 
     const currentIndex = tabs.findIndex((t) => t.id === activeTab);
     if (currentIndex === -1) return;
