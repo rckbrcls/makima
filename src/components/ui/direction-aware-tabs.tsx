@@ -30,6 +30,12 @@ function DirectionAwareTabs({
   const [isAnimating, setIsAnimating] = useState(false)
   const [ref, bounds] = useMeasure()
   const lastTabChange = useRef(0)
+  const wheelGesture = useRef({
+    startTime: 0,
+    lastTime: 0,
+    accumulated: 0,
+    direction: 0,
+  })
 
   const content = useMemo(() => {
     const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content
@@ -56,13 +62,57 @@ function DirectionAwareTabs({
     if (!isHorizontal && !isShiftScroll) return
 
     const delta = isShiftScroll ? e.deltaY : e.deltaX
-    if (Math.abs(delta) < 20) return
+    if (Math.abs(delta) === 0) return
 
     e.preventDefault()
 
     // Cooldown: only allow tab change every 500ms
     const now = Date.now()
     if (now - lastTabChange.current < 500) return
+    const gesture = wheelGesture.current
+
+    const resetGesture = () => {
+      gesture.startTime = 0
+      gesture.lastTime = 0
+      gesture.accumulated = 0
+      gesture.direction = 0
+    }
+
+    // Start a new gesture after a short pause
+    if (gesture.lastTime && now - gesture.lastTime > 160) {
+      resetGesture()
+    }
+
+    const deltaDirection = delta > 0 ? 1 : -1
+    if (!gesture.startTime) {
+      gesture.startTime = now
+      gesture.direction = deltaDirection
+    }
+
+    // If direction flips mid-gesture, restart tracking
+    if (gesture.direction !== deltaDirection) {
+      resetGesture()
+      gesture.startTime = now
+      gesture.direction = deltaDirection
+    }
+
+    gesture.lastTime = now
+    gesture.accumulated += delta
+
+    const duration = now - gesture.startTime
+    const accumulated = Math.abs(gesture.accumulated)
+    const velocity = accumulated / Math.max(duration, 1) // delta per ms
+    const quickGestureMs = 120
+    const quickDelta = 14
+    const quickVelocity = 0.35
+    const longDelta = 90
+
+    if (duration <= quickGestureMs) {
+      if (accumulated < quickDelta || velocity < quickVelocity) return
+    } else if (accumulated < longDelta) {
+      return
+    }
+
     lastTabChange.current = now
 
     if (delta > 0 && activeIndex < tabs.length - 1) {
@@ -70,6 +120,8 @@ function DirectionAwareTabs({
     } else if (delta < 0 && activeIndex > 0) {
       handleTabClick(tabs[activeIndex - 1].id)
     }
+
+    resetGesture()
   }
 
   const variants = {

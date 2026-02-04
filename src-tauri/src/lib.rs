@@ -7,11 +7,26 @@ use window_vibrancy::apply_blur;
 #[cfg(target_os = "macos")]
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
+mod ollama;
+use ollama::{
+    ollama_cancel_stream, ollama_chat_stream, ollama_delete_model, ollama_health_check,
+    ollama_list_models, ollama_pull_model, OllamaState,
+};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .manage(OllamaState::default())
+        .invoke_handler(tauri::generate_handler![
+            ollama_health_check,
+            ollama_list_models,
+            ollama_chat_stream,
+            ollama_cancel_stream,
+            ollama_pull_model,
+            ollama_delete_model,
+        ])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

@@ -9,19 +9,21 @@ interface ConversationSidebarProps {
   conversations: Array<Conversation>;
   activeConversationId: string;
   onSelectConversation: (conversationId: string) => void;
+  onNewConversation: () => void;
 }
 
 export function ConversationSidebar({
   conversations,
   activeConversationId,
   onSelectConversation,
+  onNewConversation,
 }: ConversationSidebarProps) {
   return (
     <>
       <div className="flex-none">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-bold font-serif">CHATS</h2>
-          <Button variant="ghost" size="icon" className="size-7">
+          <Button variant="ghost" size="icon" className="size-7" onClick={onNewConversation}>
             <Plus className="size-4" />
           </Button>
         </div>

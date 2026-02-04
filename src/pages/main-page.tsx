@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AutomationKey,
   ChannelKey,
@@ -25,24 +25,39 @@ import { ConversationSidebar } from "@/components/main/conversation-sidebar";
 import { ConversationThread } from "@/components/main/conversation-thread";
 import {
   buildMessageId,
-  mockConversations,
-  mockResponsePool,
+  createEmptyConversation,
 } from "@/components/main/jarvis-data";
 import type {
   ChatItem,
-  ChatMessage,
   Conversation,
   ConversationStatus,
   MessageState,
 } from "@/components/main/jarvis-types";
+import { ModelSelector } from "@/components/main/model-selector";
 import { RunDetailsModal } from "@/components/main/run-details-modal";
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
+import { useOllama } from "@/hooks/use-ollama";
+import type { OllamaMessage } from "@/lib/ollama-types";
 
 export function MainPage() {
+  const {
+    connectionState,
+    models: ollamaModels,
+    isLoadingModels,
+    isStreaming: isOllamaStreaming,
+    pullingModel,
+    pullProgress,
+    startChatStream,
+    cancelStream: _cancelStream,
+    pullModel,
+    deleteModel,
+    fetchModels,
+  } = useOllama();
+
   const [tone,] = useState("balanced");
-  const [provider,] = useState("openclaw");
-  const [model, setModel] = useState("claw-sonic");
+  const [provider,] = useState("ollama");
+  const [model, setModel] = useState("");
   const [temperature, setTemperature] = useState("0.4");
   const [maxTokens, setMaxTokens] = useState("4096");
   const [contextWindow, setContextWindow] = useState("128k");
@@ -60,15 +75,23 @@ export function MainPage() {
   const [executionTimeout, setExecutionTimeout] = useState("180");
   const [gpuEnabled, setGpuEnabled] = useState(false);
 
-  const [conversations, setConversations] =
-    useState<Array<Conversation>>(mockConversations);
-  const [activeConversationId, setActiveConversationId] = useState<string>(
-    mockConversations[0]?.id ?? '"',
-  );
+  const [initialConversation] = useState(() => createEmptyConversation());
+  const [conversations, setConversations] = useState<Array<Conversation>>(() => [initialConversation]);
+  const [activeConversationId, setActiveConversationId] = useState<string>(initialConversation.id);
   const [composerValue, setComposerValue] = useState("");
   const [composerRows, setComposerRows] = useState(1);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isConfigOpen, _setIsConfigOpen] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+
+  const streamingMessageIdRef = useRef<string | null>(null);
+  const streamingConversationIdRef = useRef<string | null>(null);
+  const accumulatedContentRef = useRef<string>("");
+
+  useEffect(() => {
+    if (ollamaModels.length > 0 && !model) {
+      setModel(ollamaModels[0].name);
+    }
+  }, [ollamaModels, model]);
 
   useEffect(() => {
     const lines = composerValue.split("\n").length;
@@ -216,10 +239,6 @@ export function MainPage() {
       ? "thinking"
       : "idle";
 
-  const toolCount = Object.values(tools).filter(Boolean).length;
-  const channelCount = Object.values(channels).filter(Boolean).length;
-  const pluginCount = Object.values(plugins).filter(Boolean).length;
-
   const handleNewConversation = () => {
     const now = Date.now();
     const newConversation: Conversation = {
@@ -236,16 +255,21 @@ export function MainPage() {
     setActiveConversationId(newConversation.id);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = useCallback(() => {
     if (!activeConversation || !composerValue.trim()) return;
-    if (hasRunningExecution) return;
+    if (hasRunningExecution || isOllamaStreaming) return;
+    if (!connectionState.isConnected) return;
+    if (!model) return;
 
     const now = Date.now();
     const messageId = buildMessageId();
-    const thinkingId = buildMessageId();
-    const streamingId = buildMessageId();
-    const responseText =
-      mockResponsePool[Math.floor(Math.random() * mockResponsePool.length)];
+    const assistantId = buildMessageId();
+    const sessionId = `session-${now}`;
+    const userContent = composerValue.trim();
+
+    streamingMessageIdRef.current = assistantId;
+    streamingConversationIdRef.current = activeConversation.id;
+    accumulatedContentRef.current = "";
 
     const userMessage: ChatItem = {
       id: messageId,
@@ -254,22 +278,23 @@ export function MainPage() {
         id: messageId,
         role: "user",
         state: "normal",
-        content: composerValue.trim(),
+        content: userContent,
         createdAt: now,
         meta: { provider, model, tone },
       },
     };
 
-    const thinkingMessage: ChatItem = {
-      id: thinkingId,
+    const assistantMessage: ChatItem = {
+      id: assistantId,
       kind: "message",
       message: {
-        id: thinkingId,
+        id: assistantId,
         role: "assistant",
         state: "thinking",
-        content: "Thinking...",
-        createdAt: now + 200,
+        content: "",
+        createdAt: now + 1,
         meta: { provider, model, tone },
+        streamedChars: 0,
       },
     };
 
@@ -279,60 +304,132 @@ export function MainPage() {
         const nextTitle =
           conversation.title === "New conversation" ||
             conversation.items.length === 0
-            ? composerValue.trim().slice(0, 32)
+            ? userContent.slice(0, 32)
             : conversation.title;
         return {
           ...conversation,
           title: nextTitle,
-          summary: composerValue.trim().slice(0, 60) || conversation.summary,
+          summary: userContent.slice(0, 60) || conversation.summary,
           status: "running",
           updatedAt: now,
-          items: [...conversation.items, userMessage, thinkingMessage],
+          items: [...conversation.items, userMessage, assistantMessage],
         };
       }),
     );
 
     setComposerValue("");
 
-    setTimeout(() => {
-      setConversations((prev) =>
-        prev.map((conversation) => {
-          if (conversation.id !== activeConversation.id) return conversation;
+    const conversationHistory: OllamaMessage[] = activeConversation.items
+      .filter((item) => item.kind === "message")
+      .map((item) => ({
+        role: item.message.role as "user" | "assistant",
+        content: item.message.content,
+      }));
 
-          const nextItems = conversation.items.map((item) =>
-            item.id === thinkingId
-              ? {
-                id: streamingId,
-                kind: "message" as const,
+    conversationHistory.push({ role: "user", content: userContent });
+
+    startChatStream({
+      sessionId,
+      model,
+      messages: conversationHistory,
+      temperature: parseFloat(temperature) || 0.7,
+      maxTokens: parseInt(maxTokens) || 4096,
+      onChunk: (content, done) => {
+        accumulatedContentRef.current += content;
+        const currentContent = accumulatedContentRef.current;
+        const currentMessageId = streamingMessageIdRef.current;
+        const currentConversationId = streamingConversationIdRef.current;
+
+        if (!currentMessageId || !currentConversationId) return;
+
+        setConversations((prev) =>
+          prev.map((conversation) => {
+            if (conversation.id !== currentConversationId) return conversation;
+
+            const nextItems = conversation.items.map((item) => {
+              if (item.id !== currentMessageId || item.kind !== "message") return item;
+              return {
+                ...item,
                 message: {
-                  id: streamingId,
-                  role: "assistant",
-                  state: "streaming",
-                  content: responseText,
-                  createdAt: Date.now(),
-                  meta: { provider, model, tone },
-                  streamedChars: 0,
-                } as ChatMessage,
-              }
-              : item,
-          );
+                  ...item.message,
+                  content: currentContent,
+                  state: (done ? "normal" : "streaming") as MessageState,
+                  streamedChars: currentContent.length,
+                },
+              };
+            });
 
-          return {
-            ...conversation,
-            status: "running",
-            updatedAt: Date.now(),
-            items: nextItems,
-          };
-        }),
-      );
-    }, 650);
-  };
+            return {
+              ...conversation,
+              status: done ? "idle" : "running",
+              updatedAt: Date.now(),
+              items: nextItems,
+            };
+          }),
+        );
+
+        if (done) {
+          streamingMessageIdRef.current = null;
+          streamingConversationIdRef.current = null;
+          accumulatedContentRef.current = "";
+        }
+      },
+      onError: (error) => {
+        const currentMessageId = streamingMessageIdRef.current;
+        const currentConversationId = streamingConversationIdRef.current;
+
+        if (!currentMessageId || !currentConversationId) return;
+
+        setConversations((prev) =>
+          prev.map((conversation) => {
+            if (conversation.id !== currentConversationId) return conversation;
+
+            const nextItems = conversation.items.map((item) => {
+              if (item.id !== currentMessageId || item.kind !== "message") return item;
+              return {
+                ...item,
+                message: {
+                  ...item.message,
+                  content: error || "An error occurred",
+                  state: "error" as MessageState,
+                },
+              };
+            });
+
+            return {
+              ...conversation,
+              status: "error",
+              updatedAt: Date.now(),
+              items: nextItems,
+            };
+          }),
+        );
+
+        streamingMessageIdRef.current = null;
+        streamingConversationIdRef.current = null;
+        accumulatedContentRef.current = "";
+      },
+    });
+  }, [
+    activeConversation,
+    composerValue,
+    hasRunningExecution,
+    isOllamaStreaming,
+    connectionState.isConnected,
+    model,
+    provider,
+    tone,
+    temperature,
+    maxTokens,
+    startChatStream,
+  ]);
 
   const tab = (
     <ConversationSidebar
       conversations={conversations}
       activeConversationId={activeConversationId}
       onSelectConversation={setActiveConversationId}
+      onNewConversation={handleNewConversation}
     />
   );
 
@@ -424,6 +521,22 @@ export function MainPage() {
                 inputState={inputState}
                 onComposerChange={setComposerValue}
                 onSendMessage={handleSendMessage}
+                onNewConversation={handleNewConversation}
+                isModelSelected={Boolean(model)}
+                modelSelector={
+                  <ModelSelector
+                    models={ollamaModels}
+                    selectedModel={model}
+                    onSelectModel={setModel}
+                    isConnected={connectionState.isConnected}
+                    isLoadingModels={isLoadingModels}
+                    pullingModel={pullingModel}
+                    pullProgress={pullProgress}
+                    onPullModel={pullModel}
+                    onDeleteModel={deleteModel}
+                    onRefresh={fetchModels}
+                  />
+                }
               />
             </div>
           ) : null}
