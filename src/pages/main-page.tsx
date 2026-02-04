@@ -8,7 +8,7 @@ import type {
   PluginKey,
   SafetyKey,
   ToolKey,
-} from "@/components/jarvis/config-types";
+} from "@/components/main/config-types";
 import {
   automationDefaults,
   channelDefaults,
@@ -18,24 +18,23 @@ import {
   pluginDefaults,
   safetyDefaults,
   toolDefaults,
-} from "@/components/jarvis/config-types";
-import { ConfigPanel } from "@/components/jarvis/config-panel";
-import { ConversationComposer } from "@/components/jarvis/conversation-composer";
-import { ConversationHeader } from "@/components/jarvis/conversation-header";
-import { ConversationSidebar } from "@/components/jarvis/conversation-sidebar";
-import { ConversationThread } from "@/components/jarvis/conversation-thread";
+} from "@/components/main/config-types";
+import { ConfigPanel } from "@/components/main/config-panel";
+import { ConversationComposer } from "@/components/main/conversation-composer";
+import { ConversationSidebar } from "@/components/main/conversation-sidebar";
+import { ConversationThread } from "@/components/main/conversation-thread";
 import {
   buildMessageId,
   mockConversations,
   mockResponsePool,
-} from "@/components/jarvis/jarvis-data";
+} from "@/components/main/jarvis-data";
 import type {
   ChatMessage,
   Conversation,
   ConversationStatus,
   MessageState,
-} from "@/components/jarvis/jarvis-types";
-import { RunDetailsModal } from "@/components/jarvis/run-details-modal";
+} from "@/components/main/jarvis-types";
+import { RunDetailsModal } from "@/components/main/run-details-modal";
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 

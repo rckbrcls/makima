@@ -1,6 +1,6 @@
 import { Settings, X } from "lucide-react";
-import type { Conversation } from "@/components/jarvis/jarvis-types";
-import { conversationStateMeta } from "@/components/jarvis/jarvis-data";
+import type { Conversation } from "@/components/main/jarvis-types";
+import { conversationStateMeta } from "@/components/main/jarvis-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

@@ -1,9 +1,4 @@
-import {
-  CheckCircle2,
-  Loader2,
-  PauseCircle,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Loader2, PauseCircle, XCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
   Conversation,
@@ -11,7 +6,7 @@ import type {
   ConversationStatus,
   MessageMeta,
   RunStatus,
-} from "@/components/jarvis/jarvis-types";
+} from "@/components/main/jarvis-types";
 
 const baseTimestamp = Date.now();
 const minutes = (value: number) => value * 60 * 1000;
@@ -399,21 +394,36 @@ export const conversationStatusMeta: Record<
   ConversationStatus,
   { label: string; className: string }
 > = {
-  idle: { label: "Idle", className: "border-emerald-500 bg-emerald-600 text-emerald-950" },
-  running: { label: "Running", className: "border-yellow-500 bg-yellow-600 text-yellow-950" },
-  error: { label: "Error", className: "border-red-500 bg-red-600 text-red-950" },
+  idle: {
+    label: "Idle",
+    className: "border-emerald-500 bg-emerald-600 text-emerald-950",
+  },
+  running: {
+    label: "Running",
+    className: "border-yellow-500 bg-yellow-600 text-yellow-950",
+  },
+  error: {
+    label: "Error",
+    className: "border-red-500 bg-red-600 text-red-950",
+  },
 };
 
 export const conversationStateMeta: Record<
   ConversationState,
   { label: string; className: string }
 > = {
-  active: { label: "Active", className: "border-sky-500 bg-sky-600 text-sky-950" },
+  active: {
+    label: "Active",
+    className: "border-sky-500 bg-sky-600 text-sky-950",
+  },
   finished: {
     label: "Finished",
     className: "border-emerald-500 bg-emerald-600 text-emerald-950",
   },
-  error: { label: "Error", className: "border-red-500 bg-red-600 text-red-950" },
+  error: {
+    label: "Error",
+    className: "border-red-500 bg-red-600 text-red-950",
+  },
 };
 
 export const runStatusMeta: Record<

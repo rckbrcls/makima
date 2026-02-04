@@ -5,11 +5,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import appCss from "../styles.css?url";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { AppSidebar } from "@/components/ui/app-sidebar";
-import { GlobalApprovalDrawer } from "@/components/agents/global-approval-drawer";
-import { TerminalDrawer } from "@/components/agents/terminal-drawer";
 import { PageHeader } from "@/components/shared/page-header";
-
 
 export const Route = createRootRoute({
   head: () => ({
@@ -53,9 +49,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               </main>
             </div>
           </div>
-          {/* Global Approval Drawer - accessible from any page */}
-          <GlobalApprovalDrawer />
-          <TerminalDrawer />
+
         </ThemeProvider>
         <TanStackDevtools
           config={{

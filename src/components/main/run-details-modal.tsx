@@ -1,5 +1,5 @@
-import type { ExecutionRun } from "@/components/jarvis/jarvis-types";
-import { runStatusMeta } from "@/components/jarvis/jarvis-data";
+import type { ExecutionRun } from "@/components/main/jarvis-types";
+import { runStatusMeta } from "@/components/main/jarvis-data";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,

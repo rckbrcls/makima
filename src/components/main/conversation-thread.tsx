@@ -1,6 +1,6 @@
-import { AlertTriangle, Bot, User } from "lucide-react";
-import type { Conversation } from "@/components/jarvis/jarvis-types";
-import { formatClock, runStatusMeta } from "@/components/jarvis/jarvis-data";
+import { AlertTriangle } from "lucide-react";
+import type { Conversation } from "@/components/main/jarvis-types";
+import { formatClock, runStatusMeta } from "@/components/main/jarvis-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

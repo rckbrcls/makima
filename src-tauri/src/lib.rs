@@ -1,20 +1,3 @@
-mod agent_commands;
-mod approval_commands;
-mod approval_service;
-mod bridge;
-mod commands;
-mod database;
-mod events;
-mod port_registry;
-mod process;
-mod providers;
-mod runtime;
-mod seed;
-mod types;
-mod utils;
-
-use port_registry::PortRegistry;
-use runtime::AppRuntime;
 use tauri::webview::Color;
 use tauri::{Manager, TitleBarStyle, WebviewWindowBuilder};
 
@@ -29,57 +12,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![
-            // Makima commands
-            commands::makima_state,
-            commands::makima_add_repository,
-            commands::makima_repo_branches,
-            commands::makima_import_commands,
-            commands::makima_add_command,
-            commands::makima_update_command,
-            commands::makima_run_command,
-            commands::makima_stop_command,
-            commands::makima_delete_command,
-            commands::makima_delete_repository,
-            commands::makima_get_execution_logs,
-            // Port registry commands
-            port_registry::port_registry_lease_port,
-            port_registry::port_registry_release_port,
-            port_registry::port_registry_list_leases,
-            port_registry::port_registry_allocate_port_and_lease,
-            // Agent commands
-            agent_commands::agent_state,
-            agent_commands::agent_create,
-            agent_commands::agent_delete,
-            agent_commands::agent_get,
-            agent_commands::agent_list,
-            agent_commands::agent_add_repo,
-            agent_commands::agent_remove_repo,
-            agent_commands::agent_list_repos,
-            agent_commands::session_start,
-            agent_commands::session_get,
-            agent_commands::session_list_by_agent,
-            agent_commands::session_end,
-            agent_commands::action_get,
-            agent_commands::action_list_by_session,
-            agent_commands::approval_list_pending,
-            agent_commands::approval_approve,
-            agent_commands::approval_reject,
-            agent_commands::event_list_by_session,
-            agent_commands::event_list_recent,
-            agent_commands::mode_get,
-            agent_commands::mode_set,
-            // Advanced approval commands
-            approval_commands::approval_approve_v2,
-            approval_commands::approval_reject_v2,
-            approval_commands::approval_approve_all,
-            approval_commands::approval_reject_all,
-            approval_commands::approval_pending_count,
-            approval_commands::approval_pending_for_session,
-            approval_commands::mode_set_v2,
-            approval_commands::mode_get_v2,
-            approval_commands::mode_toggle
-        ])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -135,10 +67,6 @@ pub fn run() {
                 }
             }
 
-            let runtime = AppRuntime::new(app.handle())
-                .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
-            app.manage(runtime);
-            app.manage(PortRegistry::new());
             Ok(())
         })
         .run(tauri::generate_context!())

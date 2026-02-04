@@ -1,7 +1,6 @@
 import { AlertTriangle, Plus, Search } from "lucide-react";
-import type { Conversation } from "@/components/jarvis/jarvis-types";
-import { conversationStatusMeta, formatRelativeTime, getConversationPreview } from "@/components/jarvis/jarvis-data";
-import { Badge } from "@/components/ui/badge";
+import type { Conversation } from "@/components/main/jarvis-types";
+import { conversationStatusMeta, formatRelativeTime } from "@/components/main/jarvis-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";

@@ -1,10 +1,7 @@
-import { ArrowUp, Folder, Mic, Plus, Send } from "lucide-react";
-import type { InputState } from "@/components/jarvis/jarvis-types";
-import { inputStateMeta } from "@/components/jarvis/jarvis-data";
+import { ArrowUp, Folder, Mic, Plus } from "lucide-react";
+import type { InputState } from "@/components/main/jarvis-types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { Badge } from "../ui/badge";
 import { NativeSelect, NativeSelectOption } from "../ui/native-select";
 
 interface ConversationComposerProps {
@@ -20,7 +17,6 @@ export function ConversationComposer({
   composerValue,
   composerRows,
   hasRunningExecution,
-  inputState,
   onComposerChange,
   onSendMessage,
 }: ConversationComposerProps) {
