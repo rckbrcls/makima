@@ -240,6 +240,12 @@ export function MainPage() {
       : "idle";
 
   const handleNewConversation = () => {
+    const existingEmpty = conversations.find((c) => c.items.length === 0);
+    if (existingEmpty) {
+      setActiveConversationId(existingEmpty.id);
+      return;
+    }
+
     const now = Date.now();
     const newConversation: Conversation = {
       id: `conv-${now}`,

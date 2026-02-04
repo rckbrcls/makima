@@ -109,7 +109,7 @@ export function ModelSelector({
               <DropdownMenuItem
                 key={model.name}
                 onClick={() => onSelectModel(model.name)}
-                className="gap-2"
+                className="gap-2 rounded-none"
               >
                 {selectedModel === model.name && (
                   <Check className="size-4 text-emerald-500" />
@@ -125,7 +125,7 @@ export function ModelSelector({
           <DropdownMenuSeparator />
           <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
             <DialogTrigger asChild>
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <DropdownMenuItem className="rounded-none" onSelect={(e) => e.preventDefault()}>
                 <Settings2 className="size-4 mr-2" />
                 Manage models...
               </DropdownMenuItem>
