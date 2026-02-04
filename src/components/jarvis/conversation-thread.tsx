@@ -190,7 +190,7 @@ export function ConversationThread({
                   </div>
 
                 </div>
-                <div className="h-30" />
+
               </>
             );
           })
