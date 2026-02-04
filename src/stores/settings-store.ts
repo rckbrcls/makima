@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { Store } from "@tauri-apps/plugin-store";
-import type { BridgeMode } from "@/components/agents/types";
+import type { Provider } from "@/lib/provider-types";
+
+export type BridgeMode = "safe" | "auto";
 
 // ============================================================================
 // Settings Store - Persistent settings using Zustand + Tauri Store
@@ -22,21 +24,21 @@ interface SettingsState {
     showEventNotifications: boolean; // Show toast for agent events
 
     // Session defaults
-    defaultProvider: "cli" | "local" | "api";
+    defaultProvider: Provider;
     defaultModel: string;
   };
 
-  // Provider configurations (placeholder for future)
+  // Provider configurations
   providers: {
-    cli: {
-      enabled: boolean;
-      path?: string;
-    };
-    local: {
+    ollama: {
       enabled: boolean;
       endpoint?: string;
     };
-    api: {
+    openai: {
+      enabled: boolean;
+      apiKey?: string;
+    };
+    anthropic: {
       enabled: boolean;
       apiKey?: string;
     };
@@ -80,15 +82,60 @@ const defaultSettings: Omit<SettingsState, "_hasHydrated"> = {
     autoApproveLowRisk: false,
     compactMode: false,
     showEventNotifications: true,
-    defaultProvider: "cli",
-    defaultModel: "claude-sonnet-4-20250514",
+    defaultProvider: "ollama",
+    defaultModel: "llama3.2",
   },
   providers: {
-    cli: { enabled: true },
-    local: { enabled: false },
-    api: { enabled: false },
+    ollama: { enabled: true },
+    openai: { enabled: false },
+    anthropic: { enabled: false },
   },
 };
+
+// Migration function for old settings format
+function migrateSettings(
+  state: Record<string, unknown>
+): Partial<SettingsState> {
+  const migrated: Partial<SettingsState> = {};
+
+  // Migrate old providers format
+  if (state.providers) {
+    const oldProviders = state.providers as Record<string, unknown>;
+    if ("cli" in oldProviders || "local" in oldProviders || "api" in oldProviders) {
+      migrated.providers = {
+        ollama: {
+          enabled: (oldProviders.local as { enabled?: boolean })?.enabled ?? true,
+          endpoint: (oldProviders.local as { endpoint?: string })?.endpoint,
+        },
+        openai: {
+          enabled: false,
+        },
+        anthropic: {
+          enabled: (oldProviders.api as { enabled?: boolean })?.enabled ?? false,
+          apiKey: (oldProviders.api as { apiKey?: string })?.apiKey,
+        },
+      };
+    }
+  }
+
+  // Migrate old defaultProvider
+  if (state.preferences) {
+    const oldPrefs = state.preferences as Record<string, unknown>;
+    if (oldPrefs.defaultProvider === "cli" || oldPrefs.defaultProvider === "local") {
+      migrated.preferences = {
+        ...(oldPrefs as SettingsState["preferences"]),
+        defaultProvider: "ollama",
+      };
+    } else if (oldPrefs.defaultProvider === "api") {
+      migrated.preferences = {
+        ...(oldPrefs as SettingsState["preferences"]),
+        defaultProvider: "anthropic",
+      };
+    }
+  }
+
+  return migrated;
+}
 
 // Custom storage adapter for Tauri Store
 const tauriStorage = {
@@ -151,7 +198,7 @@ const tauriStorage = {
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...defaultSettings,
       _hasHydrated: false,
 
@@ -189,6 +236,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: "makima-settings",
+      version: 1,
       storage: createJSONStorage(() => tauriStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
@@ -198,6 +246,15 @@ export const useSettingsStore = create<SettingsStore>()(
         preferences: state.preferences,
         providers: state.providers,
       }),
+      migrate: (persistedState, version) => {
+        if (version === 0) {
+          const migrated = migrateSettings(
+            persistedState as Record<string, unknown>
+          );
+          return { ...(persistedState as object), ...migrated } as SettingsState;
+        }
+        return persistedState as SettingsState;
+      },
     },
   ),
 );

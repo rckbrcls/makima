@@ -1,3 +1,4 @@
+use rusqlite::Connection;
 use tauri::webview::Color;
 use tauri::{Manager, TitleBarStyle, WebviewWindowBuilder};
 
@@ -7,11 +8,25 @@ use window_vibrancy::apply_blur;
 #[cfg(target_os = "macos")]
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
+mod anthropic;
+mod database;
 mod ollama;
+mod openai;
+mod providers;
+
+use anthropic::{
+    anthropic_cancel_stream, anthropic_chat_stream, anthropic_validate_key, AnthropicState,
+};
+use database::{
+    db_add_message, db_create_conversation, db_delete_conversation, db_get_conversation,
+    db_list_conversations, db_update_conversation, db_update_message, initialize_database,
+    DatabaseState,
+};
 use ollama::{
     ollama_cancel_stream, ollama_chat_stream, ollama_delete_model, ollama_health_check,
     ollama_list_models, ollama_pull_model, OllamaState,
 };
+use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +34,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .manage(OllamaState::default())
+        .manage(OpenAIState::default())
+        .manage(AnthropicState::default())
         .invoke_handler(tauri::generate_handler![
             ollama_health_check,
             ollama_list_models,
@@ -26,6 +43,19 @@ pub fn run() {
             ollama_cancel_stream,
             ollama_pull_model,
             ollama_delete_model,
+            openai_validate_key,
+            openai_chat_stream,
+            openai_cancel_stream,
+            anthropic_validate_key,
+            anthropic_chat_stream,
+            anthropic_cancel_stream,
+            db_list_conversations,
+            db_get_conversation,
+            db_create_conversation,
+            db_update_conversation,
+            db_delete_conversation,
+            db_add_message,
+            db_update_message,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -35,6 +65,12 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            let db_path = database::schema::get_database_path(app.handle());
+            let conn = Connection::open(&db_path).expect("Failed to open database");
+            initialize_database(&conn).expect("Failed to initialize database");
+            app.manage(DatabaseState::new(conn));
+            log::info!("Database initialized at {:?}", db_path);
 
             let window_config = app.config().app.windows.get(0).cloned().ok_or_else(|| {
                 std::io::Error::new(

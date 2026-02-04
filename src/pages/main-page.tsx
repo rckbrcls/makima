@@ -23,10 +23,7 @@ import { ConfigPanel } from "@/components/main/config-panel";
 import { ConversationComposer } from "@/components/main/conversation-composer";
 import { ConversationSidebar } from "@/components/main/conversation-sidebar";
 import { ConversationThread } from "@/components/main/conversation-thread";
-import {
-  buildMessageId,
-  createEmptyConversation,
-} from "@/components/main/jarvis-data";
+import { buildMessageId } from "@/components/main/jarvis-data";
 import type {
   ChatItem,
   Conversation,
@@ -37,26 +34,44 @@ import { ModelSelector } from "@/components/main/model-selector";
 import { RunDetailsModal } from "@/components/main/run-details-modal";
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
-import { useOllama } from "@/hooks/use-ollama";
-import type { OllamaMessage } from "@/lib/ollama-types";
+import { useConversations } from "@/hooks/use-conversations";
+import { useChatProvider } from "@/hooks/use-chat-provider";
+import { useSettingsStore } from "@/stores/settings-store";
+import type { ChatMessage, Provider } from "@/lib/provider-types";
 
 export function MainPage() {
+  const { providers } = useSettingsStore();
+
   const {
-    connectionState,
-    models: ollamaModels,
-    isLoadingModels,
-    isStreaming: isOllamaStreaming,
-    pullingModel,
-    pullProgress,
+    isStreaming: isChatStreaming,
     startChatStream,
     cancelStream: _cancelStream,
-    pullModel,
-    deleteModel,
-    fetchModels,
-  } = useOllama();
+    ollama: {
+      connectionState,
+      models: ollamaModels,
+      isLoadingModels,
+      pullingModel,
+      pullProgress,
+      pullModel,
+      deleteModel,
+      fetchModels,
+    },
+  } = useChatProvider();
+
+  const {
+    conversations,
+    isLoading: isLoadingConversations,
+    loadConversation,
+    createConversation,
+    updateConversation,
+    deleteConversation: deleteConversationDb,
+    addMessage,
+    updateMessage: _updateMessage,
+    setConversations,
+  } = useConversations();
 
   const [tone,] = useState("balanced");
-  const [provider,] = useState("ollama");
+  const [provider, setProvider] = useState<Provider>("ollama");
   const [model, setModel] = useState("");
   const [temperature, setTemperature] = useState("0.4");
   const [maxTokens, setMaxTokens] = useState("4096");
@@ -75,9 +90,7 @@ export function MainPage() {
   const [executionTimeout, setExecutionTimeout] = useState("180");
   const [gpuEnabled, setGpuEnabled] = useState(false);
 
-  const [initialConversation] = useState(() => createEmptyConversation());
-  const [conversations, setConversations] = useState<Array<Conversation>>(() => [initialConversation]);
-  const [activeConversationId, setActiveConversationId] = useState<string>(initialConversation.id);
+  const [activeConversationId, setActiveConversationId] = useState<string>("");
   const [composerValue, setComposerValue] = useState("");
   const [composerRows, setComposerRows] = useState(1);
   const [isConfigOpen, _setIsConfigOpen] = useState(false);
@@ -86,12 +99,32 @@ export function MainPage() {
   const streamingMessageIdRef = useRef<string | null>(null);
   const streamingConversationIdRef = useRef<string | null>(null);
   const accumulatedContentRef = useRef<string>("");
+  const pendingMessagesRef = useRef<Map<string, { userMsg: ChatItem; assistantMsg: ChatItem }>>(new Map());
 
   useEffect(() => {
-    if (ollamaModels.length > 0 && !model) {
+    if (provider === "ollama" && ollamaModels.length > 0 && !model) {
       setModel(ollamaModels[0].name);
     }
-  }, [ollamaModels, model]);
+  }, [ollamaModels, model, provider]);
+
+  const handleSelectModel = useCallback((newModel: string, newProvider: Provider) => {
+    setModel(newModel);
+    setProvider(newProvider);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoadingConversations && conversations.length > 0 && !activeConversationId) {
+      setActiveConversationId(conversations[0].id);
+    }
+  }, [isLoadingConversations, conversations, activeConversationId]);
+
+  const handleSelectConversation = useCallback(async (id: string) => {
+    setActiveConversationId(id);
+    const conv = conversations.find((c) => c.id === id);
+    if (conv && conv.items.length === 0) {
+      await loadConversation(id);
+    }
+  }, [conversations, loadConversation]);
 
   useEffect(() => {
     const lines = composerValue.split("\n").length;
@@ -161,7 +194,7 @@ export function MainPage() {
     }, 90);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [setConversations]);
 
   const handleToolChange = (key: ToolKey, checked: boolean) => {
     setTools((prev) => ({ ...prev, [key]: checked }));
@@ -239,42 +272,83 @@ export function MainPage() {
       ? "thinking"
       : "idle";
 
-  const handleNewConversation = () => {
+  const handleNewConversation = useCallback(async () => {
     const existingEmpty = conversations.find((c) => c.items.length === 0);
     if (existingEmpty) {
       setActiveConversationId(existingEmpty.id);
       return;
     }
 
-    const now = Date.now();
-    const newConversation: Conversation = {
-      id: `conv-${now}`,
-      title: "New conversation",
-      summary: "No messages yet",
-      status: "idle",
-      state: "active",
-      createdAt: now,
-      updatedAt: now,
-      items: [],
-    };
-    setConversations((prev) => [newConversation, ...prev]);
-    setActiveConversationId(newConversation.id);
+    const newConv = await createConversation("New conversation");
+    if (newConv) {
+      setActiveConversationId(newConv.id);
+    }
+  }, [conversations, createConversation]);
+
+  const handleRenameConversation = useCallback((id: string) => {
+    console.log("Rename:", id);
+  }, []);
+
+  const handleDeleteConversation = useCallback(async (id: string) => {
+    await deleteConversationDb(id);
+    if (activeConversationId === id && conversations.length > 1) {
+      const remaining = conversations.filter((c) => c.id !== id);
+      setActiveConversationId(remaining[0]?.id ?? "");
+    }
+  }, [deleteConversationDb, activeConversationId, conversations]);
+
+  const handleDuplicateConversation = (id: string) => {
+    const original = conversations.find((c) => c.id === id);
+    if (original) {
+      const duplicate: Conversation = {
+        ...original,
+        id: crypto.randomUUID(),
+        title: `${original.title} (cópia)`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      setConversations((prev) => [duplicate, ...prev]);
+    }
   };
 
-  const handleSendMessage = useCallback(() => {
+  const handleExportConversation = (id: string) => {
+    const conversation = conversations.find((c) => c.id === id);
+    if (conversation) {
+      const data = JSON.stringify(conversation, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${conversation.title.replace(/[^a-z0-9]/gi, "_")}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleArchiveConversation = (id: string) => {
+    // TODO: Implementar lógica de arquivamento (mover para lista arquivada)
+    console.log("Archive:", id);
+  };
+
+  const handleSendMessage = useCallback(async () => {
     if (!activeConversation || !composerValue.trim()) return;
-    if (hasRunningExecution || isOllamaStreaming) return;
-    if (!connectionState.isConnected) return;
+    if (hasRunningExecution || isChatStreaming) return;
     if (!model) return;
+
+    // Check provider availability
+    if (provider === "ollama" && !connectionState.isConnected) return;
+    if (provider === "openai" && !providers.openai.apiKey) return;
+    if (provider === "anthropic" && !providers.anthropic.apiKey) return;
 
     const now = Date.now();
     const messageId = buildMessageId();
     const assistantId = buildMessageId();
     const sessionId = `session-${now}`;
     const userContent = composerValue.trim();
+    const conversationId = activeConversation.id;
 
     streamingMessageIdRef.current = assistantId;
-    streamingConversationIdRef.current = activeConversation.id;
+    streamingConversationIdRef.current = conversationId;
     accumulatedContentRef.current = "";
 
     const userMessage: ChatItem = {
@@ -304,14 +378,17 @@ export function MainPage() {
       },
     };
 
+    pendingMessagesRef.current.set(sessionId, { userMsg: userMessage, assistantMsg: assistantMessage });
+
+    const nextTitle =
+      activeConversation.title === "New conversation" ||
+        activeConversation.items.length === 0
+        ? userContent.slice(0, 32)
+        : activeConversation.title;
+
     setConversations((prev) =>
       prev.map((conversation) => {
-        if (conversation.id !== activeConversation.id) return conversation;
-        const nextTitle =
-          conversation.title === "New conversation" ||
-            conversation.items.length === 0
-            ? userContent.slice(0, 32)
-            : conversation.title;
+        if (conversation.id !== conversationId) return conversation;
         return {
           ...conversation,
           title: nextTitle,
@@ -325,19 +402,45 @@ export function MainPage() {
 
     setComposerValue("");
 
-    const conversationHistory: OllamaMessage[] = activeConversation.items
+    await addMessage(conversationId, {
+      id: messageId,
+      role: "user",
+      state: "normal",
+      content: userContent,
+      createdAt: now,
+      provider,
+      model,
+      tone,
+    });
+
+    if (nextTitle !== activeConversation.title) {
+      updateConversation(conversationId, {
+        title: nextTitle,
+        summary: userContent.slice(0, 60),
+      });
+    }
+
+    const conversationHistory: ChatMessage[] = activeConversation.items
       .filter((item) => item.kind === "message")
       .map((item) => ({
-        role: item.message.role as "user" | "assistant",
+        role: item.message.role as "user" | "assistant" | "system",
         content: item.message.content,
       }));
 
     conversationHistory.push({ role: "user", content: userContent });
 
+    const apiKey = provider === "openai"
+      ? providers.openai.apiKey
+      : provider === "anthropic"
+        ? providers.anthropic.apiKey
+        : undefined;
+
     startChatStream({
       sessionId,
+      provider,
       model,
       messages: conversationHistory,
+      apiKey,
       temperature: parseFloat(temperature) || 0.7,
       maxTokens: parseInt(maxTokens) || 4096,
       onChunk: (content, done) => {
@@ -375,6 +478,18 @@ export function MainPage() {
         );
 
         if (done) {
+          addMessage(currentConversationId, {
+            id: currentMessageId,
+            role: "assistant",
+            state: "normal",
+            content: currentContent,
+            createdAt: Date.now(),
+            provider,
+            model,
+            tone,
+          });
+
+          pendingMessagesRef.current.delete(sessionId);
           streamingMessageIdRef.current = null;
           streamingConversationIdRef.current = null;
           accumulatedContentRef.current = "";
@@ -386,6 +501,8 @@ export function MainPage() {
 
         if (!currentMessageId || !currentConversationId) return;
 
+        const errorContent = error || "An error occurred";
+
         setConversations((prev) =>
           prev.map((conversation) => {
             if (conversation.id !== currentConversationId) return conversation;
@@ -396,7 +513,7 @@ export function MainPage() {
                 ...item,
                 message: {
                   ...item.message,
-                  content: error || "An error occurred",
+                  content: errorContent,
                   state: "error" as MessageState,
                 },
               };
@@ -411,6 +528,18 @@ export function MainPage() {
           }),
         );
 
+        addMessage(currentConversationId, {
+          id: currentMessageId,
+          role: "assistant",
+          state: "error",
+          content: errorContent,
+          createdAt: Date.now(),
+          provider,
+          model,
+          tone,
+        });
+
+        pendingMessagesRef.current.delete(sessionId);
         streamingMessageIdRef.current = null;
         streamingConversationIdRef.current = null;
         accumulatedContentRef.current = "";
@@ -420,22 +549,31 @@ export function MainPage() {
     activeConversation,
     composerValue,
     hasRunningExecution,
-    isOllamaStreaming,
+    isChatStreaming,
     connectionState.isConnected,
     model,
     provider,
+    providers.openai.apiKey,
+    providers.anthropic.apiKey,
     tone,
     temperature,
     maxTokens,
     startChatStream,
+    addMessage,
+    updateConversation,
   ]);
 
   const tab = (
     <ConversationSidebar
       conversations={conversations}
       activeConversationId={activeConversationId}
-      onSelectConversation={setActiveConversationId}
+      onSelectConversation={handleSelectConversation}
       onNewConversation={handleNewConversation}
+      onRenameConversation={handleRenameConversation}
+      onDeleteConversation={handleDeleteConversation}
+      onDuplicateConversation={handleDuplicateConversation}
+      onExportConversation={handleExportConversation}
+      onArchiveConversation={handleArchiveConversation}
     />
   );
 
@@ -531,16 +669,19 @@ export function MainPage() {
                 isModelSelected={Boolean(model)}
                 modelSelector={
                   <ModelSelector
-                    models={ollamaModels}
+                    ollamaModels={ollamaModels}
                     selectedModel={model}
-                    onSelectModel={setModel}
-                    isConnected={connectionState.isConnected}
+                    selectedProvider={provider}
+                    onSelectModel={handleSelectModel}
+                    isOllamaConnected={connectionState.isConnected}
                     isLoadingModels={isLoadingModels}
                     pullingModel={pullingModel}
                     pullProgress={pullProgress}
                     onPullModel={pullModel}
                     onDeleteModel={deleteModel}
                     onRefresh={fetchModels}
+                    hasOpenAIKey={Boolean(providers.openai.apiKey)}
+                    hasAnthropicKey={Boolean(providers.anthropic.apiKey)}
                   />
                 }
               />
