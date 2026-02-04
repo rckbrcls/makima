@@ -317,7 +317,7 @@ export function AgentsBuilderPage() {
   };
 
   return (
-    <div className="bg-background text-foreground relative flex h-full flex-col overflow-hidden">
+    <div className="bg-transparent text-foreground relative flex h-full flex-col overflow-hidden">
       <TextureOverlay texture="noise" className="z-0 opacity-[0.03]" />
 
 
@@ -370,7 +370,7 @@ export function AgentsBuilderPage() {
         </div>
 
         {/* Agent Editor */}
-        <div className="bg-background overflow-y-auto p-6">
+        <div className="bg-transparent overflow-y-auto p-6">
           {!selectedAgent && !isCreating ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <Settings2 className="text-muted mb-4 size-16" />

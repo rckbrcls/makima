@@ -195,7 +195,7 @@ function RepoGroup({
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
       <div
-        className={cn("rounded-lg transition-all border border-border bg-card")}
+        className={cn("rounded-lg transition-all border border-border ")}
       >
         {/* Repo Header with Context Menu */}
         <ContextMenu>
@@ -203,7 +203,7 @@ function RepoGroup({
             <CollapsibleTrigger asChild>
               <button
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all bg-card ",
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-all ",
                   "hover:bg-muted",
                 )}
               >
@@ -406,7 +406,7 @@ export function UnifiedSidebar({
   );
 
   return (
-    <div className="border-border bg-card flex h-full flex-col overflow-hidden border-r">
+    <div className="border-border flex h-full flex-col overflow-hidden border-r">
       {/* Header */}
       <div className="border-border flex-none border-b p-3">
         <div className="mb-2 flex items-center justify-between">

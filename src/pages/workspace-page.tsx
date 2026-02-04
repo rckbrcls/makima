@@ -203,7 +203,7 @@ export function WorkspacePage() {
   };
 
   return (
-    <div className="bg-background text-foreground relative flex h-full flex-col overflow-hidden">
+    <div className="bg-transparent text-foreground relative flex h-full flex-col overflow-hidden">
       {/* Header */}
 
       <TextureOverlay texture="noise" className="mix-blend-overlay" />

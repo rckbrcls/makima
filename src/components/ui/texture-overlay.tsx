@@ -23,9 +23,9 @@ interface TextureOverlayProps {
 
 const texturePatterns: Record<TextureType, string> = {
   dots: "bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.4)_1px,transparent_0)] bg-[length:8px_8px]",
-  grid: "bg-[linear-gradient(rgba(255,255,255,1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,1)_1px,transparent_1px)] bg-[length:10px_10px]",
+  grid: "pointer-events-none absolute inset-0 [background-image:linear-gradient(90deg,var(--grid-line)_1px,transparent_1px),linear-gradient(0deg,var(--grid-line)_1px,transparent_1px)] [background-size:44px_44px] opacity-50",
   noise:
-    "bg-[radial-gradient(circle_at_2px_2px,rgba(255,255,255,1)_1px,transparent_0)] bg-[length:6px_6px]",
+    "bg-[radial-gradient(circle_at_2px_2px,rgba(10,10,10,0.1)_1px,transparent_0)] bg-[length:6px_6px]",
   crosshatch:
     "bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(0,0,0,0.3)_2px,rgba(0,0,0,0.3)_4px),repeating-linear-gradient(-45deg,transparent,transparent_2px,rgba(0,0,0,0.3)_2px,rgba(0,0,0,0.3)_4px)]",
   diagonal:

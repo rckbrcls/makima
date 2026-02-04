@@ -366,7 +366,7 @@ export function SessionPanel({
         </div>
       </div>
 
-      <div className="relative flex-1 min-h-0 bg-background">
+      <div className="relative flex-1 min-h-0">
         <div
           ref={scrollRef}
           onScroll={handleScroll}

@@ -41,7 +41,7 @@ const bottomItems = [
 
 export function AppSidebar() {
   return (
-    <aside className="group border-border bg-card text-card-foreground fixed top-0 left-0 z-40 flex h-full w-14 flex-col border-r">
+    <aside className="group border-border text-card-foreground fixed top-0 left-0 z-40 flex h-full w-14 flex-col border-r">
       <nav className="flex flex-1 flex-col gap-1.5 p-2 pt-16">
         {navItems.map((item) => (
           <Tooltip key={item.to} delayDuration={500}>

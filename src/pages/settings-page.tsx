@@ -35,7 +35,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="bg-background text-foreground relative flex h-full flex-col overflow-hidden">
+    <div className="bg-transparent text-foreground relative flex h-full flex-col overflow-hidden">
       {/* Grid Background */}
       <div className="pointer-events-none absolute inset-0 [background-image:linear-gradient(90deg,var(--grid-line)_1px,transparent_1px),linear-gradient(0deg,var(--grid-line)_1px,transparent_1px)] [background-size:44px_44px] opacity-50" />
 

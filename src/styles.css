@@ -41,7 +41,7 @@
   --glow-1: oklch(0.8 0.1 230 / 0.18);
   --glow-2: oklch(0.8 0.1 230 / 0.16);
   --glow-3: oklch(0.8 0.1 230 / 0.14);
-  --grid-line: oklch(0.145 0 0 / 0.08);
+  --grid-line: oklch(0% 0 0 / 0.08);
 }
 
 .dark {
@@ -80,7 +80,7 @@
   --glow-1: oklch(0.8 0.1 230 / 0.12);
   --glow-2: oklch(0.8 0.1 230 / 0.12);
   --glow-3: oklch(0.8 0.1 230 / 0.12);
-  --grid-line: oklch(98.511% 0.00011 271.152 / 0.123);
+  --grid-line: oklch(48.55% 0.00006 271.152 / 0.123);
 }
 
 @theme inline {
@@ -134,7 +134,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background/60 text-foreground font-sans;
   }
   html {
     @apply font-sans;

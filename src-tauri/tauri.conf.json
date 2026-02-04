@@ -12,7 +12,21 @@
   "app": {
     "security": {
       "csp": null
-    }
+    },
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "transparent": true,
+        "title": "",
+        "width": 800,
+        "height": 600,
+        "minWidth": 400,
+        "minHeight": 400,
+        "resizable": true
+      }
+    ]
   },
   "bundle": {
     "active": true,

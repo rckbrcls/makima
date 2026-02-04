@@ -862,8 +862,8 @@ export function JarvisPage() {
   };
 
   return (
-    <div className="bg-background text-foreground relative h-full min-h-0 overflow-hidden">
-      {/* <TextureOverlay texture="noise" className="mix-blend-overlay" /> */}
+    <div className="text-foreground relative h-full min-h-0 overflow-hidden">
+      <TextureOverlay texture="grid" className="mix-blend-overlay" />
       <div className="relative z-10 flex h-full min-h-0">
         <aside className="border-border bg-card flex w-[280px] flex-col border-r">
           <div className="px-4 py-4">

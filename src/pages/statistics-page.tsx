@@ -1,3 +1,3 @@
 export function StatisticsPage() {
-  return <div></div>;
+  return <div>oi</div>;
 }

@@ -15,7 +15,14 @@ mod utils;
 
 use port_registry::PortRegistry;
 use runtime::AppRuntime;
-use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
+use tauri::webview::Color;
+use tauri::{Manager, TitleBarStyle, WebviewWindowBuilder};
+
+#[cfg(target_os = "windows")]
+use window_vibrancy::apply_blur;
+
+#[cfg(target_os = "macos")]
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -82,11 +89,15 @@ pub fn run() {
                 )?;
             }
 
-            let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                .title("")
-                .inner_size(800.0, 600.0)
-                .resizable(true)
-                .min_inner_size(400.0, 400.0);
+            let window_config = app.config().app.windows.get(0).cloned().ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "Missing window config (app.windows[0])",
+                )
+            })?;
+
+            let win_builder = WebviewWindowBuilder::from_config(app.handle(), &window_config)?
+                .background_color(Color(0, 0, 0, 0));
 
             // set transparent title bar only when building for macOS
             #[cfg(target_os = "macos")]
@@ -105,6 +116,22 @@ pub fn run() {
                     ns_window.setOpaque_(false);
                     let bg_color = NSColor::clearColor(nil);
                     ns_window.setBackgroundColor_(bg_color);
+                }
+            }
+
+            #[cfg(target_os = "macos")]
+            {
+                if let Err(error) =
+                    apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
+                {
+                    log::warn!("Failed to apply macOS vibrancy: {error}");
+                }
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                if let Err(error) = apply_blur(&window, Some((18, 18, 18, 125))) {
+                    log::warn!("Failed to apply Windows blur: {error}");
                 }
             }
 
