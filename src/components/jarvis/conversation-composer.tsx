@@ -23,37 +23,22 @@ export function ConversationComposer({
   onSendMessage,
 }: ConversationComposerProps) {
   return (
-    <div className="border-border bg-card border-t px-6 py-4">
-      <div className="text-muted-foreground mb-2 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <span
-            className={cn(
-              "size-2 rounded-full",
-              inputStateMeta[inputState].className,
-            )}
-          />
-          <span>State: {inputStateMeta[inputState].label}</span>
-        </div>
-        <span>{hasRunningExecution ? "Input blocked during execution" : ""}</span>
-      </div>
-      <div className="flex items-end gap-3">
-        <Textarea
-          value={composerValue}
-          onChange={(event) => onComposerChange(event.target.value)}
-          rows={composerRows}
-          placeholder="Write your message (without openClaw memory)..."
-          disabled={hasRunningExecution}
-          className="resize-none"
-        />
-        <Button
-          onClick={onSendMessage}
-          disabled={hasRunningExecution || !composerValue.trim()}
-          className="gap-2"
-        >
-          <Send className="size-4" />
-          Send
-        </Button>
-      </div>
-    </div>
+    <div className="glass absolute bottom-4  left-4 right-4 p-2  flex gap-2 pb-4  rounded-xl z-20">
+      <Textarea
+        value={composerValue}
+        onChange={(event) => onComposerChange(event.target.value)}
+        rows={composerRows}
+        placeholder="Write your message..."
+        disabled={hasRunningExecution}
+        className="resize-none bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+      />
+      <Button
+        onClick={onSendMessage}
+        disabled={hasRunningExecution || !composerValue.trim()}
+        className="gap-2"
+      >
+        <Send className="size-4" />
+      </Button>
+    </div >
   );
 }

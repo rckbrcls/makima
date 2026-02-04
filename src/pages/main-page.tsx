@@ -39,7 +39,7 @@ import { RunDetailsModal } from "@/components/jarvis/run-details-modal";
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 
-export function JarvisPage() {
+export function MainPage() {
   const [tone,] = useState("balanced");
   const [provider,] = useState("openclaw");
   const [model, setModel] = useState("claw-sonic");
@@ -363,12 +363,12 @@ export function JarvisPage() {
         </aside>
 
 
-        <section className="flex min-w-0 flex-1 flex-col mr-3 my-3 bg-card border rounded-xl overflow-hidden border-border">
-          <ConversationHeader
+        <section className="flex min-w-0 flex-1 flex-col mr-3 my-3 rounded-xl overflow-hidden glass">
+          {/* <ConversationHeader
             activeConversation={activeConversation}
             isConfigOpen={isConfigOpen}
             onToggleConfig={() => setIsConfigOpen((prev) => !prev)}
-          />
+          /> */}
 
           {isConfigOpen ? (
             <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -412,7 +412,7 @@ export function JarvisPage() {
           ) : null}
 
           {!isConfigOpen ? (
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 relative flex-1 flex-col">
               <ConversationThread
                 activeConversation={activeConversation}
                 onViewRun={setActiveRunId}

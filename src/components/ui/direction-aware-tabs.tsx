@@ -65,7 +65,7 @@ function DirectionAwareTabs({
     <div className="flex w-full flex-col items-center">
       <div
         className={cn(
-          "bg-card border-border shadow-inner-shadow flex cursor-pointer space-x-1 rounded-lg border px-[3px] py-[3.2px]",
+          "glass shadow-inner-shadow flex cursor-pointer space-x-1 rounded-lg  px-[3px] py-[3.2px]",
           className,
           rounded,
         )}

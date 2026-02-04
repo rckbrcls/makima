@@ -181,3 +181,14 @@
     transform: translateY(-12px);
   }
 }
+
+@layer components {
+  .glass {
+    background-color: color-mix(in oklch, var(--card) 70%, transparent);
+    border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    box-shadow: 0 16px 36px -18px
+      color-mix(in oklch, var(--accent) 22%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
+}

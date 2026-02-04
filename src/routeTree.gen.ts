@@ -9,18 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as StatisticsRouteImport } from './routes/statistics'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ReposRouteImport } from './routes/repos'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as IndexRouteImport } from './routes/index'
 
-const WorkspaceRoute = WorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StatisticsRoute = StatisticsRouteImport.update({
   id: '/statistics',
   path: '/statistics',
@@ -29,11 +22,6 @@ const StatisticsRoute = StatisticsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReposRoute = ReposRouteImport.update({
-  id: '/repos',
-  path: '/repos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentsRoute = AgentsRouteImport.update({
@@ -50,67 +38,39 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agents': typeof AgentsRoute
-  '/repos': typeof ReposRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
-  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agents': typeof AgentsRoute
-  '/repos': typeof ReposRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
-  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agents': typeof AgentsRoute
-  '/repos': typeof ReposRoute
   '/settings': typeof SettingsRoute
   '/statistics': typeof StatisticsRoute
-  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/agents'
-    | '/repos'
-    | '/settings'
-    | '/statistics'
-    | '/workspace'
+  fullPaths: '/' | '/agents' | '/settings' | '/statistics'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agents' | '/repos' | '/settings' | '/statistics' | '/workspace'
-  id:
-    | '__root__'
-    | '/'
-    | '/agents'
-    | '/repos'
-    | '/settings'
-    | '/statistics'
-    | '/workspace'
+  to: '/' | '/agents' | '/settings' | '/statistics'
+  id: '__root__' | '/' | '/agents' | '/settings' | '/statistics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentsRoute: typeof AgentsRoute
-  ReposRoute: typeof ReposRoute
   SettingsRoute: typeof SettingsRoute
   StatisticsRoute: typeof StatisticsRoute
-  WorkspaceRoute: typeof WorkspaceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/workspace': {
-      id: '/workspace'
-      path: '/workspace'
-      fullPath: '/workspace'
-      preLoaderRoute: typeof WorkspaceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/statistics': {
       id: '/statistics'
       path: '/statistics'
@@ -123,13 +83,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/repos': {
-      id: '/repos'
-      path: '/repos'
-      fullPath: '/repos'
-      preLoaderRoute: typeof ReposRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agents': {
@@ -152,10 +105,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentsRoute: AgentsRoute,
-  ReposRoute: ReposRoute,
   SettingsRoute: SettingsRoute,
   StatisticsRoute: StatisticsRoute,
-  WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

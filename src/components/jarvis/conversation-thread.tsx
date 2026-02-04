@@ -183,6 +183,7 @@ export function ConversationThread({
             <Blob3D className="h-[320px] w-full max-w-3xl sm:h-[360px]" />
           </div>
         )}
+        <div className="h-30" />
       </div>
     </>
   );
