@@ -1,4 +1,4 @@
-import { ArrowUp, Mic, Plus, Send } from "lucide-react";
+import { ArrowUp, Folder, Mic, Plus, Send } from "lucide-react";
 import type { InputState } from "@/components/jarvis/jarvis-types";
 import { inputStateMeta } from "@/components/jarvis/jarvis-data";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,10 @@ export function ConversationComposer({
       />
       <div className="flex justify-between items-end">
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon">
+          <Button variant="outline" size="icon">
             <Plus className="size-4" />
           </Button>
+
           <NativeSelect className="glass text-xs rounded-full" defaultValue="gemma">
             <NativeSelectOption value="gemma" label="Gemma" />
             <NativeSelectOption value="qwen" label="Qwen" />
@@ -46,20 +47,22 @@ export function ConversationComposer({
             <NativeSelectOption value="gpt-4o-mini" label="GPT-4O Mini" />
             <NativeSelectOption value="gpt-4o-2024-08-06" label="GPT-4O 2024-08-06" />
           </NativeSelect>
-
+          <Button variant="outline" size="icon">
+            <Folder className="size-4" />
+          </Button>
         </div>
 
         <div className="flex gap-2 items-center">
-          <Button variant="ghost" size="icon">
+          <Button variant="outline" size="icon">
             <Mic className="size-4" />
           </Button>
           <Button
             onClick={onSendMessage}
             disabled={hasRunningExecution || !composerValue.trim()}
-            className="gap-2"
-            size="icon"
+            className="gap-2 rounded-full"
+            size="icon-lg"
           >
-            <ArrowUp className="size-4 " />
+            <ArrowUp className="size-6 " />
           </Button>
         </div>
       </div>
