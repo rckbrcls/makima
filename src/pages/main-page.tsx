@@ -344,7 +344,7 @@ export function MainPage() {
     },
     {
       id: 1,
-      label: "agent",
+      label: "work",
       content: (tab),
     },
     {
@@ -363,7 +363,7 @@ export function MainPage() {
         </aside>
 
 
-        <section className="flex min-w-0 flex-1 flex-col mr-3 my-3 rounded-xl overflow-hidden glass">
+        <section className="flex min-w-0 flex-1 flex-col mr-3 my-3 rounded-3xl border-border border overflow-hidden bg-background">
           {/* <ConversationHeader
             activeConversation={activeConversation}
             isConfigOpen={isConfigOpen}

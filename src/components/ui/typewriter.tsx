@@ -98,7 +98,7 @@ function RepeatedTextAnimation({
     };
   }, [count, delay, textIndex, texts, updatedThisRound]);
 
-  return <motion.span className="inline">{displayText}</motion.span>;
+  return <motion.span className="inline select-none">{displayText}</motion.span>;
 }
 
 const cursorVariants = {

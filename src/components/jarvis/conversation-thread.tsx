@@ -3,7 +3,11 @@ import type { Conversation } from "@/components/jarvis/jarvis-types";
 import { formatClock, runStatusMeta } from "@/components/jarvis/jarvis-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Blob3D } from "@/components/visuals/blob-3d";
 import { cn } from "@/lib/utils";
 import { Typewriter } from "../ui/typewriter";
@@ -54,27 +58,20 @@ export function ConversationThread({
 
               return (
                 <div key={item.id} className="max-w-3xl">
-                  <Card className="border-none">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={cn(
-                              "flex size-10 items-center justify-center rounded-lg border",
-                              statusMeta.className,
-                            )}
-                          >
-                            <StatusIcon className="size-4" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold">
-                              {item.run.title}
-                            </p>
-                            <p className="text-muted-foreground font-mono text-xs">
-                              {item.run.command}
-                            </p>
-                          </div>
-                        </div>
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "flex size-9 items-center justify-center rounded-md border",
+                        statusMeta.className,
+                      )}
+                    >
+                      <StatusIcon className="size-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">
+                          {item.run.title}
+                        </p>
                         <Badge
                           variant="outline"
                           className={cn("text-[10px]", statusMeta.className)}
@@ -82,8 +79,18 @@ export function ConversationThread({
                           {statusMeta.label}
                         </Badge>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
+                      <p className="text-muted-foreground font-mono text-xs">
+                        {item.run.command}
+                      </p>
+                    </div>
+                  </div>
+                  <Collapsible className="mt-2">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="px-2">
+                        View run details
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-3 text-sm">
                       <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
                         <span>Duration: {item.run.duration}</span>
                         <span>Start: {formatClock(item.run.startedAt)}</span>
@@ -91,12 +98,42 @@ export function ConversationThread({
                           <span>End: {formatClock(item.run.finishedAt)}</span>
                         ) : null}
                       </div>
-                      <p className="text-foreground text-sm">
-                        {item.run.output}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        {item.run.summary}
-                      </p>
+                      {item.run.output ? (
+                        <pre className="rounded-md border border-border bg-muted/40 p-3 text-xs leading-relaxed whitespace-pre-wrap">
+                          {item.run.output}
+                        </pre>
+                      ) : null}
+                      {item.run.logs.length > 0 ? (
+                        <pre className="rounded-md border border-border bg-muted/20 p-3 text-xs leading-relaxed whitespace-pre-wrap">
+                          {item.run.logs.join("\n")}
+                        </pre>
+                      ) : null}
+                      {item.run.steps.length > 0 ? (
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <p className="font-medium">Steps</p>
+                          <ul className="space-y-1">
+                            {item.run.steps.map((step) => (
+                              <li key={step.id} className="flex items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "size-1.5 rounded-full",
+                                    step.status === "success" && "bg-emerald-400",
+                                    step.status === "running" && "bg-yellow-400",
+                                    step.status === "error" && "bg-red-400",
+                                    step.status === "pending" && "bg-muted-foreground/50",
+                                  )}
+                                />
+                                <span>{step.label}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {item.run.summary ? (
+                        <p className="text-muted-foreground text-xs">
+                          {item.run.summary}
+                        </p>
+                      ) : null}
                       <Button
                         variant="outline"
                         size="sm"
@@ -104,8 +141,8 @@ export function ConversationThread({
                       >
                         View full run
                       </Button>
-                    </CardContent>
-                  </Card>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               );
             }
@@ -119,59 +156,33 @@ export function ConversationThread({
               : item.message.content;
 
             return (
-              <>
+              <div
+                key={item.id}
+                className={cn(
+                  "flex w-full",
+                  isUser ? "justify-end" : "justify-start",
+                )}
+              >
                 <div
-                  key={item.id}
                   className={cn(
-                    "flex w-full",
-                    isUser ? "justify-end" : "justify-start",
+                    "max-w-3xl",
+                    isUser ? "text-right" : "text-left",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "max-w-3xl",
-                      isUser ? "text-right" : "text-left",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "text-muted-foreground flex items-center gap-2 text-xs",
-                        isUser && "justify-end",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex size-6 items-center justify-center rounded-full border",
-                          isUser
-                            ? "border-primary bg-primary/10"
-                            : "border-border bg-muted",
-                        )}
-                      >
-                        {isUser ? (
-                          <User className="size-3" />
-                        ) : (
-                          <Bot className="size-3" />
-                        )}
-                      </div>
-                      <span className="font-medium">
-                        {isUser ? "You" : "openClaw"}
-                      </span>
-                      <span>{formatClock(item.message.createdAt)}</span>
-                      <Badge variant="outline" className="text-[9px]">
-                        {item.message.meta.model}
-                      </Badge>
-                      <Badge variant="outline" className="text-[9px]">
-                        {item.message.meta.tone}
-                      </Badge>
-                    </div>
+                  {isUser ? (
                     <div
                       className={cn(
                         "mt-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap shadow-sm",
-                        isUser
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : isError
-                            ? "border-red-900 bg-red-950 text-red-200"
-                            : "border-border bg-card",
+                        "border-primary bg-primary text-primary-foreground",
+                      )}
+                    >
+                      {visibleText}
+                    </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "mt-2 text-sm leading-relaxed whitespace-pre-wrap",
+                        isError && "text-red-300",
                       )}
                     >
                       {isThinkingMessage ? (
@@ -187,11 +198,9 @@ export function ConversationThread({
                         </span>
                       )}
                     </div>
-                  </div>
-
+                  )}
                 </div>
-
-              </>
+              </div>
             );
           })
         ) : (

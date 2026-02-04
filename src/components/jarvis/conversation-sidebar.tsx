@@ -35,7 +35,7 @@ export function ConversationSidebar({
         </div>
       </div>
 
-      <div className="flex-1 mt-3 space-y-2 overflow-y-auto">
+      <div className="flex-1 mt-3 space-y-1 overflow-y-auto">
         {conversations.map((conversation) => {
           const statusMeta = conversationStatusMeta[conversation.status];
           const isActive = conversation.id === activeConversationId;
@@ -45,10 +45,10 @@ export function ConversationSidebar({
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
               className={cn(
-                "w-full rounded-lg border p-3 text-left transition-colors",
+                "w-full rounded-lg p-2 text-left transition-colors",
                 isActive
                   ? "glass-selected"
-                  : "glass glass-hover ",
+                  : "glass-hover",
               )}
             >
               <div className="flex items-start justify-between gap-3">

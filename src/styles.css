@@ -184,12 +184,38 @@
 
 @layer components {
   .glass {
-    background-color: color-mix(in oklch, var(--card) 60%, transparent);
-    border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+    --glass-bg-alpha: 50%;
+    --glass-border-alpha: 60%;
+    --glass-shadow-alpha: 22%;
+    --glass-blur: 40px;
+
+    background-color: color-mix(
+      in oklch,
+      var(--card) var(--glass-bg-alpha),
+      transparent
+    );
+    border: 1px solid
+      color-mix(in oklch, var(--border) var(--glass-border-alpha), transparent);
     box-shadow: 0 16px 36px -18px
-      color-mix(in oklch, var(--accent) 22%, transparent);
-    backdrop-filter: blur(18px) saturate(140%);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
+      color-mix(in oklch, var(--accent) var(--glass-shadow-alpha), transparent);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  }
+
+  .glass-subtle {
+    --glass-bg-alpha: 0%;
+    --glass-border-alpha: 60%;
+    --glass-shadow-alpha: 0%;
+    --glass-ring-alpha: 0%;
+    --glass-blur: 6px;
+  }
+
+  .glass-solid {
+    --glass-bg-alpha: 95%;
+    --glass-border-alpha: 95%;
+    --glass-shadow-alpha: 22%;
+    --glass-ring-alpha: 95%;
+    --glass-blur: 24px;
   }
 
   .glass-hover {
@@ -201,19 +227,65 @@
   }
 
   .glass-hover:hover {
-    background-color: color-mix(in oklch, var(--secondary) 80%, transparent);
-    border-color: color-mix(in oklch, var(--secondary) 55%, var(--border));
+    --glass-hover-bg-alpha: 50%;
+    --glass-hover-border-alpha: 60%;
+    --glass-hover-shadow-alpha: 22%;
+    --glass-hover-blur: 40px;
+
+    background-color: color-mix(
+      in oklch,
+      var(--secondary) var(--glass-hover-bg-alpha),
+      transparent
+    );
+    border-color: color-mix(
+      in oklch,
+      var(--secondary) var(--glass-hover-border-alpha),
+      var(--border)
+    );
     box-shadow:
-      0 20px 44px -18px color-mix(in oklch, var(--secondary) 28%, transparent),
-      0 0 0 1px color-mix(in oklch, var(--border) 20%, transparent);
+      0 20px 44px -18px
+        color-mix(
+          in oklch,
+          var(--secondary) var(--glass-hover-shadow-alpha),
+          transparent
+        ),
+      0 0 0 1px
+        color-mix(
+          in oklch,
+          var(--border) var(--glass-hover-ring-alpha),
+          transparent
+        );
   }
 
   .glass-selected {
-    background-color: color-mix(in oklch, var(--secondary) 85%, transparent);
-    border-color: color-mix(in oklch, var(--secondary) 65%, var(--border));
+    --glass-selected-bg-alpha: 50%;
+    --glass-selected-border-alpha: 60%;
+    --glass-selected-shadow-alpha: 22%;
+    --glass-selected-blur: 40px;
+
+    background-color: color-mix(
+      in oklch,
+      var(--accent) var(--glass-selected-bg-alpha),
+      transparent
+    );
+    border-color: color-mix(
+      in oklch,
+      var(--accent) var(--glass-selected-border-alpha),
+      var(--border)
+    );
     box-shadow:
-      0 18px 40px -18px color-mix(in oklch, var(--secondary) 26%, transparent),
-      0 0 0 1px color-mix(in oklch, var(--border) 26%, transparent);
+      0 18px 40px -18px
+        color-mix(
+          in oklch,
+          var(--secondary) var(--glass-selected-shadow-alpha),
+          transparent
+        ),
+      0 0 0 1px
+        color-mix(
+          in oklch,
+          var(--border) var(--glass-selected-ring-alpha),
+          transparent
+        );
   }
 
   .glass-selected-hover {
@@ -225,10 +297,33 @@
   }
 
   .glass-selected-hover:hover {
-    background-color: color-mix(in oklch, var(--secondary) 90%, transparent);
-    border-color: color-mix(in oklch, var(--secondary) 75%, var(--border));
+    --glass-selected-hover-bg-alpha: 50%;
+    --glass-selected-hover-border-alpha: 60%;
+    --glass-selected-hover-shadow-alpha: 22%;
+    --glass-selected-hover-ring-alpha: 22%;
+
+    background-color: color-mix(
+      in oklch,
+      var(--accent) var(--glass-selected-hover-bg-alpha),
+      transparent
+    );
+    border-color: color-mix(
+      in oklch,
+      var(--accent) var(--glass-selected-hover-border-alpha),
+      var(--border)
+    );
     box-shadow:
-      0 22px 50px -20px color-mix(in oklch, var(--secondary) 32%, transparent),
-      0 0 0 1px color-mix(in oklch, var(--border) 32%, transparent);
+      0 22px 50px -20px
+        color-mix(
+          in oklch,
+          var(--secondary) var(--glass-selected-hover-shadow-alpha),
+          transparent
+        ),
+      0 0 0 1px
+        color-mix(
+          in oklch,
+          var(--border) var(--glass-selected-hover-ring-alpha),
+          transparent
+        );
   }
 }
