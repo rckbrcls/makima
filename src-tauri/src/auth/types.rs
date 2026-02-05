@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 pub enum AuthSource {
     /// From environment variable
     Environment,
-    /// From macOS Keychain (Claude Code credentials)
-    ClaudeCodeKeychain,
     /// Manually entered API key
     Manual,
     /// Not configured
@@ -36,23 +34,7 @@ pub struct ResolvedCredentials {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthSourceAvailability {
     pub environment: bool,
-    pub claude_code_keychain: bool,
     pub manual: bool,
-}
-
-/// Claude Code OAuth credentials structure (from Keychain)
-#[derive(Debug, Clone, Deserialize)]
-pub struct ClaudeCodeCredentials {
-    #[serde(rename = "claudeAiOauth")]
-    pub claude_ai_oauth: Option<ClaudeAiOauth>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct ClaudeAiOauth {
-    #[serde(rename = "accessToken")]
-    pub access_token: String,
-    #[serde(rename = "refreshToken")]
-    pub refresh_token: Option<String>,
 }
 
 impl ProviderAuthStatus {

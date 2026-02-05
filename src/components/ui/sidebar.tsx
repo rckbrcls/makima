@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import {  cva } from "class-variance-authority";
+import { cva } from "class-variance-authority";
 import { Slot } from "radix-ui";
 
 import { PanelLeftIcon } from "lucide-react";
-import type {VariantProps} from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

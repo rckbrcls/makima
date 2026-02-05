@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PlusIcon, XIcon } from "lucide-react";
 import { motion } from "motion/react";
-import type { FC, ReactNode} from "react";
+import type { FC, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 

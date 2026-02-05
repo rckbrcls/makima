@@ -1,11 +1,10 @@
 import React, {
-
   createContext,
   useContext,
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
 } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { RefObject } from "react";
@@ -313,7 +312,7 @@ export function MorphSurface({
           "shadow-[0px_1px_1px_0px_rgba(0,0,0,0.05),0px_1px_1px_0px_rgba(255,252,240,0.5)_inset,0px_0px_0px_1px_hsla(0,0%,100%,0.1)_inset,0px_0px_1px_0px_rgba(28,27,26,0.5)]",
           "dark:shadow-[0px_1px_0px_0px_hsla(0,0%,0%,0.02)_inset,0px_0px_0px_1px_hsla(0,0%,0%,0.02)_inset,0px_0px_0px_1px_rgba(255,255,255,0.25)]",
           !showFeedback &&
-          "cursor-pointer transition-[filter] duration-200 hover:brightness-105",
+            "cursor-pointer transition-[filter] duration-200 hover:brightness-105",
         )}
         initial={false}
         animate={{
@@ -423,17 +422,17 @@ function MorphSurfaceDock() {
 
   const indicatorElement = renderIndicator
     ? renderIndicator({
-      success,
-      isOpen: showFeedback,
-    })
+        success,
+        isOpen: showFeedback,
+      })
     : defaultIndicator;
 
   const triggerElement = renderTrigger
     ? renderTrigger({
-      isOpen: showFeedback,
-      onClick: () => openFeedback(),
-      className: triggerClassName,
-    })
+        isOpen: showFeedback,
+        onClick: () => openFeedback(),
+        className: triggerClassName,
+      })
     : defaultTrigger;
 
   return (
@@ -560,11 +559,11 @@ const MorphSurfaceFeedback = React.forwardRef<
 
   const contentElement = renderContent
     ? renderContent({
-      isOpen: showFeedback,
-      onClose: closeFeedback,
-      onSubmit: handleContentSubmit,
-      className: contentClassName,
-    })
+        isOpen: showFeedback,
+        onClose: closeFeedback,
+        onSubmit: handleContentSubmit,
+        className: contentClassName,
+      })
     : defaultContent;
 
   return (

@@ -26,18 +26,29 @@ export function ConversationComposer({
   modelSelector,
   isModelSelected,
 }: ConversationComposerProps) {
+  const isDisabled =
+    hasRunningExecution || !composerValue.trim() || !isModelSelected;
+  console.log("[Composer] hasRunningExecution:", hasRunningExecution);
+  console.log("[Composer] composerValue:", composerValue);
+  console.log("[Composer] isModelSelected:", isModelSelected);
+  console.log("[Composer] isDisabled:", isDisabled);
+
   return (
-    <div className="bg-card border border-border absolute bottom-4 left-4 right-4  flex flex-col gap-2 p-2  rounded-2xl z-20">
+    <div className="bg-card border-border absolute right-4 bottom-4 left-4 z-20 flex flex-col gap-2 rounded-2xl border p-2">
       <Textarea
         value={composerValue}
         onChange={(event) => onComposerChange(event.target.value)}
         rows={composerRows}
-        placeholder={isModelSelected ? "Write your message..." : "Select a model to start chatting..."}
+        placeholder={
+          isModelSelected
+            ? "Write your message..."
+            : "Select a model to start chatting..."
+        }
         disabled={hasRunningExecution || !isModelSelected}
-        className="resize-none bg-transparent  border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
       />
-      <div className="flex justify-between items-end">
-        <div className="flex gap-2 items-center">
+      <div className="flex items-end justify-between">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={onNewConversation}>
             <Plus className="size-4" />
           </Button>
@@ -49,20 +60,20 @@ export function ConversationComposer({
           </Button>
         </div>
 
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="icon">
             <Mic className="size-4" />
           </Button>
           <Button
             onClick={onSendMessage}
-            disabled={hasRunningExecution || !composerValue.trim() || !isModelSelected}
+            disabled={isDisabled}
             className="gap-2 rounded-full"
             size="icon-lg"
           >
-            <ArrowUp className="size-6 " />
+            <ArrowUp className="size-6" />
           </Button>
         </div>
       </div>
-    </div >
+    </div>
   );
 }

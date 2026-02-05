@@ -1,58 +1,58 @@
 export interface OllamaMessage {
-  role: 'user' | 'assistant' | 'system'
-  content: string
+  role: "user" | "assistant" | "system";
+  content: string;
 }
 
 export interface OllamaModelInfo {
-  name: string
-  size?: number
-  digest?: string
-  modified_at?: string
+  name: string;
+  size?: number;
+  digest?: string;
+  modified_at?: string;
 }
 
 export interface StreamChunkEvent {
-  session_id: string
-  content: string
-  done: boolean
-  done_reason?: string
-  total_duration?: number
-  eval_count?: number
+  session_id: string;
+  content: string;
+  done: boolean;
+  done_reason?: string;
+  total_duration?: number;
+  eval_count?: number;
 }
 
 export interface StreamErrorEvent {
-  session_id: string
-  error: string
+  session_id: string;
+  error: string;
 }
 
 export interface ChatStreamOptions {
-  sessionId: string
-  model: string
-  messages: OllamaMessage[]
-  temperature?: number
-  maxTokens?: number
-  onChunk: (content: string, done: boolean) => void
-  onError: (error: string) => void
-  onComplete?: (stats?: { totalDuration?: number; evalCount?: number }) => void
+  sessionId: string;
+  model: string;
+  messages: OllamaMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  onChunk: (content: string, done: boolean) => void;
+  onError: (error: string) => void;
+  onComplete?: (stats?: { totalDuration?: number; evalCount?: number }) => void;
 }
 
 export interface OllamaConnectionState {
-  isConnected: boolean
-  isChecking: boolean
-  lastError?: string
+  isConnected: boolean;
+  isChecking: boolean;
+  lastError?: string;
 }
 
 export interface PullProgressEvent {
-  model: string
-  status: string
-  progress?: number
-  done: boolean
+  model: string;
+  status: string;
+  progress?: number;
+  done: boolean;
 }
 
 export interface AvailableModel {
-  name: string
-  description: string
-  size: string
-  tags: string[]
+  name: string;
+  description: string;
+  size: string;
+  tags: string[];
 }
 
 export const POPULAR_MODELS: AvailableModel[] = [
@@ -128,4 +128,4 @@ export const POPULAR_MODELS: AvailableModel[] = [
     size: "4.7GB",
     tags: ["code", "programming"],
   },
-]
+];

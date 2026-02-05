@@ -1,11 +1,6 @@
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type {
-  ComponentPropsWithoutRef} from "react";
+import type { ComponentPropsWithoutRef } from "react";
 import type { MotionProps } from "motion/react";
 
 import { cn } from "@/lib/utils";

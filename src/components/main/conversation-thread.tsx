@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo, useCallback, useMemo } from "react"
+import { useEffect, useRef, useState, memo, useCallback, useMemo } from "react";
 import {
   AlertTriangle,
   Bot,
@@ -6,23 +6,23 @@ import {
   ChevronDown,
   Copy,
   RefreshCw,
-} from "lucide-react"
-import { motion, AnimatePresence } from "motion/react"
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import type {
   Conversation,
   ChatMessage,
   ChatItem,
-} from "@/components/main/jarvis-types"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Blob3D } from "@/components/visuals/blob-3d"
-import { Typewriter } from "@/components/ui/typewriter"
-import { cn } from "@/lib/utils"
+} from "@/components/main/jarvis-types";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Blob3D } from "@/components/visuals/blob-3d";
+import { Typewriter } from "@/components/ui/typewriter";
+import { cn } from "@/lib/utils";
 
 interface ConversationThreadProps {
-  activeConversation?: Conversation
-  onViewRun?: (runId: string) => void
-  onRetry?: (messageId: string) => void
+  activeConversation?: Conversation;
+  onViewRun?: (runId: string) => void;
+  onRetry?: (messageId: string) => void;
 }
 
 const defaultSuggestions = [
@@ -33,90 +33,90 @@ const defaultSuggestions = [
   "Help me debug a memory leak in my Node.js application",
   "Write a SQL query to analyze user retention rates",
   "Build a reusable button component with Tailwind CSS",
-]
+];
 
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  })
+  });
 }
 
 // Parse and render content with code blocks
 function renderContent(content: string): React.ReactNode {
-  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
-  const inlineCodeRegex = /`([^`]+)`/g
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  const inlineCodeRegex = /`([^`]+)`/g;
 
-  const parts: React.ReactNode[] = []
-  let lastIndex = 0
-  let match
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
 
   // Handle code blocks first
   const contentWithCodeBlocks = content.replace(
     codeBlockRegex,
-    (_, lang, code) => `\x00CODEBLOCK:${lang || ""}:${code}\x00`
-  )
+    (_, lang, code) => `\x00CODEBLOCK:${lang || ""}:${code}\x00`,
+  );
 
-  const segments = contentWithCodeBlocks.split("\x00")
+  const segments = contentWithCodeBlocks.split("\x00");
 
   segments.forEach((segment, i) => {
     if (segment.startsWith("CODEBLOCK:")) {
-      const colonIndex = segment.indexOf(":", 10)
-      const lang = segment.slice(10, colonIndex)
-      const code = segment.slice(colonIndex + 1)
+      const colonIndex = segment.indexOf(":", 10);
+      const lang = segment.slice(10, colonIndex);
+      const code = segment.slice(colonIndex + 1);
       parts.push(
-        <CodeBlock key={`code-${i}`} language={lang} code={code.trim()} />
-      )
+        <CodeBlock key={`code-${i}`} language={lang} code={code.trim()} />,
+      );
     } else if (segment) {
       // Handle inline code within text segments
-      const textParts: React.ReactNode[] = []
-      let textLastIndex = 0
-      const textWithInline = segment
+      const textParts: React.ReactNode[] = [];
+      let textLastIndex = 0;
+      const textWithInline = segment;
 
       while ((match = inlineCodeRegex.exec(textWithInline)) !== null) {
         if (match.index > textLastIndex) {
-          textParts.push(textWithInline.slice(textLastIndex, match.index))
+          textParts.push(textWithInline.slice(textLastIndex, match.index));
         }
         textParts.push(
           <code
             key={`inline-${i}-${match.index}`}
-            className="rounded bg-muted-foreground/20 px-1.5 py-0.5 font-mono text-[13px]"
+            className="bg-muted-foreground/20 rounded px-1.5 py-0.5 font-mono text-[13px]"
           >
             {match[1]}
-          </code>
-        )
-        textLastIndex = match.index + match[0].length
+          </code>,
+        );
+        textLastIndex = match.index + match[0].length;
       }
 
       if (textLastIndex < textWithInline.length) {
-        textParts.push(textWithInline.slice(textLastIndex))
+        textParts.push(textWithInline.slice(textLastIndex));
       }
 
-      parts.push(<span key={`text-${i}`}>{textParts}</span>)
+      parts.push(<span key={`text-${i}`}>{textParts}</span>);
     }
-  })
+  });
 
-  return parts
+  return parts;
 }
 
 // Code block component
 function CodeBlock({ language, code }: { language: string; code: string }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API not available
     }
-  }
+  };
 
   return (
-    <div className="my-3 overflow-hidden rounded-lg border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border bg-muted px-3 py-1.5">
-        <span className="text-xs font-medium text-muted-foreground">
+    <div className="border-border bg-card my-3 overflow-hidden rounded-lg border">
+      <div className="border-border bg-muted flex items-center justify-between border-b px-3 py-1.5">
+        <span className="text-muted-foreground text-xs font-medium">
           {language || "code"}
         </span>
         <Button
@@ -142,7 +142,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
         <code className="font-mono">{code}</code>
       </pre>
     </div>
-  )
+  );
 }
 
 // Streaming cursor component
@@ -158,19 +158,19 @@ function StreamingCursor() {
         ease: "easeInOut",
       }}
     />
-  )
+  );
 }
 
 // Thinking indicator with animated dots
 function ThinkingIndicator() {
   return (
-    <div className="flex items-center gap-1.5 text-muted-foreground">
+    <div className="text-muted-foreground flex items-center gap-1.5">
       <span className="text-sm">Thinking</span>
       <div className="flex gap-0.5">
         {[0, 1, 2].map((i) => (
           <motion.span
             key={i}
-            className="size-1 rounded-full bg-muted-foreground"
+            className="bg-muted-foreground size-1 rounded-full"
             animate={{ opacity: [0.3, 1, 0.3] }}
             transition={{
               duration: 1.2,
@@ -182,22 +182,22 @@ function ThinkingIndicator() {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // Copy button with feedback
 function CopyButton({ content }: { content: string }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(content)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API not available
     }
-  }, [content])
+  }, [content]);
 
   return (
     <Button
@@ -228,14 +228,14 @@ function CopyButton({ content }: { content: string }) {
         )}
       </AnimatePresence>
     </Button>
-  )
+  );
 }
 
 // User message bubble
 const UserMessage = memo(function UserMessage({
   message,
 }: {
-  message: ChatMessage
+  message: ChatMessage;
 }) {
   return (
     <motion.div
@@ -251,40 +251,40 @@ const UserMessage = memo(function UserMessage({
             className={cn(
               "rounded-2xl rounded-br-md px-4 py-2.5 text-sm leading-relaxed",
               "bg-primary text-primary-foreground",
-              "shadow-sm"
+              "shadow-sm",
             )}
           >
             <p className="whitespace-pre-wrap">{message.content}</p>
           </div>
         </div>
-        <span className="px-2 text-[10px] text-muted-foreground">
+        <span className="text-muted-foreground px-2 text-[10px]">
           {formatTime(message.createdAt)}
         </span>
       </div>
     </motion.div>
-  )
-})
+  );
+});
 
 // Assistant message with streaming support
 const AssistantMessage = memo(function AssistantMessage({
   message,
   onRetry,
 }: {
-  message: ChatMessage
-  onRetry?: (messageId: string) => void
+  message: ChatMessage;
+  onRetry?: (messageId: string) => void;
 }) {
-  const isStreaming = message.state === "streaming"
-  const isThinking = message.state === "thinking"
-  const isError = message.state === "error"
+  const isStreaming = message.state === "streaming";
+  const isThinking = message.state === "thinking";
+  const isError = message.state === "error";
 
   const visibleContent = isStreaming
     ? message.content.slice(0, message.streamedChars ?? message.content.length)
-    : message.content
+    : message.content;
 
   const renderedContent = useMemo(() => {
-    if (isThinking || !visibleContent) return null
-    return renderContent(visibleContent)
-  }, [visibleContent, isThinking])
+    if (isThinking || !visibleContent) return null;
+    return renderContent(visibleContent);
+  }, [visibleContent, isThinking]);
 
   return (
     <motion.div
@@ -306,13 +306,13 @@ const AssistantMessage = memo(function AssistantMessage({
               className={cn(
                 "min-w-0 flex-1 rounded-2xl rounded-tl-md px-4 py-2.5 text-sm leading-relaxed",
                 "bg-muted text-foreground",
-                isError && "border border-red-900 bg-red-950 text-red-200"
+                isError && "border border-red-900 bg-red-950 text-red-200",
               )}
             >
               {isThinking ? (
                 <ThinkingIndicator />
               ) : (
-                <div className="whitespace-pre-wrap break-words">
+                <div className="break-words whitespace-pre-wrap">
                   {renderedContent}
                   {isStreaming && <StreamingCursor />}
                 </div>
@@ -336,13 +336,13 @@ const AssistantMessage = memo(function AssistantMessage({
           </div>
 
           <div className="flex items-center gap-2 px-1">
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-muted-foreground text-[10px]">
               {formatTime(message.createdAt)}
             </span>
             {message.meta.model && (
               <>
-                <span className="text-[10px] text-muted-foreground">·</span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-muted-foreground text-[10px]">·</span>
+                <span className="text-muted-foreground text-[10px]">
                   {message.meta.model}
                 </span>
               </>
@@ -351,27 +351,27 @@ const AssistantMessage = memo(function AssistantMessage({
         </div>
       </div>
     </motion.div>
-  )
-})
+  );
+});
 
 // Message item wrapper
 const MessageItem = memo(function MessageItem({
   item,
   onRetry,
 }: {
-  item: ChatItem
-  onRetry?: (messageId: string) => void
+  item: ChatItem;
+  onRetry?: (messageId: string) => void;
 }) {
-  if (item.kind !== "message") return null
+  if (item.kind !== "message") return null;
 
-  const { message } = item
+  const { message } = item;
 
   if (message.role === "user") {
-    return <UserMessage message={message} />
+    return <UserMessage message={message} />;
   }
 
-  return <AssistantMessage message={message} onRetry={onRetry} />
-})
+  return <AssistantMessage message={message} onRetry={onRetry} />;
+});
 
 // Empty state component
 function EmptyState() {
@@ -390,7 +390,7 @@ function EmptyState() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Global error banner
@@ -412,7 +412,7 @@ function GlobalErrorBanner() {
         </div>
       </div>
     </motion.div>
-  )
+  );
 }
 
 // Scroll to bottom button
@@ -434,7 +434,7 @@ function ScrollToBottomButton({ onClick }: { onClick: () => void }) {
         New messages
       </Button>
     </motion.div>
-  )
+  );
 }
 
 // Main conversation thread component
@@ -442,9 +442,9 @@ export function ConversationThread({
   activeConversation,
   onRetry,
 }: ConversationThreadProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [autoScroll, setAutoScroll] = useState(true)
-  const [showScrollButton, setShowScrollButton] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
@@ -452,36 +452,35 @@ export function ConversationThread({
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
         behavior: "smooth",
-      })
-      setAutoScroll(true)
-      setShowScrollButton(false)
+      });
+      setAutoScroll(true);
+      setShowScrollButton(false);
     }
-  }, [])
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [activeConversation?.items, autoScroll])
+  }, [activeConversation?.items, autoScroll]);
 
   // Detect manual scroll to disable auto-scroll
   const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight
-    const isAtBottom = distanceFromBottom < 100
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const isAtBottom = distanceFromBottom < 100;
 
-    setAutoScroll(isAtBottom)
-    setShowScrollButton(!isAtBottom && distanceFromBottom > 300)
-  }, [])
+    setAutoScroll(isAtBottom);
+    setShowScrollButton(!isAtBottom && distanceFromBottom > 300);
+  }, []);
 
-  const hasMessages =
-    activeConversation && activeConversation.items.length > 0
+  const hasMessages = activeConversation && activeConversation.items.length > 0;
 
   const messageItems = activeConversation?.items.filter(
-    (item) => item.kind === "message"
-  )
+    (item) => item.kind === "message",
+  );
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden">
@@ -506,10 +505,8 @@ export function ConversationThread({
       </div>
 
       <AnimatePresence>
-        {showScrollButton && (
-          <ScrollToBottomButton onClick={scrollToBottom} />
-        )}
+        {showScrollButton && <ScrollToBottomButton onClick={scrollToBottom} />}
       </AnimatePresence>
     </div>
-  )
+  );
 }

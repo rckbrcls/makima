@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { Store } from "@tauri-apps/plugin-store";
 import type { Provider } from "@/lib/provider-types";
-import type { AuthSourcePreference, AnthropicAuthSourcePreference } from "@/lib/auth-types";
+import type { AuthSourcePreference } from "@/lib/auth-types";
 
 export type BridgeMode = "safe" | "auto";
 
@@ -34,6 +34,7 @@ interface SettingsState {
     ollama: {
       enabled: boolean;
       endpoint?: string;
+      numParallel?: number;
     };
     openai: {
       enabled: boolean;
@@ -43,7 +44,7 @@ interface SettingsState {
     anthropic: {
       enabled: boolean;
       apiKey?: string;
-      preferredAuthSource?: AnthropicAuthSourcePreference;
+      preferredAuthSource?: AuthSourcePreference;
     };
   };
 
@@ -89,7 +90,7 @@ const defaultSettings: Omit<SettingsState, "_hasHydrated"> = {
     defaultModel: "llama3.2",
   },
   providers: {
-    ollama: { enabled: true },
+    ollama: { enabled: true, numParallel: 1 },
     openai: { enabled: false },
     anthropic: { enabled: false },
   },
@@ -97,24 +98,30 @@ const defaultSettings: Omit<SettingsState, "_hasHydrated"> = {
 
 // Migration function for old settings format
 function migrateSettings(
-  state: Record<string, unknown>
+  state: Record<string, unknown>,
 ): Partial<SettingsState> {
   const migrated: Partial<SettingsState> = {};
 
   // Migrate old providers format
   if (state.providers) {
     const oldProviders = state.providers as Record<string, unknown>;
-    if ("cli" in oldProviders || "local" in oldProviders || "api" in oldProviders) {
+    if (
+      "cli" in oldProviders ||
+      "local" in oldProviders ||
+      "api" in oldProviders
+    ) {
       migrated.providers = {
         ollama: {
-          enabled: (oldProviders.local as { enabled?: boolean })?.enabled ?? true,
+          enabled:
+            (oldProviders.local as { enabled?: boolean })?.enabled ?? true,
           endpoint: (oldProviders.local as { endpoint?: string })?.endpoint,
         },
         openai: {
           enabled: false,
         },
         anthropic: {
-          enabled: (oldProviders.api as { enabled?: boolean })?.enabled ?? false,
+          enabled:
+            (oldProviders.api as { enabled?: boolean })?.enabled ?? false,
           apiKey: (oldProviders.api as { apiKey?: string })?.apiKey,
         },
       };
@@ -124,7 +131,10 @@ function migrateSettings(
   // Migrate old defaultProvider
   if (state.preferences) {
     const oldPrefs = state.preferences as Record<string, unknown>;
-    if (oldPrefs.defaultProvider === "cli" || oldPrefs.defaultProvider === "local") {
+    if (
+      oldPrefs.defaultProvider === "cli" ||
+      oldPrefs.defaultProvider === "local"
+    ) {
       migrated.preferences = {
         ...(oldPrefs as SettingsState["preferences"]),
         defaultProvider: "ollama",
@@ -252,9 +262,12 @@ export const useSettingsStore = create<SettingsStore>()(
       migrate: (persistedState, version) => {
         if (version === 0) {
           const migrated = migrateSettings(
-            persistedState as Record<string, unknown>
+            persistedState as Record<string, unknown>,
           );
-          return { ...(persistedState as object), ...migrated } as SettingsState;
+          return {
+            ...(persistedState as object),
+            ...migrated,
+          } as SettingsState;
         }
         return persistedState as SettingsState;
       },

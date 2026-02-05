@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -11,11 +6,8 @@ import {
   useSpring,
 } from "motion/react";
 import useMeasure from "react-use-measure";
-import type {
-  HTMLMotionProps,
-  TargetAndTransition} from "motion/react";
-import type {
-  ReactNode} from "react";
+import type { HTMLMotionProps, TargetAndTransition } from "motion/react";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 

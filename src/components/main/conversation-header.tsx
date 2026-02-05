@@ -37,8 +37,7 @@ export function ConversationHeader({
             ) : null}
           </div>
           <p className="text-muted-foreground text-xs">
-            {activeConversation?.summary ??
-              "Select a conversation to start."}
+            {activeConversation?.summary ?? "Select a conversation to start."}
           </p>
         </div>
       </div>

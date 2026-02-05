@@ -1,8 +1,22 @@
-import { AlertTriangle, Archive, Copy, Download, MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Archive,
+  Copy,
+  Download,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Conversation } from "@/components/main/jarvis-types";
-import { conversationStatusMeta, formatRelativeTime } from "@/components/main/jarvis-data";
+import {
+  conversationStatusMeta,
+  formatRelativeTime,
+} from "@/components/main/jarvis-data";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,11 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { SettingsDialog } from "@/components/main/settings-dialog";
 import { cn } from "@/lib/utils";
 
 interface ConversationSidebarProps {
   conversations: Array<Conversation>;
   activeConversationId: string;
+  streamingConversationIds: Set<string>;
   onSelectConversation: (conversationId: string) => void;
   onNewConversation: () => void;
   onRenameConversation: (conversationId: string) => void;
@@ -29,6 +45,7 @@ interface ConversationSidebarProps {
 export function ConversationSidebar({
   conversations,
   activeConversationId,
+  streamingConversationIds,
   onSelectConversation,
   onNewConversation,
   onRenameConversation,
@@ -37,6 +54,7 @@ export function ConversationSidebar({
   onExportConversation,
   onArchiveConversation,
 }: ConversationSidebarProps) {
+
   // Only show conversations that have messages
   const visibleConversations = useMemo(
     () => conversations.filter((c) => c.items.length > 0),
@@ -44,24 +62,29 @@ export function ConversationSidebar({
   );
 
   return (
-    <>
+    <div className="relative flex h-full flex-col">
       <div className="flex-none">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-bold font-serif">CHATS</h2>
-          <Button variant="ghost" size="icon" className="size-7" onClick={onNewConversation}>
+          <h2 className="font-serif text-sm font-bold">CHATS</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={onNewConversation}
+          >
             <Plus className="size-4" />
           </Button>
         </div>
-        <div className="relative border-b border-muted flex items-center h-9 ">
+        <div className="border-muted relative flex h-9 items-center border-b">
           <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4" />
           <Input
             placeholder="Search sessions..."
-            className="pl-8 text-xs bg-transparent text-muted-foreground border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="text-muted-foreground border-0 bg-transparent pl-8 text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
       </div>
 
-      <div className="flex-1 mt-3 overflow-y-auto">
+      <div className="mt-3 flex-1 overflow-y-auto pb-14">
         <AnimatePresence initial={false}>
           {visibleConversations.map((conversation) => {
             const statusMeta = conversationStatusMeta[conversation.status];
@@ -80,9 +103,7 @@ export function ConversationSidebar({
                   onClick={() => onSelectConversation(conversation.id)}
                   className={cn(
                     "w-full rounded-lg p-2 pr-8 text-left transition-colors",
-                    isActive
-                      ? "glass-selected"
-                      : "glass-hover",
+                    isActive ? "glass-selected" : "glass-hover",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -91,12 +112,18 @@ export function ConversationSidebar({
                         <p className="text-foreground text-sm font-medium">
                           {conversation.title}
                         </p>
-                        {conversation.status === "running" ? (
+                        {streamingConversationIds.has(conversation.id) ? (
                           <span className="relative flex size-2">
                             <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-400" />
                             <span className="relative inline-flex size-2 rounded-full bg-amber-500" />
                           </span>
-                        ) : conversation.status === "idle" && conversation.items.length > 0 ? (
+                        ) : conversation.status === "running" ? (
+                          <span className="relative flex size-2">
+                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400" />
+                            <span className="relative inline-flex size-2 rounded-full bg-sky-500" />
+                          </span>
+                        ) : conversation.status === "idle" &&
+                          conversation.items.length > 0 ? (
                           <span className="size-2 rounded-full bg-emerald-500" />
                         ) : null}
                         {conversation.globalState === "error" ? (
@@ -110,15 +137,15 @@ export function ConversationSidebar({
                   </div>
                 </button>
 
-                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                <div className="absolute top-1/2 right-1 -translate-y-1/2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          "size-6 opacity-0 group-hover:opacity-100 transition-opacity",
-                          "data-[state=open]:opacity-100"
+                          "size-6 opacity-0 transition-opacity group-hover:opacity-100",
+                          "data-[state=open]:opacity-100",
                         )}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -126,28 +153,36 @@ export function ConversationSidebar({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onRenameConversation(conversation.id)}>
-                        <Pencil className="size-4 mr-2" />
+                      <DropdownMenuItem
+                        onClick={() => onRenameConversation(conversation.id)}
+                      >
+                        <Pencil className="mr-2 size-4" />
                         Renomear
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDuplicateConversation(conversation.id)}>
-                        <Copy className="size-4 mr-2" />
+                      <DropdownMenuItem
+                        onClick={() => onDuplicateConversation(conversation.id)}
+                      >
+                        <Copy className="mr-2 size-4" />
                         Duplicar
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onExportConversation(conversation.id)}>
-                        <Download className="size-4 mr-2" />
+                      <DropdownMenuItem
+                        onClick={() => onExportConversation(conversation.id)}
+                      >
+                        <Download className="mr-2 size-4" />
                         Exportar
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onArchiveConversation(conversation.id)}>
-                        <Archive className="size-4 mr-2" />
+                      <DropdownMenuItem
+                        onClick={() => onArchiveConversation(conversation.id)}
+                      >
+                        <Archive className="mr-2 size-4" />
                         Arquivar
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         variant="destructive"
                         onClick={() => onDeleteConversation(conversation.id)}
                       >
-                        <Trash2 className="size-4 mr-2" />
+                        <Trash2 className="mr-2 size-4" />
                         Deletar
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -158,6 +193,8 @@ export function ConversationSidebar({
           })}
         </AnimatePresence>
       </div>
-    </>
+
+
+    </div>
   );
 }

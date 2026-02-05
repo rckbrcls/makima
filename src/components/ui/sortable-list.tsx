@@ -8,7 +8,7 @@ import {
   useDragControls,
 } from "motion/react";
 import useMeasure from "react-use-measure";
-import type { Dispatch, ReactNode, SetStateAction} from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";

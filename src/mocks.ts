@@ -862,7 +862,9 @@ export const getMockSessionsByRepoName = (repoName: string): Array<Session> =>
 /**
  * Get active sessions by repository name
  */
-export const getMockActiveSessionsByRepoName = (repoName: string): Array<Session> =>
+export const getMockActiveSessionsByRepoName = (
+  repoName: string,
+): Array<Session> =>
   mockSessions.filter((s) => s.repoName === repoName && s.state === "active");
 
 /**

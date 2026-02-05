@@ -37,4 +37,3 @@ tokio-stream = "0.1"
 
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.26"
-security-framework = "2.11"

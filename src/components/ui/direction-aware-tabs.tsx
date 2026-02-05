@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { ReactNode, useMemo, useState, useRef } from "react"
-import { AnimatePresence, motion, MotionConfig } from "motion/react"
-import useMeasure from "react-use-measure"
+import { ReactNode, useMemo, useState, useRef } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import useMeasure from "react-use-measure";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 type Tab = {
-  id: number
-  label: string
-  content: ReactNode
-}
+  id: number;
+  label: string;
+  content: ReactNode;
+};
 
 interface OgImageSectionProps {
-  tabs: Tab[]
-  className?: string
-  rounded?: string
-  onChange?: () => void
+  tabs: Tab[];
+  className?: string;
+  rounded?: string;
+  onChange?: () => void;
 }
 
 function DirectionAwareTabs({
@@ -25,104 +25,104 @@ function DirectionAwareTabs({
   rounded,
   onChange,
 }: OgImageSectionProps) {
-  const [activeTab, setActiveTab] = useState(0)
-  const [direction, setDirection] = useState(0)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [ref, bounds] = useMeasure()
-  const lastTabChange = useRef(0)
+  const [activeTab, setActiveTab] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [ref, bounds] = useMeasure();
+  const lastTabChange = useRef(0);
   const wheelGesture = useRef({
     startTime: 0,
     lastTime: 0,
     accumulated: 0,
     direction: 0,
-  })
+  });
 
   const content = useMemo(() => {
-    const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content
-    return activeTabContent || null
-  }, [activeTab, tabs])
+    const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content;
+    return activeTabContent || null;
+  }, [activeTab, tabs]);
 
   const handleTabClick = (newTabId: number) => {
     if (newTabId !== activeTab && !isAnimating) {
-      const newDirection = newTabId > activeTab ? 1 : -1
-      setDirection(newDirection)
-      setActiveTab(newTabId)
-      onChange ? onChange() : null
+      const newDirection = newTabId > activeTab ? 1 : -1;
+      setDirection(newDirection);
+      setActiveTab(newTabId);
+      onChange ? onChange() : null;
     }
-  }
+  };
 
-  const activeIndex = tabs.findIndex((tab) => tab.id === activeTab)
+  const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
   const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (isAnimating) return
+    if (isAnimating) return;
 
-    const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY)
-    const isShiftScroll = e.shiftKey && Math.abs(e.deltaY) > 0
+    const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    const isShiftScroll = e.shiftKey && Math.abs(e.deltaY) > 0;
 
-    if (!isHorizontal && !isShiftScroll) return
+    if (!isHorizontal && !isShiftScroll) return;
 
-    const delta = isShiftScroll ? e.deltaY : e.deltaX
-    if (Math.abs(delta) === 0) return
+    const delta = isShiftScroll ? e.deltaY : e.deltaX;
+    if (Math.abs(delta) === 0) return;
 
-    e.preventDefault()
+    e.preventDefault();
 
     // Cooldown: only allow tab change every 500ms
-    const now = Date.now()
-    if (now - lastTabChange.current < 500) return
-    const gesture = wheelGesture.current
+    const now = Date.now();
+    if (now - lastTabChange.current < 500) return;
+    const gesture = wheelGesture.current;
 
     const resetGesture = () => {
-      gesture.startTime = 0
-      gesture.lastTime = 0
-      gesture.accumulated = 0
-      gesture.direction = 0
-    }
+      gesture.startTime = 0;
+      gesture.lastTime = 0;
+      gesture.accumulated = 0;
+      gesture.direction = 0;
+    };
 
     // Start a new gesture after a short pause
     if (gesture.lastTime && now - gesture.lastTime > 160) {
-      resetGesture()
+      resetGesture();
     }
 
-    const deltaDirection = delta > 0 ? 1 : -1
+    const deltaDirection = delta > 0 ? 1 : -1;
     if (!gesture.startTime) {
-      gesture.startTime = now
-      gesture.direction = deltaDirection
+      gesture.startTime = now;
+      gesture.direction = deltaDirection;
     }
 
     // If direction flips mid-gesture, restart tracking
     if (gesture.direction !== deltaDirection) {
-      resetGesture()
-      gesture.startTime = now
-      gesture.direction = deltaDirection
+      resetGesture();
+      gesture.startTime = now;
+      gesture.direction = deltaDirection;
     }
 
-    gesture.lastTime = now
-    gesture.accumulated += delta
+    gesture.lastTime = now;
+    gesture.accumulated += delta;
 
-    const duration = now - gesture.startTime
-    const accumulated = Math.abs(gesture.accumulated)
-    const velocity = accumulated / Math.max(duration, 1) // delta per ms
-    const quickGestureMs = 120
-    const quickDelta = 14
-    const quickVelocity = 0.35
-    const longDelta = 90
+    const duration = now - gesture.startTime;
+    const accumulated = Math.abs(gesture.accumulated);
+    const velocity = accumulated / Math.max(duration, 1); // delta per ms
+    const quickGestureMs = 120;
+    const quickDelta = 14;
+    const quickVelocity = 0.35;
+    const longDelta = 90;
 
     if (duration <= quickGestureMs) {
-      if (accumulated < quickDelta || velocity < quickVelocity) return
+      if (accumulated < quickDelta || velocity < quickVelocity) return;
     } else if (accumulated < longDelta) {
-      return
+      return;
     }
 
-    lastTabChange.current = now
+    lastTabChange.current = now;
 
     if (delta > 0 && activeIndex < tabs.length - 1) {
-      handleTabClick(tabs[activeIndex + 1].id)
+      handleTabClick(tabs[activeIndex + 1].id);
     } else if (delta < 0 && activeIndex > 0) {
-      handleTabClick(tabs[activeIndex - 1].id)
+      handleTabClick(tabs[activeIndex - 1].id);
     }
 
-    resetGesture()
-  }
+    resetGesture();
+  };
 
   const variants = {
     initial: (direction: number) => ({
@@ -140,15 +140,15 @@ function DirectionAwareTabs({
       opacity: 0,
       filter: "blur(4px)",
     }),
-  }
+  };
 
   return (
-    <div className="flex h-full flex-col items-center w-full" onWheel={onWheel}>
+    <div className="flex h-full w-full flex-col items-center" onWheel={onWheel}>
       <div
         className={cn(
-          "flex space-x-1 border rounded-full cursor-pointer bg-card border-border px-[3px] py-[3.2px] shadow-inner-shadow",
+          "bg-card border-border shadow-inner-shadow flex cursor-pointer space-x-1 rounded-full border px-[3px] py-[3.2px]",
           className,
-          rounded
+          rounded,
         )}
       >
         {tabs.map((tab) => (
@@ -156,18 +156,18 @@ function DirectionAwareTabs({
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
             className={cn(
-              "relative rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium text-neutral-200 transition flex gap-2 items-center ",
+              "relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-foreground transition sm:text-sm",
               activeTab === tab.id
-                ? "text-white"
-                : "hover:text-neutral-300/60  text-neutral-200/80",
-              rounded
+                ? "text-foreground"
+                : "text-foreground/80 hover:text-foreground/60",
+              rounded,
             )}
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
             {activeTab === tab.id && (
               <motion.span
                 layoutId="bubble"
-                className="absolute  inset-0 z-10 bg-primary mix-blend-difference shadow-inner-shadow border border-border"
+                className="bg-primary shadow-inner-shadow dark:border-border absolute inset-0 z-10 dark:border mix-blend-difference"
                 style={rounded ? { borderRadius: 9 } : { borderRadius: 10 }}
                 transition={{ type: "spring", bounce: 0.19, duration: 0.4 }}
               />
@@ -180,7 +180,7 @@ function DirectionAwareTabs({
       <MotionConfig transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}>
         <div
           ref={ref}
-          className="relative mx-auto w-full flex-1 h-full overflow-hidden p-2"
+          className="relative mx-auto h-full w-full flex-1 overflow-hidden p-2"
         >
           <AnimatePresence
             custom={direction}
@@ -204,6 +204,6 @@ function DirectionAwareTabs({
         </div>
       </MotionConfig>
     </div>
-  )
+  );
 }
-export { DirectionAwareTabs }
+export { DirectionAwareTabs };

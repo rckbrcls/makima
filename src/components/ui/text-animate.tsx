@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { motion, useAnimation, useInView } from "motion/react";
-import type { FC} from "react";
-import type { HTMLMotionProps} from "motion/react";
+import type { FC } from "react";
+import type { HTMLMotionProps } from "motion/react";
 
 type AnimationType =
   | "fadeIn"

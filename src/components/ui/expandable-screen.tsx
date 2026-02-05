@@ -1,13 +1,7 @@
-import {
-  
-  createContext,
-  useContext,
-  useEffect,
-  useState
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type {ReactNode} from "react";
+import type { ReactNode } from "react";
 
 // Context
 interface ExpandableScreenContextValue {

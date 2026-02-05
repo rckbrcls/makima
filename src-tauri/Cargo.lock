@@ -13,7 +13,6 @@ dependencies = [
  "log",
  "reqwest",
  "rusqlite",
- "security-framework",
  "serde",
  "serde_json",
  "tauri",

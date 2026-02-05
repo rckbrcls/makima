@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronUp, Loader } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type { ReactNode, RefObject} from "react";
+import type { ReactNode, RefObject } from "react";
 
 type PopoverFormProps = {
   open: boolean;

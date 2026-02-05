@@ -36,7 +36,11 @@ import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 import { useConversations } from "@/hooks/use-conversations";
 import { useChatProvider } from "@/hooks/use-chat-provider";
+import { useSettingsStore } from "@/stores/settings-store";
 import type { ChatMessage, Provider } from "@/lib/provider-types";
+import { Button } from "@/components/ui/button";
+import { SettingsDialog } from "@/components/main/settings-dialog";
+import { Settings } from "lucide-react";
 
 interface StreamingState {
   messageId: string;
@@ -72,7 +76,10 @@ export function MainPage() {
     setConversations,
   } = useConversations();
 
-  const [tone,] = useState("balanced");
+  const { providers } = useSettingsStore();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [tone] = useState("balanced");
   const [provider, setProvider] = useState<Provider>("ollama");
   const [model, setModel] = useState("");
   const [temperature, setTemperature] = useState("0.4");
@@ -100,7 +107,13 @@ export function MainPage() {
 
   // Track streaming state per conversation
   const streamingStatesRef = useRef<Map<string, StreamingState>>(new Map());
-  const pendingMessagesRef = useRef<Map<string, { userMsg: ChatItem; assistantMsg: ChatItem }>>(new Map());
+  // Reactive state to track which conversations are currently streaming (for UI indicators)
+  const [streamingConversationIds, setStreamingConversationIds] = useState<
+    Set<string>
+  >(new Set());
+  const pendingMessagesRef = useRef<
+    Map<string, { userMsg: ChatItem; assistantMsg: ChatItem }>
+  >(new Map());
 
   useEffect(() => {
     if (provider === "ollama" && ollamaModels.length > 0 && !model) {
@@ -108,24 +121,34 @@ export function MainPage() {
     }
   }, [ollamaModels, model, provider]);
 
-  const handleSelectModel = useCallback((newModel: string, newProvider: Provider) => {
-    setModel(newModel);
-    setProvider(newProvider);
-  }, []);
+  const handleSelectModel = useCallback(
+    (newModel: string, newProvider: Provider) => {
+      setModel(newModel);
+      setProvider(newProvider);
+    },
+    [],
+  );
 
   useEffect(() => {
-    if (!isLoadingConversations && conversations.length > 0 && !activeConversationId) {
+    if (
+      !isLoadingConversations &&
+      conversations.length > 0 &&
+      !activeConversationId
+    ) {
       setActiveConversationId(conversations[0].id);
     }
   }, [isLoadingConversations, conversations, activeConversationId]);
 
-  const handleSelectConversation = useCallback(async (id: string) => {
-    setActiveConversationId(id);
-    const conv = conversations.find((c) => c.id === id);
-    if (conv && conv.items.length === 0) {
-      await loadConversation(id);
-    }
-  }, [conversations, loadConversation]);
+  const handleSelectConversation = useCallback(
+    async (id: string) => {
+      setActiveConversationId(id);
+      const conv = conversations.find((c) => c.id === id);
+      if (conv && conv.items.length === 0) {
+        await loadConversation(id);
+      }
+    },
+    [conversations, loadConversation],
+  );
 
   useEffect(() => {
     const lines = composerValue.split("\n").length;
@@ -290,13 +313,16 @@ export function MainPage() {
     console.log("Rename:", id);
   }, []);
 
-  const handleDeleteConversation = useCallback(async (id: string) => {
-    await deleteConversationDb(id);
-    if (activeConversationId === id && conversations.length > 1) {
-      const remaining = conversations.filter((c) => c.id !== id);
-      setActiveConversationId(remaining[0]?.id ?? "");
-    }
-  }, [deleteConversationDb, activeConversationId, conversations]);
+  const handleDeleteConversation = useCallback(
+    async (id: string) => {
+      await deleteConversationDb(id);
+      if (activeConversationId === id && conversations.length > 1) {
+        const remaining = conversations.filter((c) => c.id !== id);
+        setActiveConversationId(remaining[0]?.id ?? "");
+      }
+    },
+    [deleteConversationDb, activeConversationId, conversations],
+  );
 
   const handleDuplicateConversation = (id: string) => {
     const original = conversations.find((c) => c.id === id);
@@ -332,15 +358,59 @@ export function MainPage() {
   };
 
   const handleSendMessage = useCallback(async () => {
-    if (!activeConversation || !composerValue.trim()) return;
+    console.log("[handleSendMessage] Starting...");
+    console.log(
+      "[handleSendMessage] activeConversation:",
+      !!activeConversation,
+    );
+    console.log(
+      "[handleSendMessage] composerValue:",
+      composerValue.trim().length > 0,
+    );
+    console.log("[handleSendMessage] model:", model);
+    console.log("[handleSendMessage] provider:", provider);
+    console.log("[handleSendMessage] auth.status:", auth.status);
+    console.log(
+      "[handleSendMessage] auth.status?.anthropic:",
+      auth.status?.anthropic,
+    );
+
+    if (!activeConversation || !composerValue.trim()) {
+      console.log(
+        "[handleSendMessage] BLOCKED: no conversation or empty message",
+      );
+      return;
+    }
     // Only block if this specific conversation is already streaming
-    if (hasRunningExecution || streamingStatesRef.current.has(activeConversation.id)) return;
-    if (!model) return;
+    if (
+      hasRunningExecution ||
+      streamingStatesRef.current.has(activeConversation.id)
+    ) {
+      console.log("[handleSendMessage] BLOCKED: already streaming");
+      return;
+    }
+    if (!model) {
+      console.log("[handleSendMessage] BLOCKED: no model selected");
+      return;
+    }
 
     // Check provider availability
-    if (provider === "ollama" && !connectionState.isConnected) return;
-    if (provider === "openai" && !auth.status?.openai.is_configured) return;
-    if (provider === "anthropic" && !auth.status?.anthropic.is_configured) return;
+    if (provider === "ollama" && !connectionState.isConnected) {
+      console.log("[handleSendMessage] BLOCKED: ollama not connected");
+      return;
+    }
+    if (provider === "openai" && !auth.status?.openai.is_configured) {
+      console.log("[handleSendMessage] BLOCKED: openai not configured");
+      return;
+    }
+    if (provider === "anthropic" && !auth.status?.anthropic.is_configured) {
+      console.log(
+        "[handleSendMessage] BLOCKED: anthropic not configured, auth.status.anthropic=",
+        auth.status?.anthropic,
+      );
+      return;
+    }
+    console.log("[handleSendMessage] All checks passed, proceeding...");
 
     const now = Date.now();
     const messageId = buildMessageId();
@@ -355,6 +425,8 @@ export function MainPage() {
       accumulatedContent: "",
       sessionId,
     });
+    // Update reactive state for UI indicators
+    setStreamingConversationIds((prev) => new Set(prev).add(conversationId));
 
     const userMessage: ChatItem = {
       id: messageId,
@@ -383,7 +455,10 @@ export function MainPage() {
       },
     };
 
-    pendingMessagesRef.current.set(sessionId, { userMsg: userMessage, assistantMsg: assistantMessage });
+    pendingMessagesRef.current.set(sessionId, {
+      userMsg: userMessage,
+      assistantMsg: assistantMessage,
+    });
 
     const nextTitle =
       activeConversation.title === "New conversation" ||
@@ -456,7 +531,8 @@ export function MainPage() {
             if (conversation.id !== conversationId) return conversation;
 
             const nextItems = conversation.items.map((item) => {
-              if (item.id !== currentMessageId || item.kind !== "message") return item;
+              if (item.id !== currentMessageId || item.kind !== "message")
+                return item;
               return {
                 ...item,
                 message: {
@@ -491,6 +567,12 @@ export function MainPage() {
 
           pendingMessagesRef.current.delete(sessionId);
           streamingStatesRef.current.delete(conversationId);
+          // Update reactive state for UI indicators
+          setStreamingConversationIds((prev) => {
+            const next = new Set(prev);
+            next.delete(conversationId);
+            return next;
+          });
         }
       },
       onError: (error) => {
@@ -505,7 +587,8 @@ export function MainPage() {
             if (conversation.id !== conversationId) return conversation;
 
             const nextItems = conversation.items.map((item) => {
-              if (item.id !== currentMessageId || item.kind !== "message") return item;
+              if (item.id !== currentMessageId || item.kind !== "message")
+                return item;
               return {
                 ...item,
                 message: {
@@ -538,6 +621,12 @@ export function MainPage() {
 
         pendingMessagesRef.current.delete(sessionId);
         streamingStatesRef.current.delete(conversationId);
+        // Update reactive state for UI indicators
+        setStreamingConversationIds((prev) => {
+          const next = new Set(prev);
+          next.delete(conversationId);
+          return next;
+        });
       },
     });
   }, [
@@ -561,6 +650,7 @@ export function MainPage() {
     <ConversationSidebar
       conversations={conversations}
       activeConversationId={activeConversationId}
+      streamingConversationIds={streamingConversationIds}
       onSelectConversation={handleSelectConversation}
       onNewConversation={handleNewConversation}
       onRenameConversation={handleRenameConversation}
@@ -575,17 +665,17 @@ export function MainPage() {
     {
       id: 0,
       label: "chat",
-      content: (tab),
+      content: tab,
     },
     {
       id: 1,
       label: "work",
-      content: (tab),
+      content: tab,
     },
     {
       id: 2,
       label: "code",
-      content: (tab),
+      content: tab,
     },
   ];
 
@@ -593,12 +683,27 @@ export function MainPage() {
     <div className="text-foreground relative h-full min-h-0 overflow-hidden">
       <TextureOverlay texture="grid" className="mix-blend-overlay" />
       <div className="relative z-10 flex h-full min-h-0">
-        <aside className="flex w-[300px] flex-col items-center">
-          <DirectionAwareTabs onChange={() => { }} tabs={tabs} className="mt-10 rounded-lg" />
+        <aside className="flex w-[300px] relative flex-col items-center">
+          <DirectionAwareTabs
+            onChange={() => { }}
+            tabs={tabs}
+            className="mt-10 rounded-lg"
+          />
+          <div className="absolute right-3 bottom-3 left-3">
+            <Button
+              variant="ghost"
+              className="w-full glass glass-solid glass-hover justify-start gap-2 rounded-lg"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="size-4" />
+              Settings
+            </Button>
+          </div>
+
+          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
         </aside>
 
-
-        <section className="flex min-w-0 flex-1 flex-col mr-3 my-3 rounded-3xl border-border border overflow-hidden bg-background">
+        <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
           {/* <ConversationHeader
             activeConversation={activeConversation}
             isConfigOpen={isConfigOpen}
@@ -647,7 +752,7 @@ export function MainPage() {
           ) : null}
 
           {!isConfigOpen ? (
-            <div className="flex min-h-0 relative flex-1 flex-col">
+            <div className="relative flex min-h-0 flex-1 flex-col">
               <ConversationThread
                 activeConversation={activeConversation}
                 onViewRun={setActiveRunId}
@@ -675,6 +780,10 @@ export function MainPage() {
                     onDeleteModel={deleteModel}
                     onRefresh={fetchModels}
                     authStatus={auth.status}
+                    openaiAuthPreference={providers.openai.preferredAuthSource}
+                    anthropicAuthPreference={
+                      providers.anthropic.preferredAuthSource
+                    }
                   />
                 }
               />

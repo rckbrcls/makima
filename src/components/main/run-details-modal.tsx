@@ -77,9 +77,7 @@ export function RunDetailsModal({ activeRun, onClose }: RunDetailsModalProps) {
             <div className="border-border/60 bg-muted/30 max-h-[320px] overflow-y-auto rounded-lg border p-3 font-mono text-xs whitespace-pre-wrap">
               {activeRun.logs.join("\n")}
             </div>
-            <p className="text-muted-foreground text-xs">
-              {activeRun.summary}
-            </p>
+            <p className="text-muted-foreground text-xs">{activeRun.summary}</p>
           </div>
         </CardContent>
       </Card>

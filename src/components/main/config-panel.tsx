@@ -24,7 +24,7 @@ import type {
   NotificationKey,
   PluginKey,
   SafetyKey,
-  ToolKey
+  ToolKey,
 } from "./config-types";
 import type { LucideIcon } from "lucide-react";
 
@@ -47,7 +47,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-
 
 interface ToggleCardProps {
   title: string;

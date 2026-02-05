@@ -26,7 +26,9 @@ type TreeContextProps = {
   indicator: boolean;
   handleExpand: (id: string) => void;
   selectItem: (id: string) => void;
-  setExpandedItems?: React.Dispatch<React.SetStateAction<Array<string> | undefined>>;
+  setExpandedItems?: React.Dispatch<
+    React.SetStateAction<Array<string> | undefined>
+  >;
   openIcon?: React.ReactNode;
   closeIcon?: React.ReactNode;
   direction: "rtl" | "ltr";
@@ -72,9 +74,9 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
     const [selectedId, setSelectedId] = useState<string | undefined>(
       initialSelectedId,
     );
-    const [expandedItems, setExpandedItems] = useState<Array<string> | undefined>(
-      initialExpandedItems,
-    );
+    const [expandedItems, setExpandedItems] = useState<
+      Array<string> | undefined
+    >(initialExpandedItems);
 
     const selectItem = useCallback((id: string) => {
       setSelectedId(id);
