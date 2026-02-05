@@ -16,6 +16,7 @@ interface DbConversationSummary {
   state: string;
   created_at: number;
   updated_at: number;
+  repository_id: string | null;
 }
 
 interface DbMessageMeta {
@@ -43,6 +44,7 @@ interface DbConversation {
   state: string;
   created_at: number;
   updated_at: number;
+  repository_id: string | null;
   messages: DbMessage[];
 }
 
@@ -74,6 +76,7 @@ function dbConversationToConversation(dbConv: DbConversation): Conversation {
     state: dbConv.state as ConversationState,
     createdAt: dbConv.created_at,
     updatedAt: dbConv.updated_at,
+    repositoryId: dbConv.repository_id ?? undefined,
     items: dbConv.messages.map(dbMessageToChatItem),
   };
 }
@@ -87,6 +90,7 @@ function dbSummaryToConversation(summary: DbConversationSummary): Conversation {
     state: summary.state as ConversationState,
     createdAt: summary.created_at,
     updatedAt: summary.updated_at,
+    repositoryId: summary.repository_id ?? undefined,
     items: [],
   };
 }
@@ -114,6 +118,7 @@ export function useConversations() {
               status: summary.status as ConversationStatus,
               state: summary.state as ConversationState,
               updatedAt: summary.updated_at,
+              repositoryId: summary.repository_id ?? undefined,
             };
           }
           return dbSummaryToConversation(summary);
@@ -157,10 +162,14 @@ export function useConversations() {
   );
 
   const createConversation = useCallback(
-    async (title: string): Promise<Conversation | null> => {
+    async (
+      title: string,
+      repositoryId?: string,
+    ): Promise<Conversation | null> => {
       try {
         const dbConv = await invoke<DbConversation>("db_create_conversation", {
           title,
+          repositoryId: repositoryId ?? null,
         });
         const conversation = dbConversationToConversation(dbConv);
         loadedConversationIds.current.add(conversation.id);

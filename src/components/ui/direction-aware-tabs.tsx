@@ -16,7 +16,7 @@ interface OgImageSectionProps {
   tabs: Tab[];
   className?: string;
   rounded?: string;
-  onChange?: () => void;
+  onChange?: (tabIndex: number) => void;
 }
 
 function DirectionAwareTabs({
@@ -47,7 +47,7 @@ function DirectionAwareTabs({
       const newDirection = newTabId > activeTab ? 1 : -1;
       setDirection(newDirection);
       setActiveTab(newTabId);
-      onChange ? onChange() : null;
+      onChange?.(newTabId);
     }
   };
 

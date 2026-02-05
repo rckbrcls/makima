@@ -9,6 +9,7 @@ pub struct ConversationSummary {
     pub state: String,
     pub created_at: i64,
     pub updated_at: i64,
+    pub repository_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,12 +40,14 @@ pub struct Conversation {
     pub state: String,
     pub created_at: i64,
     pub updated_at: i64,
+    pub repository_id: Option<String>,
     pub messages: Vec<Message>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateConversationInput {
     pub title: String,
+    pub repository_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,6 +56,7 @@ pub struct UpdateConversationInput {
     pub summary: Option<String>,
     pub status: Option<String>,
     pub state: Option<String>,
+    pub repository_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,4 +75,33 @@ pub struct AddMessageInput {
 pub struct UpdateMessageInput {
     pub content: Option<String>,
     pub state: Option<String>,
+}
+
+// Repository types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Repository {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    pub branch: String,
+    pub tech: Vec<String>,
+    pub status: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateRepositoryInput {
+    pub name: String,
+    pub path: String,
+    pub branch: Option<String>,
+    pub tech: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateRepositoryInput {
+    pub name: Option<String>,
+    pub branch: Option<String>,
+    pub tech: Option<Vec<String>>,
+    pub status: Option<String>,
 }

@@ -41,6 +41,7 @@ import type { ChatMessage, Provider } from "@/lib/provider-types";
 import { Button } from "@/components/ui/button";
 import { SettingsDialog } from "@/components/main/settings-dialog";
 import { Settings } from "lucide-react";
+import { CodeTabProvider, CodeTabSidebar, CodeTabWorkspace } from "@/components/code/code-tab";
 
 interface StreamingState {
   messageId: string;
@@ -78,6 +79,7 @@ export function MainPage() {
 
   const { providers } = useSettingsStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeTabId, setActiveTabId] = useState(0);
 
   const [tone] = useState("balanced");
   const [provider, setProvider] = useState<Provider>("ollama");
@@ -646,7 +648,7 @@ export function MainPage() {
     setConversations,
   ]);
 
-  const tab = (
+  const chatSidebar = (
     <ConversationSidebar
       conversations={conversations}
       activeConversationId={activeConversationId}
@@ -665,137 +667,148 @@ export function MainPage() {
     {
       id: 0,
       label: "chat",
-      content: tab,
+      content: chatSidebar,
     },
     {
       id: 1,
       label: "work",
-      content: tab,
+      content: chatSidebar,
     },
     {
       id: 2,
       label: "code",
-      content: tab,
+      content: <CodeTabSidebar />,
     },
   ];
 
+  const isCodeTab = activeTabId === 2;
+
   return (
-    <div className="text-foreground relative h-full min-h-0 overflow-hidden">
-      <TextureOverlay texture="grid" className="mix-blend-overlay" />
-      <div className="relative z-10 flex h-full min-h-0">
-        <aside className="flex w-[300px] relative flex-col items-center">
-          <DirectionAwareTabs
-            onChange={() => { }}
-            tabs={tabs}
-            className="mt-10 rounded-lg"
-          />
-          <div className="absolute right-3 bottom-3 left-3">
-            <Button
-              variant="ghost"
-              className="w-full glass glass-solid glass-hover justify-start gap-2 rounded-lg"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings className="size-4" />
-              Settings
-            </Button>
-          </div>
-
-          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-        </aside>
-
-        <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
-          {/* <ConversationHeader
-            activeConversation={activeConversation}
-            isConfigOpen={isConfigOpen}
-            onToggleConfig={() => setIsConfigOpen((prev) => !prev)}
-          /> */}
-
-          {isConfigOpen ? (
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <ConfigPanel
-                model={model}
-                setModel={setModel}
-                temperature={temperature}
-                setTemperature={setTemperature}
-                maxTokens={maxTokens}
-                setMaxTokens={setMaxTokens}
-                contextWindow={contextWindow}
-                setContextWindow={setContextWindow}
-                runtimeConcurrency={runtimeConcurrency}
-                setRuntimeConcurrency={setRuntimeConcurrency}
-                executionTimeout={executionTimeout}
-                setExecutionTimeout={setExecutionTimeout}
-                gpuEnabled={gpuEnabled}
-                setGpuEnabled={setGpuEnabled}
-                logLevel={logLevel}
-                setLogLevel={setLogLevel}
-                traceSample={traceSample}
-                setTraceSample={setTraceSample}
-                tools={tools}
-                handleToolChange={handleToolChange}
-                channels={channels}
-                handleChannelChange={handleChannelChange}
-                plugins={plugins}
-                handlePluginChange={handlePluginChange}
-                safety={safety}
-                handleSafetyChange={handleSafetyChange}
-                automation={automation}
-                handleAutomationChange={handleAutomationChange}
-                memory={memory}
-                handleMemoryChange={handleMemoryChange}
-                integrations={integrations}
-                handleIntegrationChange={handleIntegrationChange}
-                notifications={notifications}
-                handleNotificationChange={handleNotificationChange}
-              />
+    <CodeTabProvider>
+      <div className="text-foreground relative h-full min-h-0 overflow-hidden">
+        <TextureOverlay texture="grid" className="mix-blend-overlay" />
+        <div className="relative z-10 flex h-full min-h-0">
+          <aside className="flex w-[300px] relative flex-col items-center">
+            <DirectionAwareTabs
+              onChange={(tabId) => setActiveTabId(tabId)}
+              tabs={tabs}
+              className="mt-10 rounded-lg"
+            />
+            <div className="absolute right-3 bottom-3 left-3">
+              <Button
+                variant="ghost"
+                className="w-full glass glass-solid glass-hover justify-start gap-2 rounded-lg"
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings className="size-4" />
+                Settings
+              </Button>
             </div>
-          ) : null}
 
-          {!isConfigOpen ? (
-            <div className="relative flex min-h-0 flex-1 flex-col">
-              <ConversationThread
-                activeConversation={activeConversation}
-                onViewRun={setActiveRunId}
-              />
-              <ConversationComposer
-                composerValue={composerValue}
-                composerRows={composerRows}
-                hasRunningExecution={hasRunningExecution}
-                inputState={inputState}
-                onComposerChange={setComposerValue}
-                onSendMessage={handleSendMessage}
-                onNewConversation={handleNewConversation}
-                isModelSelected={Boolean(model)}
-                modelSelector={
-                  <ModelSelector
-                    ollamaModels={ollamaModels}
-                    selectedModel={model}
-                    selectedProvider={provider}
-                    onSelectModel={handleSelectModel}
-                    isOllamaConnected={connectionState.isConnected}
-                    isLoadingModels={isLoadingModels}
-                    pullingModel={pullingModel}
-                    pullProgress={pullProgress}
-                    onPullModel={pullModel}
-                    onDeleteModel={deleteModel}
-                    onRefresh={fetchModels}
-                    authStatus={auth.status}
-                    openaiAuthPreference={providers.openai.preferredAuthSource}
-                    anthropicAuthPreference={
-                      providers.anthropic.preferredAuthSource
-                    }
-                  />
-                }
-              />
-            </div>
-          ) : null}
-        </section>
+            <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+          </aside>
+
+          <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
+            {/* Code Tab Workspace */}
+            {isCodeTab ? (
+              <CodeTabWorkspace />
+            ) : (
+              <>
+                {/* <ConversationHeader
+                  activeConversation={activeConversation}
+                  isConfigOpen={isConfigOpen}
+                  onToggleConfig={() => setIsConfigOpen((prev) => !prev)}
+                /> */}
+
+                {isConfigOpen ? (
+                  <div className="flex-1 overflow-y-auto px-6 py-4">
+                    <ConfigPanel
+                      model={model}
+                      setModel={setModel}
+                      temperature={temperature}
+                      setTemperature={setTemperature}
+                      maxTokens={maxTokens}
+                      setMaxTokens={setMaxTokens}
+                      contextWindow={contextWindow}
+                      setContextWindow={setContextWindow}
+                      runtimeConcurrency={runtimeConcurrency}
+                      setRuntimeConcurrency={setRuntimeConcurrency}
+                      executionTimeout={executionTimeout}
+                      setExecutionTimeout={setExecutionTimeout}
+                      gpuEnabled={gpuEnabled}
+                      setGpuEnabled={setGpuEnabled}
+                      logLevel={logLevel}
+                      setLogLevel={setLogLevel}
+                      traceSample={traceSample}
+                      setTraceSample={setTraceSample}
+                      tools={tools}
+                      handleToolChange={handleToolChange}
+                      channels={channels}
+                      handleChannelChange={handleChannelChange}
+                      plugins={plugins}
+                      handlePluginChange={handlePluginChange}
+                      safety={safety}
+                      handleSafetyChange={handleSafetyChange}
+                      automation={automation}
+                      handleAutomationChange={handleAutomationChange}
+                      memory={memory}
+                      handleMemoryChange={handleMemoryChange}
+                      integrations={integrations}
+                      handleIntegrationChange={handleIntegrationChange}
+                      notifications={notifications}
+                      handleNotificationChange={handleNotificationChange}
+                    />
+                  </div>
+                ) : null}
+
+                {!isConfigOpen ? (
+                  <div className="relative flex min-h-0 flex-1 flex-col">
+                    <ConversationThread
+                      activeConversation={activeConversation}
+                      onViewRun={setActiveRunId}
+                    />
+                    <ConversationComposer
+                      composerValue={composerValue}
+                      composerRows={composerRows}
+                      hasRunningExecution={hasRunningExecution}
+                      inputState={inputState}
+                      onComposerChange={setComposerValue}
+                      onSendMessage={handleSendMessage}
+                      onNewConversation={handleNewConversation}
+                      isModelSelected={Boolean(model)}
+                      modelSelector={
+                        <ModelSelector
+                          ollamaModels={ollamaModels}
+                          selectedModel={model}
+                          selectedProvider={provider}
+                          onSelectModel={handleSelectModel}
+                          isOllamaConnected={connectionState.isConnected}
+                          isLoadingModels={isLoadingModels}
+                          pullingModel={pullingModel}
+                          pullProgress={pullProgress}
+                          onPullModel={pullModel}
+                          onDeleteModel={deleteModel}
+                          onRefresh={fetchModels}
+                          authStatus={auth.status}
+                          openaiAuthPreference={providers.openai.preferredAuthSource}
+                          anthropicAuthPreference={
+                            providers.anthropic.preferredAuthSource
+                          }
+                        />
+                      }
+                    />
+                  </div>
+                ) : null}
+              </>
+            )}
+          </section>
+        </div>
+
+        <RunDetailsModal
+          activeRun={activeRun}
+          onClose={() => setActiveRunId(null)}
+        />
       </div>
-
-      <RunDetailsModal
-        activeRun={activeRun}
-        onClose={() => setActiveRunId(null)}
-      />
-    </div>
+    </CodeTabProvider>
   );
 }

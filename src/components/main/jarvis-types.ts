@@ -55,5 +55,6 @@ export interface Conversation {
   createdAt: number;
   updatedAt: number;
   globalState?: GlobalState;
+  repositoryId?: string;
   items: Array<ChatItem>;
 }

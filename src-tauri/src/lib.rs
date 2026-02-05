@@ -11,24 +11,29 @@ use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 mod anthropic;
 mod auth;
 mod database;
+mod git;
 mod ollama;
 mod openai;
 mod providers;
+mod pty;
 
 use anthropic::{
     anthropic_cancel_stream, anthropic_chat_stream, anthropic_validate_key, AnthropicState,
 };
 use auth::{auth_check_source_availability, auth_get_status, auth_resolve_with_preference};
 use database::{
-    db_add_message, db_create_conversation, db_delete_conversation, db_get_conversation,
-    db_list_conversations, db_update_conversation, db_update_message, initialize_database,
-    DatabaseState,
+    db_add_message, db_create_conversation, db_create_repository, db_delete_conversation,
+    db_delete_repository, db_get_conversation, db_get_repository, db_list_conversations,
+    db_list_conversations_by_repo, db_list_repositories, db_update_conversation, db_update_message,
+    db_update_repository, initialize_database, DatabaseState,
 };
+use git::{git_current_branch, git_diff, git_diff_all, git_status};
 use ollama::{
     ollama_cancel_stream, ollama_chat_stream, ollama_delete_model, ollama_health_check,
     ollama_list_models, ollama_pull_model, OllamaState,
 };
 use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
+use pty::{pty_kill, pty_resize, pty_spawn, pty_write, PtyState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -38,6 +43,7 @@ pub fn run() {
         .manage(OllamaState::default())
         .manage(OpenAIState::default())
         .manage(AnthropicState::default())
+        .manage(PtyState::new())
         .invoke_handler(tauri::generate_handler![
             ollama_health_check,
             ollama_list_models,
@@ -61,6 +67,20 @@ pub fn run() {
             db_delete_conversation,
             db_add_message,
             db_update_message,
+            db_list_repositories,
+            db_get_repository,
+            db_create_repository,
+            db_update_repository,
+            db_delete_repository,
+            db_list_conversations_by_repo,
+            pty_spawn,
+            pty_write,
+            pty_resize,
+            pty_kill,
+            git_status,
+            git_diff,
+            git_diff_all,
+            git_current_branch,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
