@@ -186,6 +186,52 @@ Chat-first interface (ChatGPT/Cursor style):
 - **No transparency in colors** - Never use opacity modifiers like `bg-card/70`, `border-border/50`, `text-foreground/80`. All components must have solid colors without transparency.
 - **Badges must have background** - Never use outline-only badges. All badges must have border, background, and text colors. Example: `border-sky-500 bg-sky-600 text-sky-950`.
 
+### Theme-First Component Design
+
+**Always use theme tokens and glass classes when creating new components.** Never use arbitrary/hardcoded colors (e.g. `bg-zinc-800`, `text-gray-400`, `border-slate-600`). All styling must come from the design system.
+
+#### Theme Background & Color Tokens
+
+Use only these semantic tokens for backgrounds, text, and borders:
+
+- **Backgrounds**: `bg-background`, `bg-card`, `bg-popover`, `bg-primary`, `bg-secondary`, `bg-muted`, `bg-accent`, `bg-destructive`, `bg-input`, `bg-sidebar`
+- **Text**: `text-foreground`, `text-card-foreground`, `text-muted-foreground`, `text-primary-foreground`, `text-secondary-foreground`, `text-accent-foreground`, `text-popover-foreground`, `text-destructive-foreground`, `text-sidebar-foreground`
+- **Borders**: `border-border`, `border-card`, `border-input`, `border-ring`, `border-primary`, `border-secondary`, `border-destructive`, `border-sidebar-border`
+
+#### Glass Classes
+
+The project uses a glass-morphism design system. Use these classes for surfaces and interactive elements:
+
+| Class | Use for |
+|---|---|
+| `glass` | Default surface (cards, panels, containers) |
+| `glass-subtle` | Minimal/transparent surfaces (inline elements, backgrounds) |
+| `glass-solid` | Opaque surfaces (modals, dropdowns, popovers) |
+| `glass-hover` | Any interactive element that needs hover feedback |
+| `glass-selected` | Active/selected state (selected list item, active tab) |
+| `glass-selected-hover` | Selected items that are also hoverable |
+
+**Typical combinations:**
+
+```
+<!-- Clickable card -->
+<div class="glass glass-hover rounded-lg p-3">
+
+<!-- List item with selection -->
+<div class="glass-subtle glass-hover rounded-md p-2"        <!-- unselected -->
+     class="glass-selected glass-selected-hover rounded-md p-2"> <!-- selected -->
+
+<!-- Static container -->
+<div class="glass rounded-lg p-4">
+```
+
+#### Icons in Components
+
+- **Put icons inside buttons** — icons should accompany actions (`<Button><Icon /> Label</Button>`)
+- **Do NOT add icons to every item in a list** — if every row would show the same icon, it is visual noise and should be omitted
+- **Icons are acceptable in lists** only when they differentiate between item types (e.g. file type icons, status icons)
+- **Do NOT use decorative icons** that don't convey additional information
+
 ## Key Type Definitions
 
 - Agent types: `src/components/agents/types.ts`

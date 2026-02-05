@@ -276,7 +276,7 @@ export function ConversationSidebar({
                   onClick={() => handleSelectConversation(conversation.id)}
                   className={cn(
                     "w-full rounded-lg p-2 pr-8 text-left transition-colors",
-                    isActive ? "glass-selected" : "glass-hover",
+                    isActive ? "glass-selected glass" : "glass-hover",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">

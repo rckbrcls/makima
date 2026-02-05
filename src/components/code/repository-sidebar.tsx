@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderGit2,
+  FolderPlus,
   GitBranch,
   MessageSquare,
   MoreHorizontal,
@@ -103,7 +104,7 @@ export function RepositorySidebar({
             className="size-7"
             onClick={onAddRepository}
           >
-            <Plus className="size-4" />
+            <FolderPlus className="size-4" />
           </Button>
         </div>
         <div className="border-muted relative flex h-9 items-center border-b">
@@ -118,7 +119,7 @@ export function RepositorySidebar({
       </div>
 
       {/* Repository list */}
-      <div className="mt-3 flex-1 overflow-y-auto pb-4">
+      <div className="mt-3 flex-1 overflow-y-auto pb-4 flex flex-col gap-1">
         <AnimatePresence initial={false}>
           {filteredRepos.map((repo) => {
             const isExpanded = expandedRepos.has(repo.id);
@@ -137,31 +138,19 @@ export function RepositorySidebar({
                 {/* Repository row */}
                 <div
                   className={cn(
-                    "flex items-center gap-1 rounded-lg p-2 transition-colors",
-                    isActive ? "glass-selected" : "glass-hover",
+                    "flex items-center gap-1 rounded-xl py-2 px-4 transition-colors ",
+                    isActive ? "glass-selected glass" : "glass-hover",
                   )}
                 >
-                  <button
-                    className="flex items-center gap-1 text-zinc-400 hover:text-zinc-200"
-                    onClick={() => toggleRepo(repo.id)}
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="size-4" />
-                    ) : (
-                      <ChevronRight className="size-4" />
-                    )}
-                  </button>
-
                   <button
                     className="flex min-w-0 flex-1 items-center gap-2"
                     onClick={() => handleSelectRepo(repo.id)}
                   >
-                    <FolderGit2 className="size-4 flex-none text-amber-400" />
                     <div className="min-w-0 flex-1 text-left">
                       <p className="text-foreground truncate text-sm font-medium">
                         {repo.name}
                       </p>
-                      <p className="flex items-center gap-1 text-[10px] text-zinc-500">
+                      <p className="flex items-center gap-1 text-[10px]">
                         <GitBranch className="size-3" />
                         {repo.branch}
                       </p>
@@ -206,24 +195,21 @@ export function RepositorySidebar({
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
-                      className="ml-6 border-l border-zinc-800 pl-2"
+                      className="ml-4 mt-1 border-l border-zinc-800 pl-2 gap-1 flex flex-col"
                     >
                       {repoConversations.map((conv) => (
                         <button
                           key={conv.id}
                           className={cn(
-                            "flex w-full items-center gap-2 rounded-md p-1.5 text-left transition-colors",
+                            "flex w-full items-center gap-2 rounded-md p-2 text-left transition-colors",
                             conv.id === activeConversationId
-                              ? "bg-zinc-800"
-                              : "hover:bg-zinc-800/50",
+                              ? "glass glass-selected"
+                              : "glass-hover",
                           )}
                           onClick={() => onSelectConversation(conv.id)}
                         >
-                          <MessageSquare className="size-3 flex-none text-zinc-500" />
-                          <span className="truncate text-xs text-zinc-300">
-                            {conv.title}
-                          </span>
-                          <span className="ml-auto text-[10px] text-zinc-600">
+                          <span className="truncate text-xs">{conv.title}</span>
+                          <span className="ml-auto text-[10px]">
                             {formatRelativeTime(conv.updatedAt)}
                           </span>
                         </button>
