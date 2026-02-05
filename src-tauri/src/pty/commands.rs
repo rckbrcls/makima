@@ -2,9 +2,22 @@ use crate::pty::state::{PtyInstance, PtyState};
 use crate::pty::types::{PtyExitPayload, PtyOutputPayload, PtySession};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use std::io::Read;
+use std::sync::mpsc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Mutex;
+
+/// Configuration for PTY output batching
+const BATCH_INTERVAL_MS: u64 = 16; // ~60fps, smooth for UI
+const MAX_BATCH_SIZE: usize = 32768; // 32KB max before forced emit
+const READ_BUFFER_SIZE: usize = 8192; // 8KB read buffer
+
+enum PtyReaderMessage {
+    Data(String),
+    Eof,
+    Error(String),
+}
 
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -69,17 +82,76 @@ pub async fn pty_spawn(
 
     state.insert(session_id.clone(), instance);
 
-    // Spawn a task to read output and emit events
+    // Channel for communication between reader and batcher threads
+    let (tx, rx) = mpsc::channel::<PtyReaderMessage>();
+
+    // Spawn reader thread - reads from PTY and sends to channel
+    let session_id_for_reader = session_id.clone();
+    std::thread::spawn(move || {
+        let mut buf = [0u8; READ_BUFFER_SIZE];
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => {
+                    let _ = tx.send(PtyReaderMessage::Eof);
+                    break;
+                }
+                Ok(n) => {
+                    let data = String::from_utf8_lossy(&buf[..n]).to_string();
+                    if tx.send(PtyReaderMessage::Data(data)).is_err() {
+                        break; // Receiver dropped
+                    }
+                }
+                Err(e) => {
+                    log::error!("PTY read error for {}: {}", session_id_for_reader, e);
+                    let _ = tx.send(PtyReaderMessage::Error(e.to_string()));
+                    break;
+                }
+            }
+        }
+    });
+
+    // Spawn batcher thread - batches data and emits events
     let session_id_clone = session_id.clone();
     let app_clone = app.clone();
     let state_clone = state.sessions_clone();
 
-    tokio::task::spawn_blocking(move || {
-        let mut buf = [0u8; 4096];
+    std::thread::spawn(move || {
+        let mut accumulated = String::new();
+        let mut last_emit = Instant::now();
+        let batch_interval = Duration::from_millis(BATCH_INTERVAL_MS);
+
         loop {
-            match reader.read(&mut buf) {
-                Ok(0) => {
-                    // EOF - process exited
+            // Use recv_timeout to periodically flush even if no new data
+            match rx.recv_timeout(batch_interval) {
+                Ok(PtyReaderMessage::Data(data)) => {
+                    accumulated.push_str(&data);
+
+                    let now = Instant::now();
+                    let time_elapsed = now.duration_since(last_emit) >= batch_interval;
+                    let buffer_full = accumulated.len() >= MAX_BATCH_SIZE;
+
+                    if (time_elapsed || buffer_full) && !accumulated.is_empty() {
+                        let _ = app_clone.emit(
+                            "pty:output",
+                            PtyOutputPayload {
+                                session_id: session_id_clone.clone(),
+                                data: std::mem::take(&mut accumulated),
+                            },
+                        );
+                        last_emit = now;
+                    }
+                }
+                Ok(PtyReaderMessage::Eof) => {
+                    // Flush remaining data
+                    if !accumulated.is_empty() {
+                        let _ = app_clone.emit(
+                            "pty:output",
+                            PtyOutputPayload {
+                                session_id: session_id_clone.clone(),
+                                data: std::mem::take(&mut accumulated),
+                            },
+                        );
+                    }
                     let _ = app_clone.emit(
                         "pty:exit",
                         PtyExitPayload {
@@ -90,18 +162,51 @@ pub async fn pty_spawn(
                     state_clone.remove(&session_id_clone);
                     break;
                 }
-                Ok(n) => {
-                    let data = String::from_utf8_lossy(&buf[..n]).to_string();
+                Ok(PtyReaderMessage::Error(_)) => {
+                    // Flush remaining data
+                    if !accumulated.is_empty() {
+                        let _ = app_clone.emit(
+                            "pty:output",
+                            PtyOutputPayload {
+                                session_id: session_id_clone.clone(),
+                                data: std::mem::take(&mut accumulated),
+                            },
+                        );
+                    }
                     let _ = app_clone.emit(
-                        "pty:output",
-                        PtyOutputPayload {
+                        "pty:exit",
+                        PtyExitPayload {
                             session_id: session_id_clone.clone(),
-                            data,
+                            exit_code: Some(-1),
                         },
                     );
+                    state_clone.remove(&session_id_clone);
+                    break;
                 }
-                Err(e) => {
-                    log::error!("PTY read error: {}", e);
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    // Timeout - flush any accumulated data
+                    if !accumulated.is_empty() {
+                        let _ = app_clone.emit(
+                            "pty:output",
+                            PtyOutputPayload {
+                                session_id: session_id_clone.clone(),
+                                data: std::mem::take(&mut accumulated),
+                            },
+                        );
+                        last_emit = Instant::now();
+                    }
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    // Reader thread died unexpectedly
+                    if !accumulated.is_empty() {
+                        let _ = app_clone.emit(
+                            "pty:output",
+                            PtyOutputPayload {
+                                session_id: session_id_clone.clone(),
+                                data: std::mem::take(&mut accumulated),
+                            },
+                        );
+                    }
                     let _ = app_clone.emit(
                         "pty:exit",
                         PtyExitPayload {

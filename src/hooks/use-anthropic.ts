@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import {  listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type {UnlistenFn} from "@tauri-apps/api/event";
 import type {
   AnthropicStreamChunkEvent,
   AnthropicStreamErrorEvent,
@@ -11,7 +12,7 @@ import type {
 export interface AnthropicChatStreamOptions {
   sessionId: string;
   model: string;
-  messages: ChatMessage[];
+  messages: Array<ChatMessage>;
   apiKey: string;
   system?: string;
   temperature?: number;

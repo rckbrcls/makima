@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import { ArrowUp, Folder, Mic, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 import type { InputState } from "@/components/main/jarvis-types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

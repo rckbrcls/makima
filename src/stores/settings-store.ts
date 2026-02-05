@@ -151,7 +151,7 @@ function migrateSettings(
 }
 
 // Check if running in browser environment
-const isBrowser = typeof window !== 'undefined'
+const isBrowser = typeof window !== "undefined";
 
 // Custom storage adapter for Tauri Store
 const tauriStorage = {
@@ -160,7 +160,7 @@ const tauriStorage = {
   getItem: async (name: string): Promise<string | null> => {
     // Skip Tauri APIs during SSR
     if (!isBrowser) {
-      return null
+      return null;
     }
 
     try {
@@ -183,7 +183,7 @@ const tauriStorage = {
   setItem: async (name: string, value: string): Promise<void> => {
     // Skip Tauri APIs during SSR
     if (!isBrowser) {
-      return
+      return;
     }
 
     try {
@@ -206,7 +206,7 @@ const tauriStorage = {
   removeItem: async (name: string): Promise<void> => {
     // Skip Tauri APIs during SSR
     if (!isBrowser) {
-      return
+      return;
     }
 
     try {

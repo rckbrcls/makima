@@ -1,25 +1,29 @@
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
-import { TerminalCard } from './terminal-card'
-import { GitChangesCard } from './git-changes-card'
-import { ConversationThread } from '@/components/main/conversation-thread'
-import { ConversationComposer } from '@/components/main/conversation-composer'
-import type { Conversation } from '@/components/main/jarvis-types'
-import { cn } from '@/lib/utils'
+import { TerminalCard } from "./terminal-card";
+import { GitChangesCard } from "./git-changes-card";
+import type { Conversation } from "@/components/main/jarvis-types";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { ConversationThread } from "@/components/main/conversation-thread";
+import { ConversationComposer } from "@/components/main/conversation-composer";
+import { cn } from "@/lib/utils";
 
 interface CodeWorkspaceProps {
-  repoPath?: string
-  conversation?: Conversation
-  composerValue: string
-  composerRows: number
-  hasRunningExecution: boolean
-  inputState: 'idle' | 'thinking' | 'executing'
-  isModelSelected: boolean
-  onComposerChange: (value: string) => void
-  onSendMessage: () => void
-  onNewConversation: () => void
-  onViewRun: (runId: string) => void
-  modelSelector: React.ReactNode
-  className?: string
+  repoPath?: string;
+  conversation?: Conversation;
+  composerValue: string;
+  composerRows: number;
+  hasRunningExecution: boolean;
+  inputState: "idle" | "thinking" | "executing";
+  isModelSelected: boolean;
+  onComposerChange: (value: string) => void;
+  onSendMessage: () => void;
+  onNewConversation: () => void;
+  onViewRun: (runId: string) => void;
+  modelSelector: React.ReactNode;
+  className?: string;
 }
 
 export function CodeWorkspace({
@@ -38,7 +42,7 @@ export function CodeWorkspace({
   className,
 }: CodeWorkspaceProps) {
   return (
-    <div className={cn('flex h-full flex-col relative', className)}>
+    <div className={cn("relative flex h-full flex-col", className)}>
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left side: Chat + Terminal */}
         <ResizablePanel defaultSize={55} minSize={30}>
@@ -77,9 +81,12 @@ export function CodeWorkspace({
 
         {/* Right side: Git Changes */}
         <ResizablePanel defaultSize={45} minSize={25}>
-          <GitChangesCard repoPath={repoPath} className="h-full border-l border-zinc-800" />
+          <GitChangesCard
+            repoPath={repoPath}
+            className="h-full border-l border-zinc-800"
+          />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
-  )
+  );
 }

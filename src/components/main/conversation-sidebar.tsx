@@ -54,7 +54,6 @@ export function ConversationSidebar({
   onExportConversation,
   onArchiveConversation,
 }: ConversationSidebarProps) {
-
   // Only show conversations that have messages
   const visibleConversations = useMemo(
     () => conversations.filter((c) => c.items.length > 0),
@@ -193,8 +192,6 @@ export function ConversationSidebar({
           })}
         </AnimatePresence>
       </div>
-
-
     </div>
   );
 }

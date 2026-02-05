@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CheckIcon,
   CircleIcon,
@@ -6,6 +6,8 @@ import {
   Loader2Icon,
   XIcon,
 } from "lucide-react";
+import type { Provider } from "@/lib/provider-types";
+import type { AuthSourcePreference } from "@/lib/auth-types";
 import {
   Dialog,
   DialogContent,
@@ -20,9 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useChatProvider } from "@/hooks/use-chat-provider";
-import type { Provider } from "@/lib/provider-types";
-import type { AuthSourcePreference } from "@/lib/auth-types";
-import { getPreferenceLabel, getPreferenceDescription } from "@/lib/auth-types";
+import { getPreferenceDescription, getPreferenceLabel } from "@/lib/auth-types";
 import { cn } from "@/lib/utils";
 
 interface APIKeyDialogProps {

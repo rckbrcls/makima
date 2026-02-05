@@ -12,11 +12,12 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { APIKeyDialog } from "./api-key-dialog";
 import type { OllamaModelInfo } from "@/lib/ollama-types";
-import { POPULAR_MODELS } from "@/lib/ollama-types";
 import type { ModelInfo, Provider } from "@/lib/provider-types";
-import { OPENAI_MODELS, ANTHROPIC_MODELS } from "@/lib/provider-types";
-import type { AuthStatus, AuthSourcePreference } from "@/lib/auth-types";
+import type { AuthSourcePreference, AuthStatus } from "@/lib/auth-types";
+import { POPULAR_MODELS } from "@/lib/ollama-types";
+import { ANTHROPIC_MODELS, OPENAI_MODELS } from "@/lib/provider-types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,10 +36,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { APIKeyDialog } from "./api-key-dialog";
 
 interface ModelSelectorProps {
-  ollamaModels: OllamaModelInfo[];
+  ollamaModels: Array<OllamaModelInfo>;
   selectedModel: string;
   selectedProvider: Provider;
   onSelectModel: (model: string, provider: Provider) => void;
@@ -531,7 +531,7 @@ export function ModelSelector({
 
 interface ProviderCardProps {
   name: string;
-  models: ModelInfo[];
+  models: Array<ModelInfo>;
   isConfigured: boolean;
   onConfigure: () => void;
   selectedModel?: string;

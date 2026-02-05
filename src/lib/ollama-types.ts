@@ -27,7 +27,7 @@ export interface StreamErrorEvent {
 export interface ChatStreamOptions {
   sessionId: string;
   model: string;
-  messages: OllamaMessage[];
+  messages: Array<OllamaMessage>;
   temperature?: number;
   maxTokens?: number;
   onChunk: (content: string, done: boolean) => void;
@@ -52,10 +52,10 @@ export interface AvailableModel {
   name: string;
   description: string;
   size: string;
-  tags: string[];
+  tags: Array<string>;
 }
 
-export const POPULAR_MODELS: AvailableModel[] = [
+export const POPULAR_MODELS: Array<AvailableModel> = [
   {
     name: "llama3.2",
     description: "Meta's latest lightweight model, great for general tasks",

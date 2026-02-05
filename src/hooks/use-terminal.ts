@@ -1,161 +1,168 @@
-import { invoke } from '@tauri-apps/api/core'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  PtyExitPayload,
+  PtyOutputPayload,
   PtySession,
   PtySessionDb,
-  PtyOutputPayload,
-  PtyExitPayload,
-} from '@/lib/code-types'
-import { mapPtySession } from '@/lib/code-types'
+} from "@/lib/code-types";
+import { mapPtySession } from "@/lib/code-types";
 
 export interface TerminalOptions {
-  cwd?: string
-  cols?: number
-  rows?: number
-  onOutput?: (data: string) => void
-  onExit?: (exitCode?: number) => void
+  cwd?: string;
+  cols?: number;
+  rows?: number;
+  onOutput?: (data: string) => void;
+  onExit?: (exitCode?: number) => void;
 }
 
 export function useTerminal(options: TerminalOptions = {}) {
-  const [session, setSession] = useState<PtySession | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const unlistenOutputRef = useRef<UnlistenFn | null>(null)
-  const unlistenExitRef = useRef<UnlistenFn | null>(null)
-  const optionsRef = useRef(options)
+  const [session, setSession] = useState<PtySession | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const unlistenOutputRef = useRef<UnlistenFn | null>(null);
+  const unlistenExitRef = useRef<UnlistenFn | null>(null);
+  const optionsRef = useRef(options);
 
   // Keep options ref updated
   useEffect(() => {
-    optionsRef.current = options
-  }, [options])
+    optionsRef.current = options;
+  }, [options]);
 
   const spawn = useCallback(
-    async (cwd?: string, cols?: number, rows?: number): Promise<PtySession | null> => {
+    async (
+      cwd?: string,
+      cols?: number,
+      rows?: number,
+    ): Promise<PtySession | null> => {
       // Clean up previous session if exists
-      unlistenOutputRef.current?.()
-      unlistenExitRef.current?.()
+      unlistenOutputRef.current?.();
+      unlistenExitRef.current?.();
 
-      setError(null)
+      setError(null);
 
       // Generate session ID on frontend
-      const sessionId = `pty-${Date.now()}`
+      const sessionId = `pty-${Date.now()}`;
 
       try {
         // Set up event listeners BEFORE spawning to avoid race condition
         unlistenOutputRef.current = await listen<PtyOutputPayload>(
-          'pty:output',
+          "pty:output",
           (event) => {
             if (event.payload.sessionId === sessionId) {
-              optionsRef.current.onOutput?.(event.payload.data)
+              optionsRef.current.onOutput?.(event.payload.data);
             }
           },
-        )
+        );
 
         unlistenExitRef.current = await listen<PtyExitPayload>(
-          'pty:exit',
+          "pty:exit",
           (event) => {
             if (event.payload.sessionId === sessionId) {
-              setIsConnected(false)
-              setSession(null)
-              optionsRef.current.onExit?.(event.payload.exitCode ?? undefined)
+              setIsConnected(false);
+              setSession(null);
+              optionsRef.current.onExit?.(event.payload.exitCode ?? undefined);
             }
           },
-        )
+        );
 
         // Now spawn the PTY with the known session ID
-        const result = await invoke<PtySessionDb>('pty_spawn', {
+        const result = await invoke<PtySessionDb>("pty_spawn", {
           sessionId: sessionId,
           cwd: cwd ?? optionsRef.current.cwd,
           cols: cols ?? optionsRef.current.cols ?? 80,
           rows: rows ?? optionsRef.current.rows ?? 24,
-        })
-        const ptySession = mapPtySession(result)
-        setSession(ptySession)
-        setIsConnected(true)
+        });
+        const ptySession = mapPtySession(result);
+        setSession(ptySession);
+        setIsConnected(true);
 
-        return ptySession
+        return ptySession;
       } catch (err) {
         // Clean up listeners on error
-        unlistenOutputRef.current?.()
-        unlistenExitRef.current?.()
-        unlistenOutputRef.current = null
-        unlistenExitRef.current = null
-        setError(err instanceof Error ? err.message : String(err))
-        return null
+        unlistenOutputRef.current?.();
+        unlistenExitRef.current?.();
+        unlistenOutputRef.current = null;
+        unlistenExitRef.current = null;
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
       }
     },
     [],
-  )
+  );
 
   const write = useCallback(
     async (data: string): Promise<boolean> => {
       if (!session) {
-        return false
+        return false;
       }
       try {
-        await invoke('pty_write', {
+        await invoke("pty_write", {
           sessionId: session.sessionId,
           data,
-        })
-        return true
+        });
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
       }
     },
     [session],
-  )
+  );
 
   const resize = useCallback(
     async (cols: number, rows: number): Promise<boolean> => {
-      if (!session) return false
+      if (!session) return false;
       try {
-        await invoke('pty_resize', {
+        await invoke("pty_resize", {
           sessionId: session.sessionId,
           cols,
           rows,
-        })
-        return true
+        });
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
       }
     },
     [session],
-  )
+  );
 
   // Keep session ref for cleanup
-  const sessionRef = useRef<PtySession | null>(null)
+  const sessionRef = useRef<PtySession | null>(null);
   useEffect(() => {
-    sessionRef.current = session
-  }, [session])
+    sessionRef.current = session;
+  }, [session]);
 
   const kill = useCallback(async (): Promise<boolean> => {
-    if (!session) return false
+    if (!session) return false;
     try {
-      await invoke('pty_kill', {
+      await invoke("pty_kill", {
         sessionId: session.sessionId,
-      })
-      setSession(null)
-      setIsConnected(false)
-      return true
+      });
+      setSession(null);
+      setIsConnected(false);
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      return false
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
     }
-  }, [session])
+  }, [session]);
 
   // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      unlistenOutputRef.current?.()
-      unlistenExitRef.current?.()
+      unlistenOutputRef.current?.();
+      unlistenExitRef.current?.();
       if (sessionRef.current) {
-        invoke('pty_kill', { sessionId: sessionRef.current.sessionId }).catch(() => {})
+        invoke("pty_kill", { sessionId: sessionRef.current.sessionId }).catch(
+          () => {},
+        );
       }
-    }
-  }, []) // Empty deps - only runs on unmount
+    };
+  }, []); // Empty deps - only runs on unmount
 
   return {
     session,
@@ -165,5 +172,5 @@ export function useTerminal(options: TerminalOptions = {}) {
     write,
     resize,
     kill,
-  }
+  };
 }

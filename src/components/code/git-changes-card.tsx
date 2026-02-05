@@ -1,44 +1,46 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
   File,
-  FilePlus,
-  FileMinus,
   FileEdit,
-  RefreshCw,
+  FileMinus,
+  FilePlus,
   GitBranch,
-} from 'lucide-react'
-import { useGitStatus } from '@/hooks/use-git-status'
-import type { FileDiff, GitFileChange } from '@/lib/code-types'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+  RefreshCw,
+} from "lucide-react";
+import type { FileDiff, GitFileChange } from "@/lib/code-types";
+import { useGitStatus } from "@/hooks/use-git-status";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface GitChangesCardProps {
-  repoPath?: string
-  className?: string
+  repoPath?: string;
+  className?: string;
 }
 
-function FileIcon({ status }: { status: GitFileChange['status'] }) {
+function FileIcon({ status }: { status: GitFileChange["status"] }) {
   switch (status) {
-    case 'added':
-      return <FilePlus className="size-4 text-emerald-400" />
-    case 'deleted':
-      return <FileMinus className="size-4 text-red-400" />
-    case 'modified':
-      return <FileEdit className="size-4 text-amber-400" />
-    case 'renamed':
-      return <File className="size-4 text-blue-400" />
+    case "added":
+      return <FilePlus className="size-4 text-emerald-400" />;
+    case "deleted":
+      return <FileMinus className="size-4 text-red-400" />;
+    case "modified":
+      return <FileEdit className="size-4 text-amber-400" />;
+    case "renamed":
+      return <File className="size-4 text-blue-400" />;
     default:
-      return <File className="size-4 text-zinc-400" />
+      return <File className="size-4 text-zinc-400" />;
   }
 }
 
 function DiffViewer({ diff }: { diff: FileDiff }) {
   if (!diff.lines.length) {
     return (
-      <div className="px-4 py-2 text-xs text-zinc-500">No changes to display</div>
-    )
+      <div className="px-4 py-2 text-xs text-zinc-500">
+        No changes to display
+      </div>
+    );
   }
 
   return (
@@ -47,24 +49,24 @@ function DiffViewer({ diff }: { diff: FileDiff }) {
         <div
           key={idx}
           className={cn(
-            'flex min-w-max whitespace-pre px-2 py-0.5',
-            line.kind === 'add' && 'bg-emerald-950 text-emerald-300',
-            line.kind === 'del' && 'bg-red-950 text-red-300',
-            line.kind === 'hunk' && 'bg-blue-950 text-blue-300',
-            line.kind === 'context' && 'text-zinc-400',
+            "flex min-w-max px-2 py-0.5 whitespace-pre",
+            line.kind === "add" && "bg-emerald-950 text-emerald-300",
+            line.kind === "del" && "bg-red-950 text-red-300",
+            line.kind === "hunk" && "bg-blue-950 text-blue-300",
+            line.kind === "context" && "text-zinc-400",
           )}
         >
-          <span className="w-8 select-none text-right text-zinc-600">
-            {line.oldLineno ?? ''}
+          <span className="w-8 text-right text-zinc-600 select-none">
+            {line.oldLineno ?? ""}
           </span>
-          <span className="w-8 select-none text-right text-zinc-600">
-            {line.newLineno ?? ''}
+          <span className="w-8 text-right text-zinc-600 select-none">
+            {line.newLineno ?? ""}
           </span>
           <span className="ml-2 flex-1">{line.content}</span>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
@@ -72,77 +74,79 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
     path: repoPath,
     pollInterval: 5000,
     autoStart: Boolean(repoPath),
-  })
+  });
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['staged', 'unstaged', 'untracked']),
-  )
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [selectedDiff, setSelectedDiff] = useState<FileDiff | null>(null)
-  const [isLoadingDiff, setIsLoadingDiff] = useState(false)
+    new Set(["staged", "unstaged", "untracked"]),
+  );
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedDiff, setSelectedDiff] = useState<FileDiff | null>(null);
+  const [isLoadingDiff, setIsLoadingDiff] = useState(false);
 
   const toggleSection = useCallback((section: string) => {
     setExpandedSections((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(section)) {
-        next.delete(section)
+        next.delete(section);
       } else {
-        next.add(section)
+        next.add(section);
       }
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
   const handleFileClick = useCallback(
     async (filePath: string) => {
       if (selectedFile === filePath) {
-        setSelectedFile(null)
-        setSelectedDiff(null)
-        return
+        setSelectedFile(null);
+        setSelectedDiff(null);
+        return;
       }
 
-      setSelectedFile(filePath)
-      setIsLoadingDiff(true)
-      const diff = await fetchDiff(filePath)
-      setSelectedDiff(diff)
-      setIsLoadingDiff(false)
+      setSelectedFile(filePath);
+      setIsLoadingDiff(true);
+      const diff = await fetchDiff(filePath);
+      setSelectedDiff(diff);
+      setIsLoadingDiff(false);
     },
     [selectedFile, fetchDiff],
-  )
+  );
 
   const handleRefresh = useCallback(() => {
-    fetchStatus()
-  }, [fetchStatus])
+    fetchStatus();
+  }, [fetchStatus]);
 
   // Reset state when repoPath changes
   useEffect(() => {
-    setSelectedFile(null)
-    setSelectedDiff(null)
-  }, [repoPath])
+    setSelectedFile(null);
+    setSelectedDiff(null);
+  }, [repoPath]);
 
   if (!repoPath) {
     return (
       <div
         className={cn(
-          'flex flex-col items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 p-8',
+          "flex flex-col items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 p-8",
           className,
         )}
       >
         <GitBranch className="mb-2 size-8 text-zinc-600" />
-        <p className="text-sm text-zinc-500">Select a repository to view changes</p>
+        <p className="text-sm text-zinc-500">
+          Select a repository to view changes
+        </p>
       </div>
-    )
+    );
   }
 
   const totalChanges =
     (status?.staged.length ?? 0) +
     (status?.unstaged.length ?? 0) +
-    (status?.untracked.length ?? 0)
+    (status?.untracked.length ?? 0);
 
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950',
+        "flex flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950",
         className,
       )}
     >
@@ -151,7 +155,7 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
         <div className="flex items-center gap-2">
           <GitBranch className="size-4 text-zinc-400" />
           <span className="text-xs text-zinc-400">
-            {status?.branch ?? 'Loading...'}
+            {status?.branch ?? "Loading..."}
           </span>
           {totalChanges > 0 && (
             <span className="rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-medium text-amber-950">
@@ -166,7 +170,7 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
           onClick={handleRefresh}
           disabled={isLoading}
         >
-          <RefreshCw className={cn('size-3', isLoading && 'animate-spin')} />
+          <RefreshCw className={cn("size-3", isLoading && "animate-spin")} />
         </Button>
       </div>
 
@@ -186,28 +190,30 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
             <div>
               <button
                 className="flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-emerald-400 hover:bg-zinc-900"
-                onClick={() => toggleSection('staged')}
+                onClick={() => toggleSection("staged")}
               >
-                {expandedSections.has('staged') ? (
+                {expandedSections.has("staged") ? (
                   <ChevronDown className="size-3" />
                 ) : (
                   <ChevronRight className="size-3" />
                 )}
                 Staged ({status.staged.length})
               </button>
-              {expandedSections.has('staged') && (
+              {expandedSections.has("staged") && (
                 <div className="pb-1">
                   {status.staged.map((file) => (
                     <button
                       key={file.path}
                       className={cn(
-                        'flex w-full items-center gap-2 px-4 py-1 text-xs hover:bg-zinc-900',
-                        selectedFile === file.path && 'bg-zinc-800',
+                        "flex w-full items-center gap-2 px-4 py-1 text-xs hover:bg-zinc-900",
+                        selectedFile === file.path && "bg-zinc-800",
                       )}
                       onClick={() => handleFileClick(file.path)}
                     >
                       <FileIcon status={file.status} />
-                      <span className="truncate text-zinc-300">{file.path}</span>
+                      <span className="truncate text-zinc-300">
+                        {file.path}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -220,28 +226,30 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
             <div>
               <button
                 className="flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-amber-400 hover:bg-zinc-900"
-                onClick={() => toggleSection('unstaged')}
+                onClick={() => toggleSection("unstaged")}
               >
-                {expandedSections.has('unstaged') ? (
+                {expandedSections.has("unstaged") ? (
                   <ChevronDown className="size-3" />
                 ) : (
                   <ChevronRight className="size-3" />
                 )}
                 Changes ({status.unstaged.length})
               </button>
-              {expandedSections.has('unstaged') && (
+              {expandedSections.has("unstaged") && (
                 <div className="pb-1">
                   {status.unstaged.map((file) => (
                     <button
                       key={file.path}
                       className={cn(
-                        'flex w-full items-center gap-2 px-4 py-1 text-xs hover:bg-zinc-900',
-                        selectedFile === file.path && 'bg-zinc-800',
+                        "flex w-full items-center gap-2 px-4 py-1 text-xs hover:bg-zinc-900",
+                        selectedFile === file.path && "bg-zinc-800",
                       )}
                       onClick={() => handleFileClick(file.path)}
                     >
                       <FileIcon status={file.status} />
-                      <span className="truncate text-zinc-300">{file.path}</span>
+                      <span className="truncate text-zinc-300">
+                        {file.path}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -254,23 +262,23 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
             <div>
               <button
                 className="flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-zinc-400 hover:bg-zinc-900"
-                onClick={() => toggleSection('untracked')}
+                onClick={() => toggleSection("untracked")}
               >
-                {expandedSections.has('untracked') ? (
+                {expandedSections.has("untracked") ? (
                   <ChevronDown className="size-3" />
                 ) : (
                   <ChevronRight className="size-3" />
                 )}
                 Untracked ({status.untracked.length})
               </button>
-              {expandedSections.has('untracked') && (
+              {expandedSections.has("untracked") && (
                 <div className="pb-1">
                   {status.untracked.map((filePath) => (
                     <button
                       key={filePath}
                       className={cn(
-                        'flex w-full items-center gap-2 px-4 py-1 text-xs hover:bg-zinc-900',
-                        selectedFile === filePath && 'bg-zinc-800',
+                        "flex w-full items-center gap-2 px-4 py-1 text-xs hover:bg-zinc-900",
+                        selectedFile === filePath && "bg-zinc-800",
                       )}
                       onClick={() => handleFileClick(filePath)}
                     >
@@ -301,11 +309,13 @@ export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
             <DiffViewer diff={selectedDiff} />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <p className="text-xs text-zinc-500">Select a file to view changes</p>
+              <p className="text-xs text-zinc-500">
+                Select a file to view changes
+              </p>
             </div>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }

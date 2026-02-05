@@ -17,7 +17,7 @@ export interface ChatMessage {
 export interface ChatStreamOptions {
   sessionId: string;
   model: string;
-  messages: ChatMessage[];
+  messages: Array<ChatMessage>;
   temperature?: number;
   maxTokens?: number;
   onChunk: (content: string, done: boolean) => void;
@@ -65,7 +65,7 @@ export interface AnthropicStreamErrorEvent {
   error: string;
 }
 
-export const OPENAI_MODELS: ModelInfo[] = [
+export const OPENAI_MODELS: Array<ModelInfo> = [
   {
     id: "gpt-4o",
     name: "GPT-4o",
@@ -124,7 +124,7 @@ export const OPENAI_MODELS: ModelInfo[] = [
   },
 ];
 
-export const ANTHROPIC_MODELS: ModelInfo[] = [
+export const ANTHROPIC_MODELS: Array<ModelInfo> = [
   {
     id: "claude-opus-4-20250514",
     name: "Claude Opus 4",
@@ -167,7 +167,7 @@ export const ANTHROPIC_MODELS: ModelInfo[] = [
   },
 ];
 
-export function getModelsByProvider(provider: Provider): ModelInfo[] {
+export function getModelsByProvider(provider: Provider): Array<ModelInfo> {
   switch (provider) {
     case "openai":
       return OPENAI_MODELS;

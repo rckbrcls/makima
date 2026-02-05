@@ -45,7 +45,7 @@ interface DbConversation {
   created_at: number;
   updated_at: number;
   repository_id: string | null;
-  messages: DbMessage[];
+  messages: Array<DbMessage>;
 }
 
 function dbMessageToChatItem(msg: DbMessage): ChatItem {
@@ -96,14 +96,14 @@ function dbSummaryToConversation(summary: DbConversationSummary): Conversation {
 }
 
 export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Array<Conversation>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadedConversationIds = useRef<Set<string>>(new Set());
 
   const loadConversationList = useCallback(async () => {
     try {
-      const summaries = await invoke<DbConversationSummary[]>(
+      const summaries = await invoke<Array<DbConversationSummary>>(
         "db_list_conversations",
       );
       setConversations((prev) => {
@@ -304,7 +304,7 @@ export function useConversations() {
   );
 
   const setConversationsLocal = useCallback(
-    (updater: React.SetStateAction<Conversation[]>) => {
+    (updater: React.SetStateAction<Array<Conversation>>) => {
       setConversations(updater);
     },
     [],

@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useState } from "react";
 import type {
-  AuthStatus,
   AuthSourceAvailability,
+  AuthStatus,
   ResolvedCredentials,
 } from "@/lib/auth-types";
 import { useSettingsStore } from "@/stores/settings-store";

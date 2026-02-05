@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import {  listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type {UnlistenFn} from "@tauri-apps/api/event";
 import type {
   ChatStreamOptions,
   OllamaConnectionState,
@@ -23,7 +24,7 @@ export function useOllama() {
       isChecking: true,
     },
   );
-  const [models, setModels] = useState<OllamaModelInfo[]>([]);
+  const [models, setModels] = useState<Array<OllamaModelInfo>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [activeSessions, setActiveSessions] = useState<Set<string>>(new Set());
   const [pullingModel, setPullingModel] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export function useOllama() {
   const fetchModels = useCallback(async () => {
     setIsLoadingModels(true);
     try {
-      const modelList = await invoke<OllamaModelInfo[]>("ollama_list_models");
+      const modelList = await invoke<Array<OllamaModelInfo>>("ollama_list_models");
       setModels(modelList);
       return modelList;
     } catch (error) {

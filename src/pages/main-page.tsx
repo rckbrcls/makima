@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Settings } from "lucide-react";
 import type {
   AutomationKey,
   ChannelKey,
@@ -9,6 +10,13 @@ import type {
   SafetyKey,
   ToolKey,
 } from "@/components/main/config-types";
+import type {
+  ChatItem,
+  Conversation,
+  ConversationStatus,
+  MessageState,
+} from "@/components/main/jarvis-types";
+import type { ChatMessage, Provider } from "@/lib/provider-types";
 import {
   automationDefaults,
   channelDefaults,
@@ -24,12 +32,6 @@ import { ConversationComposer } from "@/components/main/conversation-composer";
 import { ConversationSidebar } from "@/components/main/conversation-sidebar";
 import { ConversationThread } from "@/components/main/conversation-thread";
 import { buildMessageId } from "@/components/main/jarvis-data";
-import type {
-  ChatItem,
-  Conversation,
-  ConversationStatus,
-  MessageState,
-} from "@/components/main/jarvis-types";
 import { ModelSelector } from "@/components/main/model-selector";
 import { RunDetailsModal } from "@/components/main/run-details-modal";
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
@@ -37,11 +39,13 @@ import { TextureOverlay } from "@/components/ui/texture-overlay";
 import { useConversations } from "@/hooks/use-conversations";
 import { useChatProvider } from "@/hooks/use-chat-provider";
 import { useSettingsStore } from "@/stores/settings-store";
-import type { ChatMessage, Provider } from "@/lib/provider-types";
 import { Button } from "@/components/ui/button";
 import { SettingsDialog } from "@/components/main/settings-dialog";
-import { Settings } from "lucide-react";
-import { CodeTabProvider, CodeTabSidebar, CodeTabWorkspace } from "@/components/code/code-tab";
+import {
+  CodeTabProvider,
+  CodeTabSidebar,
+  CodeTabWorkspace,
+} from "@/components/code/code-tab";
 
 interface StreamingState {
   messageId: string;
@@ -434,7 +438,7 @@ export function MainPage() {
 
     const nextTitle =
       activeConversation.title === "New conversation" ||
-        activeConversation.items.length === 0
+      activeConversation.items.length === 0
         ? userContent.slice(0, 32)
         : activeConversation.title;
 
@@ -472,7 +476,7 @@ export function MainPage() {
       });
     }
 
-    const conversationHistory: ChatMessage[] = activeConversation.items
+    const conversationHistory: Array<ChatMessage> = activeConversation.items
       .filter((item) => item.kind === "message")
       .map((item) => ({
         role: item.message.role as "user" | "assistant" | "system",
@@ -658,7 +662,7 @@ export function MainPage() {
       <div className="text-foreground relative h-full min-h-0 overflow-hidden">
         <TextureOverlay texture="grid" className="mix-blend-overlay" />
         <div className="relative z-10 flex h-full min-h-0">
-          <aside className="flex w-[300px] relative flex-col items-center">
+          <aside className="relative flex w-[300px] flex-col items-center">
             <DirectionAwareTabs
               onChange={(tabId) => setActiveTabId(tabId)}
               tabs={tabs}
@@ -667,7 +671,7 @@ export function MainPage() {
             <div className="absolute right-3 bottom-3 left-3">
               <Button
                 variant="ghost"
-                className="w-full glass glass-solid glass-hover justify-start gap-2 rounded-lg"
+                className="glass glass-solid glass-hover w-full justify-start gap-2 rounded-lg"
                 onClick={() => setSettingsOpen(true)}
               >
                 <Settings className="size-4" />
@@ -675,7 +679,10 @@ export function MainPage() {
               </Button>
             </div>
 
-            <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+            <SettingsDialog
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+            />
           </aside>
 
           {/* Code Tab Workspace */}
@@ -683,7 +690,6 @@ export function MainPage() {
             <CodeTabWorkspace />
           ) : (
             <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
-
               {/* <ConversationHeader
                   activeConversation={activeConversation}
                   isConfigOpen={isConfigOpen}
@@ -760,7 +766,9 @@ export function MainPage() {
                         onDeleteModel={deleteModel}
                         onRefresh={fetchModels}
                         authStatus={auth.status}
-                        openaiAuthPreference={providers.openai.preferredAuthSource}
+                        openaiAuthPreference={
+                          providers.openai.preferredAuthSource
+                        }
                         anthropicAuthPreference={
                           providers.anthropic.preferredAuthSource
                         }
@@ -770,7 +778,6 @@ export function MainPage() {
                 </div>
               ) : null}
             </section>
-
           )}
         </div>
 

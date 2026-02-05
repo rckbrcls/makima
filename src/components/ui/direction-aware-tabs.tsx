@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode, useMemo, useState, useRef } from "react";
-import { AnimatePresence, motion, MotionConfig } from "motion/react";
+import { useMemo, useRef, useState } from "react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import useMeasure from "react-use-measure";
+import type { ReactNode} from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,7 @@ type Tab = {
 };
 
 interface OgImageSectionProps {
-  tabs: Tab[];
+  tabs: Array<Tab>;
   className?: string;
   rounded?: string;
   onChange?: (tabIndex: number) => void;
@@ -156,7 +157,7 @@ function DirectionAwareTabs({
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
             className={cn(
-              "relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-foreground transition sm:text-sm",
+              "text-foreground relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition sm:text-sm",
               activeTab === tab.id
                 ? "text-foreground"
                 : "text-foreground/80 hover:text-foreground/60",
@@ -167,7 +168,7 @@ function DirectionAwareTabs({
             {activeTab === tab.id && (
               <motion.span
                 layoutId="bubble"
-                className="bg-primary shadow-inner-shadow dark:border-border absolute inset-0 z-10 dark:border mix-blend-difference"
+                className="bg-primary shadow-inner-shadow dark:border-border absolute inset-0 z-10 mix-blend-difference dark:border"
                 style={rounded ? { borderRadius: 9 } : { borderRadius: 10 }}
                 transition={{ type: "spring", bounce: 0.19, duration: 0.4 }}
               />

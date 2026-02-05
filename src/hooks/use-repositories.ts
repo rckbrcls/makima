@@ -1,83 +1,85 @@
-import { invoke } from '@tauri-apps/api/core'
-import { useCallback, useEffect, useState } from 'react'
-import type {
-  Repository,
-  RepositoryDb,
-} from '@/lib/code-types'
-import { mapRepository } from '@/lib/code-types'
+import { invoke } from "@tauri-apps/api/core";
+import { useCallback, useEffect, useState } from "react";
+import type { Repository, RepositoryDb } from "@/lib/code-types";
+import { mapRepository } from "@/lib/code-types";
 
 export function useRepositories() {
-  const [repositories, setRepositories] = useState<Repository[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [repositories, setRepositories] = useState<Array<Repository>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadRepositories = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const result = await invoke<RepositoryDb[]>('db_list_repositories')
-      setRepositories(result.map(mapRepository))
+      const result = await invoke<Array<RepositoryDb>>("db_list_repositories");
+      setRepositories(result.map(mapRepository));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadRepositories()
-  }, [loadRepositories])
+    loadRepositories();
+  }, [loadRepositories]);
 
-  const getRepository = useCallback(async (id: string): Promise<Repository | null> => {
-    try {
-      const result = await invoke<RepositoryDb | null>('db_get_repository', { id })
-      return result ? mapRepository(result) : null
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      return null
-    }
-  }, [])
+  const getRepository = useCallback(
+    async (id: string): Promise<Repository | null> => {
+      try {
+        const result = await invoke<RepositoryDb | null>("db_get_repository", {
+          id,
+        });
+        return result ? mapRepository(result) : null;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
+      }
+    },
+    [],
+  );
 
   const createRepository = useCallback(
     async (
       name: string,
       path: string,
       branch?: string,
-      tech?: string[],
+      tech?: Array<string>,
     ): Promise<Repository | null> => {
       try {
-        const result = await invoke<RepositoryDb>('db_create_repository', {
+        const result = await invoke<RepositoryDb>("db_create_repository", {
           name,
           path,
           branch,
           tech,
-        })
-        const repo = mapRepository(result)
-        setRepositories((prev) => [repo, ...prev])
-        return repo
+        });
+        const repo = mapRepository(result);
+        setRepositories((prev) => [repo, ...prev]);
+        return repo;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return null
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
       }
     },
     [],
-  )
+  );
 
   const updateRepository = useCallback(
     async (
       id: string,
       updates: {
-        name?: string
-        branch?: string
-        tech?: string[]
-        status?: string
+        name?: string;
+        branch?: string;
+        tech?: Array<string>;
+        status?: string;
       },
     ): Promise<boolean> => {
       try {
-        const result = await invoke<boolean>('db_update_repository', {
+        const result = await invoke<boolean>("db_update_repository", {
           id,
           ...updates,
-        })
+        });
         if (result) {
           setRepositories((prev) =>
             prev.map((repo) =>
@@ -88,35 +90,35 @@ export function useRepositories() {
                     ...(updates.branch && { branch: updates.branch }),
                     ...(updates.tech && { tech: updates.tech }),
                     ...(updates.status && {
-                      status: updates.status as Repository['status'],
+                      status: updates.status as Repository["status"],
                     }),
                     updatedAt: Date.now(),
                   }
                 : repo,
             ),
-          )
+          );
         }
-        return result
+        return result;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
       }
     },
     [],
-  )
+  );
 
   const deleteRepository = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const result = await invoke<boolean>('db_delete_repository', { id })
+      const result = await invoke<boolean>("db_delete_repository", { id });
       if (result) {
-        setRepositories((prev) => prev.filter((repo) => repo.id !== id))
+        setRepositories((prev) => prev.filter((repo) => repo.id !== id));
       }
-      return result
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      return false
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
     }
-  }, [])
+  }, []);
 
   return {
     repositories,
@@ -128,5 +130,5 @@ export function useRepositories() {
     updateRepository,
     deleteRepository,
     setRepositories,
-  }
+  };
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useCallback, useMemo, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -9,31 +9,31 @@ import {
   Plus,
   Search,
   Trash2,
-} from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
-import type { Repository } from '@/lib/code-types'
-import type { Conversation } from '@/components/main/jarvis-types'
-import { formatRelativeTime } from '@/components/main/jarvis-data'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import type { Repository } from "@/lib/code-types";
+import type { Conversation } from "@/components/main/jarvis-types";
+import { formatRelativeTime } from "@/components/main/jarvis-data";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface RepositorySidebarProps {
-  repositories: Repository[]
-  conversations: Conversation[]
-  activeRepositoryId: string | null
-  activeConversationId: string | null
-  onSelectRepository: (repoId: string) => void
-  onSelectConversation: (conversationId: string) => void
-  onAddRepository: () => void
-  onDeleteRepository: (repoId: string) => void
-  onNewConversation: (repoId: string) => void
+  repositories: Array<Repository>;
+  conversations: Array<Conversation>;
+  activeRepositoryId: string | null;
+  activeConversationId: string | null;
+  onSelectRepository: (repoId: string) => void;
+  onSelectConversation: (conversationId: string) => void;
+  onAddRepository: () => void;
+  onDeleteRepository: (repoId: string) => void;
+  onNewConversation: (repoId: string) => void;
 }
 
 export function RepositorySidebar({
@@ -47,53 +47,53 @@ export function RepositorySidebar({
   onDeleteRepository,
   onNewConversation,
 }: RepositorySidebarProps) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [expandedRepos, setExpandedRepos] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedRepos, setExpandedRepos] = useState<Set<string>>(new Set());
 
   const toggleRepo = useCallback((repoId: string) => {
     setExpandedRepos((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(repoId)) {
-        next.delete(repoId)
+        next.delete(repoId);
       } else {
-        next.add(repoId)
+        next.add(repoId);
       }
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
   const handleSelectRepo = useCallback(
     (repoId: string) => {
-      onSelectRepository(repoId)
+      onSelectRepository(repoId);
       // Auto-expand when selected
-      setExpandedRepos((prev) => new Set(prev).add(repoId))
+      setExpandedRepos((prev) => new Set(prev).add(repoId));
     },
     [onSelectRepository],
-  )
+  );
 
   // Group conversations by repository
   const conversationsByRepo = useMemo(() => {
-    const map = new Map<string, Conversation[]>()
+    const map = new Map<string, Array<Conversation>>();
     for (const conv of conversations) {
       if (conv.repositoryId) {
-        const list = map.get(conv.repositoryId) ?? []
-        list.push(conv)
-        map.set(conv.repositoryId, list)
+        const list = map.get(conv.repositoryId) ?? [];
+        list.push(conv);
+        map.set(conv.repositoryId, list);
       }
     }
-    return map
-  }, [conversations])
+    return map;
+  }, [conversations]);
 
   // Filter repositories by search
   const filteredRepos = useMemo(() => {
-    if (!searchQuery.trim()) return repositories
-    const query = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return repositories;
+    const query = searchQuery.toLowerCase();
     return repositories.filter(
       (repo) =>
         repo.name.toLowerCase().includes(query) ||
         repo.path.toLowerCase().includes(query),
-    )
-  }, [repositories, searchQuery])
+    );
+  }, [repositories, searchQuery]);
 
   return (
     <div className="relative flex h-full flex-col">
@@ -111,7 +111,7 @@ export function RepositorySidebar({
           </Button>
         </div>
         <div className="border-muted relative flex h-9 items-center border-b">
-          <Search className="text-muted-foreground pointer-events-none absolute left-2.5 top-2.5 size-4" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-2.5 size-4" />
           <Input
             placeholder="Search repositories..."
             value={searchQuery}
@@ -125,9 +125,9 @@ export function RepositorySidebar({
       <div className="mt-3 flex-1 overflow-y-auto pb-4">
         <AnimatePresence initial={false}>
           {filteredRepos.map((repo) => {
-            const isExpanded = expandedRepos.has(repo.id)
-            const isActive = repo.id === activeRepositoryId
-            const repoConversations = conversationsByRepo.get(repo.id) ?? []
+            const isExpanded = expandedRepos.has(repo.id);
+            const isActive = repo.id === activeRepositoryId;
+            const repoConversations = conversationsByRepo.get(repo.id) ?? [];
 
             return (
               <motion.div
@@ -135,14 +135,14 @@ export function RepositorySidebar({
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className="group"
               >
                 {/* Repository row */}
                 <div
                   className={cn(
-                    'flex items-center gap-1 rounded-lg p-2 transition-colors',
-                    isActive ? 'glass-selected' : 'glass-hover',
+                    "flex items-center gap-1 rounded-lg p-2 transition-colors",
+                    isActive ? "glass-selected" : "glass-hover",
                   )}
                 >
                   <button
@@ -211,19 +211,19 @@ export function RepositorySidebar({
                   {isExpanded && repoConversations.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
+                      animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
                       className="ml-6 border-l border-zinc-800 pl-2"
                     >
                       {repoConversations.map((conv) => (
                         <button
                           key={conv.id}
                           className={cn(
-                            'flex w-full items-center gap-2 rounded-md p-1.5 text-left transition-colors',
+                            "flex w-full items-center gap-2 rounded-md p-1.5 text-left transition-colors",
                             conv.id === activeConversationId
-                              ? 'bg-zinc-800'
-                              : 'hover:bg-zinc-800/50',
+                              ? "bg-zinc-800"
+                              : "hover:bg-zinc-800/50",
                           )}
                           onClick={() => onSelectConversation(conv.id)}
                         >
@@ -240,7 +240,7 @@ export function RepositorySidebar({
                   )}
                 </AnimatePresence>
               </motion.div>
-            )
+            );
           })}
         </AnimatePresence>
 
@@ -249,7 +249,7 @@ export function RepositorySidebar({
           <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
             <FolderGit2 className="mb-2 size-8 text-zinc-600" />
             <p className="text-sm text-zinc-500">
-              {searchQuery ? 'No repositories found' : 'No repositories yet'}
+              {searchQuery ? "No repositories found" : "No repositories yet"}
             </p>
             {!searchQuery && (
               <Button
@@ -266,5 +266,5 @@ export function RepositorySidebar({
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,85 +1,85 @@
 export interface Repository {
-  id: string
-  name: string
-  path: string
-  branch: string
-  tech: string[]
-  status: 'active' | 'idle' | 'warn' | 'error'
-  createdAt: number
-  updatedAt: number
+  id: string;
+  name: string;
+  path: string;
+  branch: string;
+  tech: Array<string>;
+  status: "active" | "idle" | "warn" | "error";
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface GitFileChange {
-  path: string
-  status: 'added' | 'modified' | 'deleted' | 'renamed'
+  path: string;
+  status: "added" | "modified" | "deleted" | "renamed";
 }
 
 export interface GitStatus {
-  branch: string
-  staged: GitFileChange[]
-  unstaged: GitFileChange[]
-  untracked: string[]
+  branch: string;
+  staged: Array<GitFileChange>;
+  unstaged: Array<GitFileChange>;
+  untracked: Array<string>;
 }
 
 export interface DiffLine {
-  kind: 'context' | 'add' | 'del' | 'hunk'
-  content: string
-  oldLineno?: number
-  newLineno?: number
+  kind: "context" | "add" | "del" | "hunk";
+  content: string;
+  oldLineno?: number;
+  newLineno?: number;
 }
 
 export interface FileDiff {
-  path: string
-  lines: DiffLine[]
+  path: string;
+  lines: Array<DiffLine>;
 }
 
 export interface PtySession {
-  sessionId: string
-  pid: number
+  sessionId: string;
+  pid: number;
 }
 
 export interface PtyOutputPayload {
-  sessionId: string
-  data: string
+  sessionId: string;
+  data: string;
 }
 
 export interface PtyExitPayload {
-  sessionId: string
-  exitCode?: number
+  sessionId: string;
+  exitCode?: number;
 }
 
 // Database response types (snake_case from Rust)
 export interface RepositoryDb {
-  id: string
-  name: string
-  path: string
-  branch: string
-  tech: string[]
-  status: string
-  created_at: number
-  updated_at: number
+  id: string;
+  name: string;
+  path: string;
+  branch: string;
+  tech: Array<string>;
+  status: string;
+  created_at: number;
+  updated_at: number;
 }
 
 export interface GitStatusDb {
-  branch: string
-  staged: { path: string; status: string }[]
-  unstaged: { path: string; status: string }[]
-  untracked: string[]
+  branch: string;
+  staged: Array<{ path: string; status: string }>;
+  unstaged: Array<{ path: string; status: string }>;
+  untracked: Array<string>;
 }
 
 export interface FileDiffDb {
-  path: string
-  lines: {
-    kind: string
-    content: string
-    old_lineno?: number
-    new_lineno?: number
-  }[]
+  path: string;
+  lines: Array<{
+    kind: string;
+    content: string;
+    old_lineno?: number;
+    new_lineno?: number;
+  }>;
 }
 
 export interface PtySessionDb {
-  sessionId: string
-  pid: number
+  sessionId: string;
+  pid: number;
 }
 
 // Converters
@@ -90,10 +90,10 @@ export function mapRepository(db: RepositoryDb): Repository {
     path: db.path,
     branch: db.branch,
     tech: db.tech,
-    status: db.status as Repository['status'],
+    status: db.status as Repository["status"],
     createdAt: db.created_at,
     updatedAt: db.updated_at,
-  }
+  };
 }
 
 export function mapGitStatus(db: GitStatusDb): GitStatus {
@@ -101,31 +101,31 @@ export function mapGitStatus(db: GitStatusDb): GitStatus {
     branch: db.branch,
     staged: db.staged.map((f) => ({
       path: f.path,
-      status: f.status as GitFileChange['status'],
+      status: f.status as GitFileChange["status"],
     })),
     unstaged: db.unstaged.map((f) => ({
       path: f.path,
-      status: f.status as GitFileChange['status'],
+      status: f.status as GitFileChange["status"],
     })),
     untracked: db.untracked,
-  }
+  };
 }
 
 export function mapFileDiff(db: FileDiffDb): FileDiff {
   return {
     path: db.path,
     lines: db.lines.map((l) => ({
-      kind: l.kind as DiffLine['kind'],
+      kind: l.kind as DiffLine["kind"],
       content: l.content,
       oldLineno: l.old_lineno,
       newLineno: l.new_lineno,
     })),
-  }
+  };
 }
 
 export function mapPtySession(db: PtySessionDb): PtySession {
   return {
     sessionId: db.sessionId,
     pid: db.pid,
-  }
+  };
 }

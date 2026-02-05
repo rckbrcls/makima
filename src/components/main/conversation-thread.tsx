@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Bot,
@@ -7,11 +7,11 @@ import {
   Copy,
   RefreshCw,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import type {
-  Conversation,
-  ChatMessage,
   ChatItem,
+  ChatMessage,
+  Conversation,
 } from "@/components/main/jarvis-types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -47,8 +47,8 @@ function renderContent(content: string): React.ReactNode {
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
   const inlineCodeRegex = /`([^`]+)`/g;
 
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
+  const parts: Array<React.ReactNode> = [];
+  const lastIndex = 0;
   let match;
 
   // Handle code blocks first
@@ -69,7 +69,7 @@ function renderContent(content: string): React.ReactNode {
       );
     } else if (segment) {
       // Handle inline code within text segments
-      const textParts: React.ReactNode[] = [];
+      const textParts: Array<React.ReactNode> = [];
       let textLastIndex = 0;
       const textWithInline = segment;
 

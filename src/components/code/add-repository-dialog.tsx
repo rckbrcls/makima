@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react'
-import { open } from '@tauri-apps/plugin-dialog'
-import { FolderOpen, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useCallback, useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { FolderOpen, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,14 +9,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface AddRepositoryDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onAdd: (name: string, path: string, branch?: string) => Promise<void>
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAdd: (name: string, path: string, branch?: string) => Promise<void>;
 }
 
 export function AddRepositoryDialog({
@@ -24,64 +24,64 @@ export function AddRepositoryDialog({
   onOpenChange,
   onAdd,
 }: AddRepositoryDialogProps) {
-  const [name, setName] = useState('')
-  const [path, setPath] = useState('')
-  const [branch, setBranch] = useState('main')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState("");
+  const [path, setPath] = useState("");
+  const [branch, setBranch] = useState("main");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleBrowse = useCallback(async () => {
     try {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: 'Select Repository Folder',
-      })
-      if (selected && typeof selected === 'string') {
-        setPath(selected)
+        title: "Select Repository Folder",
+      });
+      if (selected && typeof selected === "string") {
+        setPath(selected);
         // Auto-set name from folder name if empty
         if (!name) {
-          const folderName = selected.split('/').pop() ?? ''
-          setName(folderName)
+          const folderName = selected.split("/").pop() ?? "";
+          setName(folderName);
         }
       }
     } catch (err) {
-      console.error('Failed to open directory picker:', err)
+      console.error("Failed to open directory picker:", err);
     }
-  }, [name])
+  }, [name]);
 
   const handleSubmit = useCallback(async () => {
     if (!name.trim() || !path.trim()) {
-      setError('Name and path are required')
-      return
+      setError("Name and path are required");
+      return;
     }
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      await onAdd(name.trim(), path.trim(), branch.trim() || undefined)
+      await onAdd(name.trim(), path.trim(), branch.trim() || undefined);
       // Reset form
-      setName('')
-      setPath('')
-      setBranch('main')
-      onOpenChange(false)
+      setName("");
+      setPath("");
+      setBranch("main");
+      onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add repository')
+      setError(err instanceof Error ? err.message : "Failed to add repository");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [name, path, branch, onAdd, onOpenChange])
+  }, [name, path, branch, onAdd, onOpenChange]);
 
   const handleClose = useCallback(() => {
     if (!isLoading) {
-      setName('')
-      setPath('')
-      setBranch('main')
-      setError(null)
-      onOpenChange(false)
+      setName("");
+      setPath("");
+      setBranch("main");
+      setError(null);
+      onOpenChange(false);
     }
-  }, [isLoading, onOpenChange])
+  }, [isLoading, onOpenChange]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -138,9 +138,7 @@ export function AddRepositoryDialog({
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
 
         <DialogFooter>
@@ -154,5 +152,5 @@ export function AddRepositoryDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

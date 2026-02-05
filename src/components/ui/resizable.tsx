@@ -1,6 +1,8 @@
 import * as React from "react";
 import * as ResizablePrimitive from "react-resizable-panels";
 
+import type { PanelImperativeHandle } from "react-resizable-panels";
+
 import { cn } from "@/lib/utils";
 
 type Orientation = "horizontal" | "vertical";
@@ -29,9 +31,18 @@ function ResizablePanelGroup({
 }
 
 function ResizablePanel({
+  panelRef,
   ...props
-}: React.ComponentProps<typeof ResizablePrimitive.Panel>) {
-  return <ResizablePrimitive.Panel data-slot="resizable-panel" {...props} />;
+}: React.ComponentProps<typeof ResizablePrimitive.Panel> & {
+  panelRef?: React.Ref<PanelImperativeHandle | null>;
+}) {
+  return (
+    <ResizablePrimitive.Panel
+      data-slot="resizable-panel"
+      panelRef={panelRef}
+      {...props}
+    />
+  );
 }
 
 function ResizableHandle({

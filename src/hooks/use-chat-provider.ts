@@ -13,7 +13,7 @@ export interface UnifiedChatStreamOptions {
   sessionId: string;
   provider: Provider;
   model: string;
-  messages: ChatMessage[];
+  messages: Array<ChatMessage>;
   apiKey?: string;
   system?: string;
   temperature?: number;
