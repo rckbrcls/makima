@@ -1,15 +1,19 @@
 use crate::ollama::client::OllamaClient;
+use crate::ollama::process::{
+    self, OllamaInstallation, OllamaProcessManager, OllamaProcessStatus,
+};
 use crate::ollama::types::{
     OllamaChatRequest, OllamaMessage, OllamaModelInfo, OllamaOptions, PullProgressEvent,
     StreamChunkEvent, StreamErrorEvent,
 };
 use dashmap::DashSet;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, State};
 
 pub struct OllamaState {
     pub client: OllamaClient,
     pub active_streams: Arc<DashSet<String>>,
+    pub process_manager: Arc<Mutex<OllamaProcessManager>>,
 }
 
 impl OllamaState {
@@ -17,6 +21,7 @@ impl OllamaState {
         Self {
             client: OllamaClient::new(base_url),
             active_streams: Arc::new(DashSet::new()),
+            process_manager: Arc::new(Mutex::new(OllamaProcessManager::default())),
         }
     }
 }
@@ -198,4 +203,36 @@ pub async fn ollama_delete_model(
     }
 
     Ok(())
+}
+
+// ============================================================================
+// Process Management Commands
+// ============================================================================
+
+#[tauri::command]
+pub async fn ollama_detect_installation() -> Result<OllamaInstallation, String> {
+    Ok(process::detect_installation())
+}
+
+#[tauri::command]
+pub async fn ollama_start_process(state: State<'_, OllamaState>) -> Result<u32, String> {
+    let installation = process::detect_installation();
+
+    if installation.installation_type == "none" {
+        return Err("Ollama is not installed. Please install it from https://ollama.ai".to_string());
+    }
+
+    process::start_ollama(&installation, &state.process_manager).await
+}
+
+#[tauri::command]
+pub async fn ollama_stop_process(state: State<'_, OllamaState>) -> Result<(), String> {
+    process::stop_ollama(&state.process_manager, None).await
+}
+
+#[tauri::command]
+pub async fn ollama_get_process_status(
+    state: State<'_, OllamaState>,
+) -> Result<OllamaProcessStatus, String> {
+    Ok(process::get_process_status(&state.process_manager))
 }

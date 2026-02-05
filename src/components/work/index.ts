@@ -1,9 +1,10 @@
-// Re-export from new location for backwards compatibility
+// Work Domain Components
 export {
   WorkDomainProvider,
   WorkSidebar,
   WorkWorkspace,
+  // Legacy exports for backwards compatibility
   WorkTabProvider,
   WorkTabSidebar,
   WorkTabWorkspace,
-} from "@/components/work"
+} from "./work-tab"

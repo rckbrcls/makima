@@ -8,14 +8,18 @@ import { SettingsDialog } from "@/components/main/settings-dialog";
 import { RunDetailsModal } from "@/components/main/run-details-modal";
 
 import {
-  ChatTabProvider,
-  ChatTabSidebar,
-  ChatTabWorkspace,
-} from "@/components/tabs/chat-tab";
-import { WorkTabSidebar, WorkTabWorkspace } from "@/components/tabs/work-tab";
+  ChatDomainProvider,
+  ChatSidebar,
+  ChatWorkspace,
+} from "@/components/chat";
 import {
-  CodeTabProvider,
+  WorkDomainProvider,
+  WorkSidebar,
+  WorkWorkspace,
+} from "@/components/work";
+import {
   CodeTabSidebar,
+  CodeTabWithProvider,
   CodeTabWorkspace,
 } from "@/components/code/code-tab";
 
@@ -27,12 +31,12 @@ export function MainPage() {
     {
       id: 0,
       label: "chat",
-      content: <ChatTabSidebar />,
+      content: <ChatSidebar />,
     },
     {
       id: 1,
       label: "work",
-      content: <WorkTabSidebar />,
+      content: <WorkSidebar />,
     },
     {
       id: 2,
@@ -44,55 +48,57 @@ export function MainPage() {
   const renderWorkspace = () => {
     switch (activeTabId) {
       case 0:
-        return <ChatTabWorkspace />;
+        return <ChatWorkspace />;
       case 1:
-        return <WorkTabWorkspace />;
+        return <WorkWorkspace />;
       case 2:
         return <CodeTabWorkspace />;
       default:
-        return <ChatTabWorkspace />;
+        return <ChatWorkspace />;
     }
   };
 
   return (
-    <ChatTabProvider>
-      <CodeTabProvider>
-        <div className="text-foreground relative h-full max-h-dvh min-h-0 w-full max-w-[100vw] overflow-hidden">
-          <TextureOverlay texture="grid" className="mix-blend-overlay" />
-          <div className="relative z-10 flex h-full min-h-0">
-            {/* Sidebar */}
-            <aside className="relative flex w-[300px] flex-col items-center">
-              <DirectionAwareTabs
-                onChange={(tabId) => setActiveTabId(tabId)}
-                tabs={tabs}
-                className="mt-10 rounded-lg"
-              />
-              <div className="absolute right-3 bottom-3 left-3">
-                <Button
-                  variant="ghost"
-                  className="glass glass-solid glass-hover w-full justify-start gap-2 rounded-lg"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <Settings className="size-4" />
-                  Settings
-                </Button>
-              </div>
+    <ChatDomainProvider>
+      <WorkDomainProvider>
+        <CodeTabWithProvider>
+          <div className="text-foreground relative h-full max-h-dvh min-h-0 w-full max-w-[100vw] overflow-hidden">
+            <TextureOverlay texture="grid" className="mix-blend-overlay" />
+            <div className="relative z-10 flex h-full min-h-0">
+              {/* Sidebar */}
+              <aside className="relative flex w-[300px] flex-col items-center">
+                <DirectionAwareTabs
+                  onChange={(tabId) => setActiveTabId(tabId)}
+                  tabs={tabs}
+                  className="mt-10 rounded-lg"
+                />
+                <div className="absolute right-3 bottom-3 left-3">
+                  <Button
+                    variant="ghost"
+                    className="glass glass-solid glass-hover w-full justify-start gap-2 rounded-lg"
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    <Settings className="size-4" />
+                    Settings
+                  </Button>
+                </div>
 
-              <SettingsDialog
-                open={settingsOpen}
-                onOpenChange={setSettingsOpen}
-              />
-            </aside>
+                <SettingsDialog
+                  open={settingsOpen}
+                  onOpenChange={setSettingsOpen}
+                />
+              </aside>
 
-            {/* Workspace */}
-            <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-              {renderWorkspace()}
-            </main>
+              {/* Workspace */}
+              <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+                {renderWorkspace()}
+              </main>
+            </div>
+
+            <RunDetailsModal activeRun={null} onClose={() => {}} />
           </div>
-
-          <RunDetailsModal activeRun={null} onClose={() => {}} />
-        </div>
-      </CodeTabProvider>
-    </ChatTabProvider>
+        </CodeTabWithProvider>
+      </WorkDomainProvider>
+    </ChatDomainProvider>
   );
 }

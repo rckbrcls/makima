@@ -1,9 +1,10 @@
-// Re-export from new location for backwards compatibility
+// Chat Domain Components
 export {
   ChatDomainProvider,
   ChatSidebar,
   ChatWorkspace,
+  // Legacy exports for backwards compatibility
   ChatTabProvider,
   ChatTabSidebar,
   ChatTabWorkspace,
-} from "@/components/chat"
+} from "./chat-tab"

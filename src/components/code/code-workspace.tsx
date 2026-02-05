@@ -13,12 +13,6 @@ import { cn } from "@/lib/utils";
 interface CodeWorkspaceProps {
   repoPath?: string;
   conversation?: Conversation;
-  composerValue: string;
-  composerRows: number;
-  hasRunningExecution: boolean;
-  inputState: "idle" | "thinking" | "executing";
-  isModelSelected: boolean;
-  onComposerChange: (value: string) => void;
   onSendMessage: () => void;
   onNewConversation: () => void;
   onViewRun: (runId: string) => void;
@@ -26,15 +20,15 @@ interface CodeWorkspaceProps {
   className?: string;
 }
 
+/**
+ * CodeWorkspace - Workspace component for code editing with chat.
+ *
+ * The ConversationComposer now accesses state from Zustand stores internally,
+ * so we only pass callbacks and the model selector component.
+ */
 export function CodeWorkspace({
   repoPath,
   conversation,
-  composerValue,
-  composerRows,
-  hasRunningExecution,
-  inputState,
-  isModelSelected,
-  onComposerChange,
   onSendMessage,
   onNewConversation,
   onViewRun,
@@ -55,14 +49,8 @@ export function CodeWorkspace({
                   onViewRun={onViewRun}
                 />
                 <ConversationComposer
-                  composerValue={composerValue}
-                  composerRows={composerRows}
-                  hasRunningExecution={hasRunningExecution}
-                  inputState={inputState}
-                  onComposerChange={onComposerChange}
                   onSendMessage={onSendMessage}
                   onNewConversation={onNewConversation}
-                  isModelSelected={isModelSelected}
                   modelSelector={modelSelector}
                 />
               </div>

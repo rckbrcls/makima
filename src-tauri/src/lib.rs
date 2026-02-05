@@ -29,8 +29,9 @@ use database::{
 };
 use git::{git_current_branch, git_diff, git_diff_all, git_status};
 use ollama::{
-    ollama_cancel_stream, ollama_chat_stream, ollama_delete_model, ollama_health_check,
-    ollama_list_models, ollama_pull_model, OllamaState,
+    ollama_cancel_stream, ollama_chat_stream, ollama_delete_model, ollama_detect_installation,
+    ollama_get_process_status, ollama_health_check, ollama_list_models, ollama_pull_model,
+    ollama_start_process, ollama_stop_process, OllamaState,
 };
 use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
 use pty::{pty_kill, pty_resize, pty_spawn, pty_write, PtyState};
@@ -51,6 +52,10 @@ pub fn run() {
             ollama_cancel_stream,
             ollama_pull_model,
             ollama_delete_model,
+            ollama_detect_installation,
+            ollama_start_process,
+            ollama_stop_process,
+            ollama_get_process_status,
             openai_validate_key,
             openai_chat_stream,
             openai_cancel_stream,

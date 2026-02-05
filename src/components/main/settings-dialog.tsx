@@ -1,6 +1,17 @@
-import { useEffect, useState } from "react";
-import { Info, Monitor, Moon, Settings, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react"
+import {
+  ExternalLink,
+  HardDrive,
+  Info,
+  Loader2,
+  Monitor,
+  Moon,
+  Play,
+  Settings,
+  Square,
+  Sun,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -8,14 +19,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTheme } from "@/components/theme-provider";
-import { useSettingsStore } from "@/stores/settings-store";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useTheme } from "@/components/theme-provider"
+import { useSettingsStore } from "@/stores/settings-store"
+import {
+  useOllamaCanStart,
+  useOllamaCanStop,
+  useOllamaConnected,
+  useOllamaInstallation,
+  useOllamaProcessStatus,
+} from "@/stores/provider-store"
+import { useOllamaProcess } from "@/hooks/ollama/use-ollama-process"
+import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models"
+import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection"
+import { cn } from "@/lib/utils"
 
 interface SettingsDialogProps {
   open: boolean;
@@ -31,40 +52,76 @@ const themeOptions: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
 ];
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { theme, setTheme } = useTheme();
-  const settings = useSettingsStore();
+  const { theme, setTheme } = useTheme()
+  const settings = useSettingsStore()
+
+  // Ollama process state
+  const isOllamaConnected = useOllamaConnected()
+  const installation = useOllamaInstallation()
+  const processStatus = useOllamaProcessStatus()
+  const canStart = useOllamaCanStart()
+  const canStop = useOllamaCanStop()
+
+  // Ollama process hooks
+  const { detectInstallation, startProcess, stopProcess, refreshStatus } =
+    useOllamaProcess()
+  const { fetchModels } = useOllamaModelsHook()
+  const { checkHealth } = useOllamaConnection()
 
   // Local state for form fields
   const [ollamaEndpoint, setOllamaEndpoint] = useState(
     settings.providers.ollama.endpoint ?? "",
-  );
+  )
   const [numParallel, setNumParallel] = useState(
     settings.providers.ollama.numParallel ?? 1,
-  );
+  )
   const [compactMode, setCompactMode] = useState(
     settings.preferences.compactMode,
-  );
+  )
   const [showEventNotifications, setShowEventNotifications] = useState(
     settings.preferences.showEventNotifications,
-  );
+  )
   const [autoApproveReadOnly, setAutoApproveReadOnly] = useState(
     settings.preferences.autoApproveReadOnly,
-  );
+  )
   const [autoApproveLowRisk, setAutoApproveLowRisk] = useState(
     settings.preferences.autoApproveLowRisk,
-  );
+  )
 
   // Sync local state when dialog opens
   useEffect(() => {
     if (open) {
-      setOllamaEndpoint(settings.providers.ollama.endpoint ?? "");
-      setNumParallel(settings.providers.ollama.numParallel ?? 1);
-      setCompactMode(settings.preferences.compactMode);
-      setShowEventNotifications(settings.preferences.showEventNotifications);
-      setAutoApproveReadOnly(settings.preferences.autoApproveReadOnly);
-      setAutoApproveLowRisk(settings.preferences.autoApproveLowRisk);
+      setOllamaEndpoint(settings.providers.ollama.endpoint ?? "")
+      setNumParallel(settings.providers.ollama.numParallel ?? 1)
+      setCompactMode(settings.preferences.compactMode)
+      setShowEventNotifications(settings.preferences.showEventNotifications)
+      setAutoApproveReadOnly(settings.preferences.autoApproveReadOnly)
+      setAutoApproveLowRisk(settings.preferences.autoApproveLowRisk)
+      // Detect Ollama installation, check health, and refresh status when dialog opens
+      detectInstallation()
+      checkHealth()
+      refreshStatus()
     }
-  }, [open, settings]);
+  }, [open, settings, detectInstallation, checkHealth, refreshStatus])
+
+  const handleStartOllama = async () => {
+    console.log("Starting Ollama...", { installation, canStart, processStatus })
+    try {
+      await startProcess()
+      // Fetch models after starting
+      fetchModels()
+    } catch (error) {
+      console.error("Failed to start Ollama:", error)
+    }
+  }
+
+  const handleStopOllama = async () => {
+    try {
+      await stopProcess()
+    } catch (error) {
+      console.error("Failed to stop Ollama:", error)
+    }
+  }
 
   const handleSave = () => {
     // Apply Ollama settings
@@ -148,6 +205,112 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </TabsContent>
 
           <TabsContent value="ollama" className="mt-4 space-y-4">
+            {/* Process Status Card */}
+            <div className="border-border bg-card rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HardDrive className="size-4" />
+                  <span className="text-sm font-medium">Process Status</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {processStatus === "starting" && (
+                    <span className="flex items-center gap-1 text-xs text-amber-500">
+                      <Loader2 className="size-3 animate-spin" />
+                      Starting...
+                    </span>
+                  )}
+                  {processStatus === "stopping" && (
+                    <span className="flex items-center gap-1 text-xs text-amber-500">
+                      <Loader2 className="size-3 animate-spin" />
+                      Stopping...
+                    </span>
+                  )}
+                  {isOllamaConnected ? (
+                    <>
+                      <span className="rounded border border-emerald-500 bg-emerald-600 px-2 py-0.5 text-xs text-emerald-950">
+                        Running
+                      </span>
+                      {canStop && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleStopOllama}
+                          className="h-7 gap-1 px-2"
+                        >
+                          <Square className="size-3" />
+                          Stop
+                        </Button>
+                      )}
+                    </>
+                  ) : processStatus !== "starting" &&
+                    processStatus !== "stopping" ? (
+                    <>
+                      <span className="rounded border border-red-500 bg-red-600 px-2 py-0.5 text-xs text-red-950">
+                        Stopped
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleStartOllama}
+                        disabled={!canStart}
+                        className="h-7 gap-1 px-2"
+                      >
+                        <Play className="size-3" />
+                        Start
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Installation Info */}
+              <div className="text-muted-foreground mt-2 border-t border-border pt-2 text-xs">
+                {installation ? (
+                  <>
+                    {installation.installationType === "cli" &&
+                      installation.cliPath && (
+                        <span>
+                          <strong>Installation:</strong> CLI at{" "}
+                          {installation.cliPath}
+                        </span>
+                      )}
+                    {installation.installationType === "app" && (
+                      <span>
+                        <strong>Installation:</strong> Ollama.app
+                      </span>
+                    )}
+                    {installation.installationType === "both" &&
+                      installation.cliPath && (
+                        <span>
+                          <strong>Installation:</strong> CLI at{" "}
+                          {installation.cliPath} (App also installed)
+                        </span>
+                      )}
+                    {installation.installationType === "none" && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-500">
+                          Ollama is not installed.
+                        </span>
+                        <a
+                          href="https://ollama.ai"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sky-500 hover:underline"
+                        >
+                          Download
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-amber-500">
+                    Detecting installation...
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="ollama-endpoint">Endpoint</Label>
               <Input

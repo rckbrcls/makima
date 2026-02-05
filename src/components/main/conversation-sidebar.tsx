@@ -21,6 +21,18 @@ import {
 
 interface ConversationSidebarProps {
   /**
+   * List of conversations to display.
+   * If provided, uses these instead of the shared store.
+   */
+  conversations?: Array<Conversation>;
+
+  /**
+   * Active conversation ID.
+   * If provided, uses this instead of the shared store.
+   */
+  activeConversationId?: string | null;
+
+  /**
    * Callback when a conversation is selected.
    * Optional - if not provided, will use store action directly.
    */
@@ -74,6 +86,8 @@ interface ConversationSidebarProps {
  * Callbacks remain as props for flexibility, but have default implementations.
  */
 export function ConversationSidebar({
+  conversations: conversationsProp,
+  activeConversationId: activeConversationIdProp,
   onSelectConversation,
   onNewConversation,
   onRenameConversation,
@@ -82,12 +96,17 @@ export function ConversationSidebar({
   onExportConversation,
   onArchiveConversation,
 }: ConversationSidebarProps) {
-  // Store state
-  const visibleConversations = useVisibleConversations();
-  const activeConversationId = useActiveConversationId();
+  // Store state (used as fallback when props are not provided)
+  const storeConversations = useVisibleConversations();
+  const storeActiveConversationId = useActiveConversationId();
   const streamingConversationIds = useStreamingConversationIds();
   const { setActiveConversationId, removeConversation, addConversation } =
     useConversationActions();
+
+  // Use props if provided, otherwise fall back to store
+  const visibleConversations =
+    conversationsProp?.filter((c) => c.items.length > 0) ?? storeConversations;
+  const activeConversationId = activeConversationIdProp ?? storeActiveConversationId;
 
   // Default handlers using store actions
   const handleSelectConversation = useCallback(

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react"
 import {
   Check,
   ChevronDown,
@@ -7,10 +7,11 @@ import {
   HardDrive,
   KeyIcon,
   Loader2,
+  RefreshCw,
   Trash2,
   Wifi,
   WifiOff,
-} from "lucide-react";
+} from "lucide-react"
 import { APIKeyDialog } from "./api-key-dialog";
 import type { ModelInfo } from "@/lib/provider-types";
 import { POPULAR_MODELS } from "@/lib/ollama-types";
@@ -34,19 +35,21 @@ import { cn } from "@/lib/utils";
 import {
   useAnthropicConfigured,
   useIsLoadingModels,
+  useOllamaChecking,
   useOllamaConnected,
   useOllamaModels,
   useOpenAIConfigured,
   usePullProgress,
   usePullingModel,
-} from "@/stores/provider-store";
+} from "@/stores/provider-store"
 import {
   useChatActions,
   useSelectedModel,
   useSelectedProvider,
-} from "@/stores/chat-store";
-import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models";
-import { useOllamaPull } from "@/hooks/ollama/use-ollama-pull";
+} from "@/stores/chat-store"
+import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection"
+import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models"
+import { useOllamaPull } from "@/hooks/ollama/use-ollama-pull"
 
 /**
  * ModelSelector - Refactored to use Zustand stores directly.
@@ -61,29 +64,39 @@ import { useOllamaPull } from "@/hooks/ollama/use-ollama-pull";
  */
 export function ModelSelector() {
   // Provider store state
-  const ollamaModels = useOllamaModels();
-  const isOllamaConnected = useOllamaConnected();
-  const isLoadingModels = useIsLoadingModels();
-  const pullingModel = usePullingModel();
-  const pullProgress = usePullProgress();
-  const hasOpenAIKey = useOpenAIConfigured();
-  const hasAnthropicKey = useAnthropicConfigured();
+  const ollamaModels = useOllamaModels()
+  const isOllamaConnected = useOllamaConnected()
+  const isOllamaChecking = useOllamaChecking()
+  const isLoadingModels = useIsLoadingModels()
+  const pullingModel = usePullingModel()
+  const pullProgress = usePullProgress()
+  const hasOpenAIKey = useOpenAIConfigured()
+  const hasAnthropicKey = useAnthropicConfigured()
 
   // Chat store state
-  const selectedModel = useSelectedModel();
-  const selectedProvider = useSelectedProvider();
-  const { selectModel } = useChatActions();
+  const selectedModel = useSelectedModel()
+  const selectedProvider = useSelectedProvider()
+  const { selectModel } = useChatActions()
 
   // Hooks for actions
-  const { fetchModels } = useOllamaModelsHook();
-  const { pullModel, deleteModel } = useOllamaPull(fetchModels);
+  const { checkHealth } = useOllamaConnection()
+  const { fetchModels } = useOllamaModelsHook()
+  const { pullModel, deleteModel } = useOllamaPull(fetchModels)
+
+  // Reconnect to Ollama
+  const handleReconnect = useCallback(async () => {
+    const isHealthy = await checkHealth()
+    if (isHealthy) {
+      await fetchModels()
+    }
+  }, [checkHealth, fetchModels])
 
   // Local UI state
-  const [isManageOpen, setIsManageOpen] = useState(false);
-  const [isApiKeyOpen, setIsApiKeyOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false)
+  const [isApiKeyOpen, setIsApiKeyOpen] = useState(false)
   const [apiKeyInitialTab, setApiKeyInitialTab] = useState<
     "openai" | "anthropic"
-  >("openai");
+  >("openai")
 
   const downloadedModelNames = new Set(
     ollamaModels.map((m) => m.name.split(":")[0]),
@@ -127,8 +140,8 @@ export function ModelSelector() {
     model: string,
     provider: "ollama" | "openai" | "anthropic",
   ) => {
-    selectModel(model, provider);
-  };
+    selectModel(model, provider)
+  }
 
   // Build menu items dynamically
   const menuItems = useMemo(() => {
@@ -232,31 +245,50 @@ export function ModelSelector() {
 
   return (
     <div className="flex items-center gap-1">
-      <NativeMenu items={menuItems} onSelect={handleMenuSelect}>
+      {/* Show reconnect button when Ollama is offline */}
+      {!isOllamaConnected && selectedProvider === "ollama" ? (
         <Button
           variant="outline"
           size="sm"
           className="h-8 gap-1.5 rounded-full px-3 text-xs"
+          onClick={handleReconnect}
+          disabled={isOllamaChecking}
         >
-          {!isOllamaConnected && selectedProvider === "ollama" ? (
-            <>
-              <WifiOff className="size-3.5 text-red-500" />
-              <span className="text-muted-foreground">Offline</span>
-            </>
-          ) : isLoadingModels ? (
+          {isOllamaChecking ? (
             <>
               <Loader2 className="size-3.5 animate-spin" />
-              <span>Loading...</span>
+              <span>Connecting...</span>
             </>
           ) : (
             <>
-              {getProviderIcon()}
-              <span className="max-w-[120px] truncate">{getDisplayName()}</span>
-              <ChevronDown className="size-3.5 opacity-50" />
+              <WifiOff className="size-3.5 text-red-500" />
+              <span className="text-muted-foreground">Offline</span>
+              <RefreshCw className="size-3 opacity-50" />
             </>
           )}
         </Button>
-      </NativeMenu>
+      ) : (
+        <NativeMenu items={menuItems} onSelect={handleMenuSelect}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 rounded-full px-3 text-xs"
+          >
+            {isLoadingModels ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                {getProviderIcon()}
+                <span className="max-w-[120px] truncate">{getDisplayName()}</span>
+                <ChevronDown className="size-3.5 opacity-50" />
+              </>
+            )}
+          </Button>
+        </NativeMenu>
+      )}
 
       <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
         <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col overflow-hidden">

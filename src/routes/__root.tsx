@@ -6,6 +6,7 @@ import appCss from "../styles.css?url";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PageHeader } from "@/components/shared/page-header";
+import { AppInitializer } from "@/components/app-initializer";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -40,15 +41,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <div className="relative flex h-svh flex-row">
-            {/* <AppSidebar /> */}
-            <div className="flex min-h-0 flex-1 flex-col">
-              <PageHeader />
-              <main className="relative z-0 min-h-0 flex-1 overflow-hidden">
-                {children}
-              </main>
+          <AppInitializer>
+            <div className="relative flex h-svh flex-row">
+              {/* <AppSidebar /> */}
+              <div className="flex min-h-0 flex-1 flex-col">
+                <PageHeader />
+                <main className="relative z-0 min-h-0 flex-1 overflow-hidden">
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
+          </AppInitializer>
         </ThemeProvider>
         <TanStackDevtools
           config={{

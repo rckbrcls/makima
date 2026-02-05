@@ -2,7 +2,7 @@ use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-const SCHEMA_VERSION: i32 = 3;
+const SCHEMA_VERSION: i32 = 4;
 
 pub fn get_database_path(app: &AppHandle) -> PathBuf {
     let app_data_dir = app
@@ -64,6 +64,9 @@ fn run_migrations(conn: &Connection, from_version: i32) -> Result<()> {
     }
     if from_version < 3 {
         migration_v3(conn)?;
+    }
+    if from_version < 4 {
+        migration_v4(conn)?;
     }
     Ok(())
 }
@@ -166,5 +169,82 @@ fn migration_v3(conn: &Connection) -> Result<()> {
         log::info!("Database migration v3: repositories table already has correct schema");
     }
 
+    Ok(())
+}
+
+fn migration_v4(conn: &Connection) -> Result<()> {
+    // Work domain tables: agents, sessions, runs, approvals
+    // Temporarily disable FK checks to drop stale tables from previous iterations
+    // (e.g. agent_repos, old approvals/sessions with incompatible schemas)
+    conn.execute_batch(
+        r#"
+        PRAGMA foreign_keys = OFF;
+
+        DROP TABLE IF EXISTS agent_repos;
+        DROP TABLE IF EXISTS approvals;
+        DROP TABLE IF EXISTS runs;
+        DROP TABLE IF EXISTS sessions;
+        DROP TABLE IF EXISTS agents;
+
+        PRAGMA foreign_keys = ON;
+
+        -- Agents table: configured AI agents
+        CREATE TABLE agents (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            config TEXT NOT NULL DEFAULT '{}',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+
+        -- Sessions table: execution sessions with agents
+        CREATE TABLE sessions (
+            id TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX idx_sessions_agent
+            ON sessions(agent_id);
+
+        -- Runs table: individual execution units
+        CREATE TABLE runs (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+            run_type TEXT NOT NULL DEFAULT 'command',
+            status TEXT NOT NULL DEFAULT 'pending',
+            input TEXT NOT NULL,
+            output TEXT,
+            error TEXT,
+            started_at INTEGER NOT NULL,
+            finished_at INTEGER
+        );
+
+        CREATE INDEX idx_runs_session
+            ON runs(session_id);
+
+        -- Approvals table: pending action approvals
+        CREATE TABLE approvals (
+            id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+            action TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at INTEGER NOT NULL,
+            resolved_at INTEGER
+        );
+
+        CREATE INDEX idx_approvals_run
+            ON approvals(run_id);
+
+        CREATE INDEX idx_approvals_status
+            ON approvals(status);
+        "#,
+    )?;
+
+    log::info!("Database migration v4 completed (work domain tables added)");
     Ok(())
 }

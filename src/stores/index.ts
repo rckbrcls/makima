@@ -56,6 +56,14 @@ export {
   useIsLoadingModels,
   usePullingModel,
   usePullProgress,
+  // Process management selectors
+  useOllamaInstallation,
+  useOllamaProcessStatus,
+  useOllamaManagedByApp,
+  useOllamaPid,
+  useOllamaCanStart,
+  useOllamaCanStop,
+  // Auth selectors
   useAuthStatus,
   useIsAuthLoading,
   useAnthropicAvailability,
@@ -65,8 +73,8 @@ export {
   useOpenAISource,
   useAnthropicSource,
   useProviderActions,
-} from "./provider-store";
-export type { ProviderStore } from "./provider-store";
+} from "./provider-store"
+export type { ProviderStore } from "./provider-store"
 
 // Chat Store
 export {
@@ -117,3 +125,77 @@ export {
   useAnimationActions,
 } from "./animation-store";
 export type { AnimationStore } from "./animation-store";
+
+// Chat Domain Store (isolated conversations without repository)
+export {
+  useChatDomainStore,
+  // Atomic selectors
+  useChatDomainConversations,
+  useChatDomainConversationsCount,
+  useChatDomainVisibleConversations,
+  useChatDomainActiveId,
+  useChatDomainActiveConversation,
+  useChatDomainLoading,
+  useChatDomainError,
+  useChatDomainHasRunningExecution,
+  useChatDomainIsThinkingOrStreaming,
+  useChatDomainActions,
+} from "./chat-domain-store";
+export type { ChatDomainStore } from "./chat-domain-store";
+
+// Code Domain Store (isolated conversations with repository)
+export {
+  useCodeDomainStore,
+  // Atomic selectors
+  useCodeDomainConversations,
+  useCodeDomainConversationsCount,
+  useCodeDomainActiveId,
+  useCodeDomainActiveConversation,
+  useCodeDomainLoading,
+  useCodeDomainError,
+  useCodeDomainHasRunningExecution,
+  useCodeDomainIsThinkingOrStreaming,
+  useCodeDomainActions,
+} from "./code-domain-store";
+export type { CodeDomainStore } from "./code-domain-store";
+
+// Work Domain Store (agents, sessions, runs, approvals)
+export {
+  useWorkDomainStore,
+  // Agent selectors
+  useWorkAgents,
+  useWorkAgentsCount,
+  useWorkActiveAgentId,
+  useWorkActiveAgent,
+  useWorkIsLoadingAgents,
+  // Session selectors
+  useWorkSessions,
+  useWorkSessionsCount,
+  useWorkActiveSessionId,
+  useWorkActiveSession,
+  useWorkIsLoadingSessions,
+  useWorkAgentSessions,
+  // Run selectors
+  useWorkRuns,
+  useWorkRunsCount,
+  useWorkActiveRunId,
+  useWorkActiveRun,
+  useWorkSessionRuns,
+  useWorkRunningRuns,
+  useWorkHasRunningRuns,
+  // Approval selectors
+  useWorkApprovals,
+  useWorkApprovalsCount,
+  useWorkPendingApprovals,
+  useWorkPendingApprovalsCount,
+  useWorkHasPendingApprovals,
+  // Mode selectors
+  useWorkExecutionMode,
+  useWorkIsSafeMode,
+  useWorkIsAutoMode,
+  // Error selectors
+  useWorkError,
+  // Actions
+  useWorkDomainActions,
+} from "./work-domain-store";
+export type { WorkDomainStore } from "./work-domain-store";

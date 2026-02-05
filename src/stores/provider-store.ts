@@ -1,21 +1,30 @@
-import { create } from "zustand";
-import { useShallow } from "zustand/react/shallow";
+import { create } from "zustand"
+import { useShallow } from "zustand/react/shallow"
 import type {
   OllamaConnectionState,
   OllamaModelInfo,
-} from "@/lib/ollama-types";
-import type { AuthSourceAvailability, AuthStatus } from "@/lib/auth-types";
+} from "@/lib/ollama-types"
+import type { AuthSourceAvailability, AuthStatus } from "@/lib/auth-types"
+import type {
+  OllamaInstallation,
+  ProcessStatus,
+} from "@/lib/ollama-process-types"
 
 // ============================================================================
 // Provider Store - Centralized state for Ollama, OpenAI, Anthropic providers
 // ============================================================================
 
 interface OllamaState {
-  connectionState: OllamaConnectionState;
-  models: Array<OllamaModelInfo>;
-  isLoadingModels: boolean;
-  pullingModel: string | null;
-  pullProgress: number | null;
+  connectionState: OllamaConnectionState
+  models: Array<OllamaModelInfo>
+  isLoadingModels: boolean
+  pullingModel: string | null
+  pullProgress: number | null
+  // Process management
+  installation: OllamaInstallation | null
+  processStatus: ProcessStatus
+  managedByApp: boolean
+  pid: number | null
 }
 
 interface ProviderState {
@@ -31,19 +40,24 @@ interface ProviderState {
 
 interface ProviderActions {
   // Ollama actions
-  setOllamaConnectionState: (state: OllamaConnectionState) => void;
-  setOllamaModels: (models: Array<OllamaModelInfo>) => void;
-  setIsLoadingModels: (loading: boolean) => void;
-  setPullingModel: (model: string | null) => void;
-  setPullProgress: (progress: number | null) => void;
+  setOllamaConnectionState: (state: OllamaConnectionState) => void
+  setOllamaModels: (models: Array<OllamaModelInfo>) => void
+  setIsLoadingModels: (loading: boolean) => void
+  setPullingModel: (model: string | null) => void
+  setPullProgress: (progress: number | null) => void
+  // Process management actions
+  setOllamaInstallation: (installation: OllamaInstallation | null) => void
+  setOllamaProcessStatus: (status: ProcessStatus) => void
+  setOllamaManagedByApp: (managed: boolean) => void
+  setOllamaPid: (pid: number | null) => void
 
   // Auth actions
-  setAuthStatus: (status: AuthStatus | null) => void;
-  setIsAuthLoading: (loading: boolean) => void;
+  setAuthStatus: (status: AuthStatus | null) => void
+  setIsAuthLoading: (loading: boolean) => void
   setAnthropicAvailability: (
     availability: AuthSourceAvailability | null,
-  ) => void;
-  setOpenaiAvailability: (availability: AuthSourceAvailability | null) => void;
+  ) => void
+  setOpenaiAvailability: (availability: AuthSourceAvailability | null) => void
 }
 
 export type ProviderStore = ProviderState & ProviderActions;
@@ -55,12 +69,17 @@ const initialState: ProviderState = {
     isLoadingModels: false,
     pullingModel: null,
     pullProgress: null,
+    // Process management
+    installation: null,
+    processStatus: "unknown",
+    managedByApp: false,
+    pid: null,
   },
   authStatus: null,
   isAuthLoading: true,
   anthropicAvailability: null,
   openaiAvailability: null,
-};
+}
 
 export const useProviderStore = create<ProviderStore>((set) => ({
   ...initialState,
@@ -89,6 +108,27 @@ export const useProviderStore = create<ProviderStore>((set) => ({
   setPullProgress: (pullProgress) =>
     set((state) => ({
       ollama: { ...state.ollama, pullProgress },
+    })),
+
+  // Process management actions
+  setOllamaInstallation: (installation) =>
+    set((state) => ({
+      ollama: { ...state.ollama, installation },
+    })),
+
+  setOllamaProcessStatus: (processStatus) =>
+    set((state) => ({
+      ollama: { ...state.ollama, processStatus },
+    })),
+
+  setOllamaManagedByApp: (managedByApp) =>
+    set((state) => ({
+      ollama: { ...state.ollama, managedByApp },
+    })),
+
+  setOllamaPid: (pid) =>
+    set((state) => ({
+      ollama: { ...state.ollama, pid },
     })),
 
   // Auth actions
@@ -122,7 +162,36 @@ export const usePullingModel = () =>
   useProviderStore((s) => s.ollama.pullingModel);
 
 export const usePullProgress = () =>
-  useProviderStore((s) => s.ollama.pullProgress);
+  useProviderStore((s) => s.ollama.pullProgress)
+
+// Process management selectors
+export const useOllamaInstallation = () =>
+  useProviderStore((s) => s.ollama.installation)
+
+export const useOllamaProcessStatus = () =>
+  useProviderStore((s) => s.ollama.processStatus)
+
+export const useOllamaManagedByApp = () =>
+  useProviderStore((s) => s.ollama.managedByApp)
+
+export const useOllamaPid = () => useProviderStore((s) => s.ollama.pid)
+
+// Derived process selectors
+export const useOllamaCanStart = () =>
+  useProviderStore(
+    (s) =>
+      s.ollama.installation !== null &&
+      s.ollama.installation.installationType !== "none" &&
+      (s.ollama.processStatus === "stopped" ||
+        s.ollama.processStatus === "unknown"),
+  )
+
+export const useOllamaCanStop = () =>
+  useProviderStore(
+    (s) =>
+      s.ollama.processStatus === "running" ||
+      s.ollama.connectionState.isConnected,
+  )
 
 // Auth selectors
 export const useAuthStatus = () => useProviderStore((s) => s.authStatus);
@@ -157,9 +226,15 @@ export const useProviderActions = () =>
       setIsLoadingModels: s.setIsLoadingModels,
       setPullingModel: s.setPullingModel,
       setPullProgress: s.setPullProgress,
+      // Process management
+      setOllamaInstallation: s.setOllamaInstallation,
+      setOllamaProcessStatus: s.setOllamaProcessStatus,
+      setOllamaManagedByApp: s.setOllamaManagedByApp,
+      setOllamaPid: s.setOllamaPid,
+      // Auth
       setAuthStatus: s.setAuthStatus,
       setIsAuthLoading: s.setIsAuthLoading,
       setAnthropicAvailability: s.setAnthropicAvailability,
       setOpenaiAvailability: s.setOpenaiAvailability,
     })),
-  );
+  )

@@ -8,8 +8,13 @@ import {
   useComposerRows,
   useComposerValue,
   useHasSelectedModel,
+  useSelectedProvider,
 } from "@/stores/chat-store";
 import { useHasRunningExecution } from "@/stores/conversation-store";
+import {
+  useAuthStatus,
+  useOllamaConnected,
+} from "@/stores/provider-store";
 
 interface ConversationComposerProps {
   /**
@@ -54,13 +59,35 @@ export function ConversationComposer({
   const composerValue = useComposerValue();
   const composerRows = useComposerRows();
   const isModelSelected = useHasSelectedModel();
+  const selectedProvider = useSelectedProvider();
   const { setComposerValue } = useChatActions();
+
+  // Provider store state
+  const isOllamaConnected = useOllamaConnected();
+  const authStatus = useAuthStatus();
 
   // Conversation store state
   const hasRunningExecution = useHasRunningExecution();
 
+  // Check if the selected provider is available
+  const isProviderAvailable = (() => {
+    switch (selectedProvider) {
+      case "ollama":
+        return isOllamaConnected
+      case "openai":
+        return authStatus?.openai.is_configured ?? false
+      case "anthropic":
+        return authStatus?.anthropic.is_configured ?? false
+      default:
+        return false
+    }
+  })()
+
   const isDisabled =
-    hasRunningExecution || !composerValue.trim() || !isModelSelected;
+    hasRunningExecution ||
+    !composerValue.trim() ||
+    !isModelSelected ||
+    !isProviderAvailable;
 
   return (
     <div className="bg-card border-border absolute right-4 bottom-4 left-4 z-20 flex flex-col gap-2 rounded-2xl border p-2">
@@ -69,11 +96,15 @@ export function ConversationComposer({
         onChange={(event) => setComposerValue(event.target.value)}
         rows={composerRows}
         placeholder={
-          isModelSelected
-            ? "Write your message..."
-            : "Select a model to start chatting..."
+          !isModelSelected
+            ? "Select a model to start chatting..."
+            : !isProviderAvailable
+              ? selectedProvider === "ollama"
+                ? "Ollama is not connected..."
+                : `Configure ${selectedProvider} API key...`
+              : "Write your message..."
         }
-        disabled={hasRunningExecution || !isModelSelected}
+        disabled={hasRunningExecution || !isModelSelected || !isProviderAvailable}
         className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
       />
       <div className="flex items-end justify-between">

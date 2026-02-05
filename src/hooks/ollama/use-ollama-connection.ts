@@ -14,7 +14,12 @@ export function useOllamaConnection() {
   const { setOllamaConnectionState } = useProviderActions();
 
   const checkHealth = useCallback(async () => {
-    setOllamaConnectionState({ ...connectionState, isChecking: true });
+    // Set checking state - don't need previous state since we're setting all fields
+    setOllamaConnectionState({
+      isConnected: false,
+      isChecking: true,
+      lastError: undefined,
+    });
     try {
       const isHealthy = await invoke<boolean>("ollama_health_check");
       setOllamaConnectionState({
@@ -33,7 +38,7 @@ export function useOllamaConnection() {
       });
       return false;
     }
-  }, [connectionState, setOllamaConnectionState]);
+  }, [setOllamaConnectionState]);
 
   return {
     connectionState,
