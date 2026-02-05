@@ -587,15 +587,15 @@ export function CodeTabWorkspace() {
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
+    <section className="my-3 mr-3 flex h-full w-[calc(100vw-324px)] flex-col overflow-hidden">
       <ResizablePanelGroup direction="horizontal" className="h-full">
         {/* Left side: Chat + Terminal */}
         <ResizablePanel defaultSize={100} minSize={30}>
           <ResizablePanelGroup direction="vertical" className="h-full">
             {/* Chat area - takes full space when terminal collapsed */}
             <ResizablePanel defaultSize={100} minSize={30}>
-              <section className="border-border bg-background relative my-3 mr-3 flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border">
-                <div className="relative flex h-full flex-col overflow-hidden">
+              <div className="border-border bg-background relative flex h-full flex-col overflow-hidden rounded-3xl border">
+                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                   {/* Toggle buttons at top-right */}
                   <div className="absolute top-3 right-3 z-10 flex gap-2">
                     <Button
@@ -661,41 +661,41 @@ export function CodeTabWorkspace() {
                     }
                   />
                 </div>
-              </section>
+              </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle />
+          <ResizableHandle withHandle />
 
-            {/* Terminal - collapsible, starts collapsed */}
-            <ResizablePanel
-              panelRef={terminalPanelRef}
-              defaultSize={0}
-              minSize={0}
-              collapsedSize={0}
-              collapsible
-            >
-              <TerminalCard cwd={repoPath} className="h-full" />
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
+          {/* Terminal - collapsible, starts collapsed */}
+          <ResizablePanel
+            panelRef={terminalPanelRef}
+            defaultSize={0}
+            minSize={0}
+            collapsedSize={0}
+            collapsible
+          >
+            <TerminalCard cwd={repoPath} className="h-full" />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </ResizablePanel>
 
-        <ResizableHandle withHandle />
+      <ResizableHandle withHandle />
 
-        {/* Right side: Git Changes - collapsible, starts collapsed */}
-        <ResizablePanel
-          panelRef={gitChangesPanelRef}
-          defaultSize={0}
-          minSize={0}
-          collapsedSize={0}
-          collapsible
-        >
-          <GitChangesCard
-            repoPath={repoPath}
-            className="h-full border-l border-zinc-800"
-          />
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
+      {/* Right side: Git Changes - collapsible, starts collapsed */}
+      <ResizablePanel
+        panelRef={gitChangesPanelRef}
+        defaultSize={0}
+        minSize={0}
+        collapsedSize={0}
+        collapsible
+      >
+        <GitChangesCard
+          repoPath={repoPath}
+          className="h-full border-l border-zinc-800"
+        />
+      </ResizablePanel>
+    </ResizablePanelGroup>
+    </section>
   );
 }
 
