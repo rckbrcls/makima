@@ -9,26 +9,26 @@ import {
 } from "react";
 
 import { GitBranch, Terminal } from "lucide-react";
-
-import { Kbd } from "@/components/ui/kbd";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { AddRepositoryDialog } from "./add-repository-dialog";
 import { GitChangesCard } from "./git-changes-card";
 import { RepositorySidebar } from "./repository-sidebar";
 import { TerminalCard } from "./terminal-card";
 import type { PanelImperativeHandle } from "react-resizable-panels";
+
 import type {
   ChatItem,
   Conversation,
   ConversationStatus,
   MessageState,
 } from "@/components/main/jarvis-types";
-import type { ChatMessage, Provider } from "@/lib/provider-types";
+import type { ChatMessage } from "@/lib/provider-types";
 import type { Repository } from "@/lib/code-types";
+import { Kbd } from "@/components/ui/kbd";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ConversationComposer } from "@/components/main/conversation-composer";
 import { ConversationThread } from "@/components/main/conversation-thread";
 import { buildMessageId } from "@/components/main/jarvis-data";
@@ -41,8 +41,22 @@ import {
 import { useChatProvider } from "@/hooks/use-chat-provider";
 import { useConversations } from "@/hooks/use-conversations";
 import { useRepositories } from "@/hooks/use-repositories";
-import { useSettingsStore } from "@/stores/settings-store";
 import { ModelSelector } from "@/components/main/model-selector";
+// Store imports
+import { useConversationActions } from "@/stores/conversation-store";
+import {
+  useChatActions,
+  useComposerValue,
+  useHasSelectedModel,
+  useSelectedModel,
+  useSelectedProvider,
+  useTone,
+} from "@/stores/chat-store";
+import {
+  useAuthStatus,
+  useOllamaConnected,
+  useOllamaModels,
+} from "@/stores/provider-store";
 
 interface StreamingState {
   messageId: string;
@@ -74,6 +88,8 @@ interface CodeTabContextValue {
   // Dialog state
   isAddRepoDialogOpen: boolean;
   setIsAddRepoDialogOpen: (open: boolean) => void;
+  // Streaming ref
+  streamingStatesRef: React.MutableRefObject<Map<string, StreamingState>>;
 }
 
 const CodeTabContext = createContext<CodeTabContextValue | null>(null);
@@ -104,6 +120,9 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
+
+  // Streaming ref
+  const streamingStatesRef = useRef<Map<string, StreamingState>>(new Map());
 
   // Get active repository
   const activeRepository = useMemo(
@@ -215,6 +234,7 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
     handleNewConversation,
     isAddRepoDialogOpen,
     setIsAddRepoDialogOpen,
+    streamingStatesRef,
   };
 
   return (
@@ -252,23 +272,25 @@ export function CodeTabSidebar() {
 export function CodeTabWorkspace() {
   const ctx = useCodeTabContext();
 
-  const {
-    startChatStream,
-    auth,
-    ollama: {
-      connectionState,
-      models: ollamaModels,
-      isLoadingModels,
-      pullingModel,
-      pullProgress,
-      pullModel,
-      deleteModel,
-      fetchModels,
-    },
-  } = useChatProvider();
+  // Store state
+  const composerValue = useComposerValue();
+  const provider = useSelectedProvider();
+  const model = useSelectedModel();
+  const tone = useTone();
+  const hasSelectedModel = useHasSelectedModel();
+  const { clearComposer, setSelectedModel } = useChatActions();
 
-  const { providers } = useSettingsStore();
-  const { addMessage, setConversations } = useConversations();
+  // Provider store state
+  const isOllamaConnected = useOllamaConnected();
+  const ollamaModels = useOllamaModels();
+  const authStatus = useAuthStatus();
+
+  // Conversation store actions
+  const { updateConversations } = useConversationActions();
+
+  // Hooks
+  const { startChatStream } = useChatProvider();
+  const { addMessage } = useConversations();
 
   // Panel refs for collapsible panels
   const terminalPanelRef = useRef<PanelImperativeHandle>(null);
@@ -278,30 +300,12 @@ export function CodeTabWorkspace() {
   const [isTerminalCollapsed, setIsTerminalCollapsed] = useState(true);
   const [isGitChangesCollapsed, setIsGitChangesCollapsed] = useState(true);
 
-  // Chat state
-  const [composerValue, setComposerValue] = useState("");
-  const [composerRows, setComposerRows] = useState(1);
-  const [tone] = useState("balanced");
-  const [provider, setProvider] = useState<Provider>("ollama");
-  const [model, setModel] = useState("");
-
-  // Streaming state
-  const streamingStatesRef = useRef<Map<string, StreamingState>>(new Map());
-
   // Auto-select first model
   useEffect(() => {
     if (provider === "ollama" && ollamaModels.length > 0 && !model) {
-      setModel(ollamaModels[0].name);
+      setSelectedModel(ollamaModels[0].name);
     }
-  }, [ollamaModels, model, provider]);
-
-  const handleSelectModel = useCallback(
-    (newModel: string, newProvider: Provider) => {
-      setModel(newModel);
-      setProvider(newProvider);
-    },
-    [],
-  );
+  }, [ollamaModels, model, provider, setSelectedModel]);
 
   // Toggle handlers for collapsible panels
   const toggleTerminal = useCallback(() => {
@@ -349,12 +353,6 @@ export function CodeTabWorkspace() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleTerminal, toggleGitChanges]);
 
-  // Update composer rows
-  useEffect(() => {
-    const lines = composerValue.split("\n").length;
-    setComposerRows(Math.min(6, Math.max(1, lines)));
-  }, [composerValue]);
-
   const activeConversation = ctx.activeConversation;
 
   const hasRunningExecution = Boolean(
@@ -363,37 +361,19 @@ export function CodeTabWorkspace() {
     ),
   );
 
-  const isThinking = Boolean(
-    activeConversation?.items.some(
-      (item) => item.kind === "message" && item.message.state === "thinking",
-    ),
-  );
-
-  const isStreaming = Boolean(
-    activeConversation?.items.some(
-      (item) => item.kind === "message" && item.message.state === "streaming",
-    ),
-  );
-
-  const inputState = hasRunningExecution
-    ? "executing"
-    : isThinking || isStreaming
-      ? "thinking"
-      : "idle";
-
   const handleSendMessage = useCallback(async () => {
     if (!activeConversation || !composerValue.trim()) return;
     if (
       hasRunningExecution ||
-      streamingStatesRef.current.has(activeConversation.id)
+      ctx.streamingStatesRef.current.has(activeConversation.id)
     )
       return;
     if (!model) return;
 
     // Check provider availability
-    if (provider === "ollama" && !connectionState.isConnected) return;
-    if (provider === "openai" && !auth.status?.openai.is_configured) return;
-    if (provider === "anthropic" && !auth.status?.anthropic.is_configured)
+    if (provider === "ollama" && !isOllamaConnected) return;
+    if (provider === "openai" && !authStatus?.openai.is_configured) return;
+    if (provider === "anthropic" && !authStatus?.anthropic.is_configured)
       return;
 
     const now = Date.now();
@@ -404,7 +384,7 @@ export function CodeTabWorkspace() {
     const conversationId = activeConversation.id;
 
     // Register streaming state
-    streamingStatesRef.current.set(conversationId, {
+    ctx.streamingStatesRef.current.set(conversationId, {
       messageId: assistantId,
       accumulatedContent: "",
       sessionId,
@@ -443,7 +423,7 @@ export function CodeTabWorkspace() {
         ? userContent.slice(0, 32)
         : activeConversation.title;
 
-    setConversations((prev) =>
+    updateConversations((prev) =>
       prev.map((conversation) => {
         if (conversation.id !== conversationId) return conversation;
         return {
@@ -457,7 +437,7 @@ export function CodeTabWorkspace() {
       }),
     );
 
-    setComposerValue("");
+    clearComposer();
 
     await addMessage(conversationId, {
       id: messageId,
@@ -487,14 +467,14 @@ export function CodeTabWorkspace() {
       temperature: 0.7,
       maxTokens: 4096,
       onChunk: (content, done) => {
-        const state = streamingStatesRef.current.get(conversationId);
+        const state = ctx.streamingStatesRef.current.get(conversationId);
         if (!state) return;
 
         state.accumulatedContent += content;
         const currentContent = state.accumulatedContent;
         const currentMessageId = state.messageId;
 
-        setConversations((prev) =>
+        updateConversations((prev) =>
           prev.map((conversation) => {
             if (conversation.id !== conversationId) return conversation;
 
@@ -533,17 +513,17 @@ export function CodeTabWorkspace() {
             tone,
           });
 
-          streamingStatesRef.current.delete(conversationId);
+          ctx.streamingStatesRef.current.delete(conversationId);
         }
       },
       onError: (error) => {
-        const state = streamingStatesRef.current.get(conversationId);
+        const state = ctx.streamingStatesRef.current.get(conversationId);
         if (!state) return;
 
         const currentMessageId = state.messageId;
         const errorContent = error || "An error occurred";
 
-        setConversations((prev) =>
+        updateConversations((prev) =>
           prev.map((conversation) => {
             if (conversation.id !== conversationId) return conversation;
 
@@ -580,21 +560,23 @@ export function CodeTabWorkspace() {
           tone,
         });
 
-        streamingStatesRef.current.delete(conversationId);
+        ctx.streamingStatesRef.current.delete(conversationId);
       },
     });
   }, [
     activeConversation,
     composerValue,
     hasRunningExecution,
-    connectionState.isConnected,
+    isOllamaConnected,
     model,
     provider,
-    auth.status,
+    authStatus,
     tone,
     startChatStream,
     addMessage,
-    setConversations,
+    updateConversations,
+    clearComposer,
+    ctx,
   ]);
 
   const repoPath = ctx.activeRepository?.path;
@@ -636,7 +618,9 @@ export function CodeTabWorkspace() {
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
                         <span className="flex items-center gap-2">
-                          {isTerminalCollapsed ? "Show Terminal" : "Hide Terminal"}
+                          {isTerminalCollapsed
+                            ? "Show Terminal"
+                            : "Hide Terminal"}
                           <Kbd>⌘J</Kbd>
                         </span>
                       </TooltipContent>
@@ -668,72 +652,45 @@ export function CodeTabWorkspace() {
                     onViewRun={() => {}}
                   />
                   <ConversationComposer
-                    composerValue={composerValue}
-                    composerRows={composerRows}
-                    hasRunningExecution={hasRunningExecution}
-                    inputState={inputState}
-                    onComposerChange={setComposerValue}
                     onSendMessage={handleSendMessage}
                     onNewConversation={() => ctx.handleNewConversation()}
-                    isModelSelected={Boolean(model)}
-                    modelSelector={
-                      <ModelSelector
-                        ollamaModels={ollamaModels}
-                        selectedModel={model}
-                        selectedProvider={provider}
-                        onSelectModel={handleSelectModel}
-                        isOllamaConnected={connectionState.isConnected}
-                        isLoadingModels={isLoadingModels}
-                        pullingModel={pullingModel}
-                        pullProgress={pullProgress}
-                        onPullModel={pullModel}
-                        onDeleteModel={deleteModel}
-                        onRefresh={fetchModels}
-                        authStatus={auth.status}
-                        openaiAuthPreference={
-                          providers.openai.preferredAuthSource
-                        }
-                        anthropicAuthPreference={
-                          providers.anthropic.preferredAuthSource
-                        }
-                      />
-                    }
+                    modelSelector={<ModelSelector />}
                   />
                 </div>
               </div>
             </ResizablePanel>
 
-          <ResizableHandle />
+            <ResizableHandle />
 
-          {/* Terminal - collapsible, starts collapsed */}
-          <ResizablePanel
-            panelRef={terminalPanelRef}
-            defaultSize={0}
-            minSize={0}
-            collapsedSize={0}
-            collapsible
-          >
-            <TerminalCard cwd={repoPath} className="h-full" />
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </ResizablePanel>
+            {/* Terminal - collapsible, starts collapsed */}
+            <ResizablePanel
+              panelRef={terminalPanelRef}
+              defaultSize={0}
+              minSize={0}
+              collapsedSize={0}
+              collapsible
+            >
+              <TerminalCard cwd={repoPath} className="h-full" />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </ResizablePanel>
 
-      <ResizableHandle />
+        <ResizableHandle />
 
-      {/* Right side: Git Changes - collapsible, starts collapsed */}
-      <ResizablePanel
-        panelRef={gitChangesPanelRef}
-        defaultSize={0}
-        minSize={0}
-        collapsedSize={0}
-        collapsible
-      >
-        <GitChangesCard
-          repoPath={repoPath}
-          className="h-full border-l border-zinc-800"
-        />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+        {/* Right side: Git Changes - collapsible, starts collapsed */}
+        <ResizablePanel
+          panelRef={gitChangesPanelRef}
+          defaultSize={0}
+          minSize={0}
+          collapsedSize={0}
+          collapsible
+        >
+          <GitChangesCard
+            repoPath={repoPath}
+            className="h-full border-l border-zinc-800"
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </section>
   );
 }

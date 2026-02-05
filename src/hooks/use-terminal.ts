@@ -93,31 +93,36 @@ export function useTerminal(options: TerminalOptions = {}) {
     [],
   );
 
-  const write = useCallback(
-    async (data: string): Promise<boolean> => {
-      if (!session) {
-        return false;
-      }
-      try {
-        await invoke("pty_write", {
-          sessionId: session.sessionId,
-          data,
-        });
-        return true;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-        return false;
-      }
-    },
-    [session],
-  );
+  // Keep session ref for stable callbacks and cleanup
+  const sessionRef = useRef<PtySession | null>(null);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const write = useCallback(async (data: string): Promise<boolean> => {
+    const currentSession = sessionRef.current;
+    if (!currentSession) {
+      return false;
+    }
+    try {
+      await invoke("pty_write", {
+        sessionId: currentSession.sessionId,
+        data,
+      });
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    }
+  }, []);
 
   const resize = useCallback(
     async (cols: number, rows: number): Promise<boolean> => {
-      if (!session) return false;
+      const currentSession = sessionRef.current;
+      if (!currentSession) return false;
       try {
         await invoke("pty_resize", {
-          sessionId: session.sessionId,
+          sessionId: currentSession.sessionId,
           cols,
           rows,
         });
@@ -127,20 +132,15 @@ export function useTerminal(options: TerminalOptions = {}) {
         return false;
       }
     },
-    [session],
+    [],
   );
 
-  // Keep session ref for cleanup
-  const sessionRef = useRef<PtySession | null>(null);
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
-
   const kill = useCallback(async (): Promise<boolean> => {
-    if (!session) return false;
+    const currentSession = sessionRef.current;
+    if (!currentSession) return false;
     try {
       await invoke("pty_kill", {
-        sessionId: session.sessionId,
+        sessionId: currentSession.sessionId,
       });
       setSession(null);
       setIsConnected(false);
@@ -149,7 +149,7 @@ export function useTerminal(options: TerminalOptions = {}) {
       setError(err instanceof Error ? err.message : String(err));
       return false;
     }
-  }, [session]);
+  }, []);
 
   // Cleanup on unmount only
   useEffect(() => {

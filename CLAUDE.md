@@ -41,6 +41,10 @@ pnpm lint          # ESLint check
 pnpm check         # Format and fix all (prettier + eslint --fix)
 ```
 
+## Platform Support
+
+Currently targeting **macOS only**. Cross-platform support planned for future releases.
+
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, TanStack Router (file-based routing), TanStack Query
@@ -62,15 +66,75 @@ UI Components → Custom Hooks → Zustand Stores → Tauri IPC → Rust Backend
 - `src/routes/` - File-based routing (TanStack Router auto-generates `routeTree.gen.ts`)
 - `src/pages/` - Page components (WorkspacePage, JarvisPage, AgentsBuilderPage, SettingsPage)
 - `src/components/` - Feature-organized components (agents/, repos/, jarvis/, workspace/, ui/)
-- `src/stores/` - Zustand stores (ui-store, command-store, settings-store)
-- `src/hooks/` - Custom hooks for business logic (use-agent-state, use-makima-state)
+- `src/stores/` - Zustand stores with atomic selectors (see State Management section)
+- `src/hooks/` - Custom hooks for business logic
+  - `src/hooks/ollama/` - Split Ollama hooks (connection, models, pull, stream)
 - `src-tauri/src/` - Rust backend (commands, database, process management, bridge protocol)
 
-### State Management
+### State Management (Zustand)
 
+The app uses Zustand stores with **atomic selectors** for optimal performance.
+
+#### Stores Overview
+
+- **SettingsStore**: Bridge mode, preferences, provider configs (persisted)
 - **UIStore**: Drawer states, selections, mobile sidebar
-- **CommandStore**: Repositories, commands, live executions, queue, history
-- **SettingsStore**: Bridge mode (safe/auto), theme, auto-approve settings
+- **ProviderStore**: Ollama/OpenAI/Anthropic connection state, models, auth
+- **ChatStore**: Composer state, model selection
+- **ConversationStore**: Conversations CRUD, streaming state
+- **AnimationStore**: Per-message streaming animation
+
+#### Mandatory Patterns
+
+1. **Always use atomic selectors** - Never use `useStore()` without a selector
+
+   ```typescript
+   // WRONG - causes re-render on any state change
+   const settings = useSettingsStore();
+
+   // CORRECT - re-render only when mode changes
+   const mode = useMode();
+   ```
+
+2. **Components access stores directly** - Never pass store state via props
+
+   ```typescript
+   // WRONG - prop drilling
+   <ModelSelector selectedModel={model} onSelectModel={setModel} />
+
+   // CORRECT - component uses stores internally
+   <ModelSelector />
+   ```
+
+3. **Use actions selectors** - Stable references prevent re-renders
+
+   ```typescript
+   // CORRECT - actions have stable identity
+   const { setMode, setPreference } = useSettingsActions();
+   ```
+
+4. **Never expose generic setters** - Use specific actions
+
+   ```typescript
+   // WRONG
+   const { setConversations } = useConversations();
+
+   // CORRECT
+   const { addConversation, updateConversation } = useConversationActions();
+   ```
+
+#### Store Imports
+
+Import from `@/stores` for centralized access:
+
+```typescript
+import {
+  useMode,
+  useSelectedModel,
+  useChatActions,
+  useConversationActions,
+} from "@/stores";
+```
 
 ### Routing
 

@@ -1,31 +1,64 @@
 import { ArrowUp, Folder, Mic, Plus } from "lucide-react";
 import type { ReactNode } from "react";
-import type { InputState } from "@/components/main/jarvis-types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+// Store imports
+import {
+  useChatActions,
+  useComposerRows,
+  useComposerValue,
+  useHasSelectedModel,
+} from "@/stores/chat-store";
+import { useHasRunningExecution } from "@/stores/conversation-store";
 
 interface ConversationComposerProps {
-  composerValue: string;
-  composerRows: number;
-  hasRunningExecution: boolean;
-  inputState: InputState;
-  onComposerChange: (value: string) => void;
+  /**
+   * Callback when send button is clicked.
+   * The component handles composer state internally.
+   */
   onSendMessage: () => void;
+
+  /**
+   * Callback when new conversation button is clicked.
+   */
   onNewConversation: () => void;
+
+  /**
+   * Optional model selector component to render.
+   * If not provided, ModelSelector will be rendered automatically.
+   */
   modelSelector?: ReactNode;
-  isModelSelected: boolean;
 }
 
+/**
+ * ConversationComposer - Refactored to use Zustand stores directly.
+ *
+ * Previously received 9 props:
+ * - composerValue, composerRows, hasRunningExecution, inputState,
+ * - onComposerChange, onSendMessage, onNewConversation, modelSelector,
+ * - isModelSelected
+ *
+ * Now accesses most state from stores:
+ * - composerValue, composerRows from chat-store
+ * - hasRunningExecution, inputState from conversation-store
+ * - isModelSelected from chat-store
+ *
+ * Only callbacks remain as props since they depend on parent context.
+ */
 export function ConversationComposer({
-  composerValue,
-  composerRows,
-  hasRunningExecution,
-  onComposerChange,
   onSendMessage,
   onNewConversation,
   modelSelector,
-  isModelSelected,
 }: ConversationComposerProps) {
+  // Chat store state
+  const composerValue = useComposerValue();
+  const composerRows = useComposerRows();
+  const isModelSelected = useHasSelectedModel();
+  const { setComposerValue } = useChatActions();
+
+  // Conversation store state
+  const hasRunningExecution = useHasRunningExecution();
+
   const isDisabled =
     hasRunningExecution || !composerValue.trim() || !isModelSelected;
 
@@ -33,7 +66,7 @@ export function ConversationComposer({
     <div className="bg-card border-border absolute right-4 bottom-4 left-4 z-20 flex flex-col gap-2 rounded-2xl border p-2">
       <Textarea
         value={composerValue}
-        onChange={(event) => onComposerChange(event.target.value)}
+        onChange={(event) => setComposerValue(event.target.value)}
         rows={composerRows}
         placeholder={
           isModelSelected

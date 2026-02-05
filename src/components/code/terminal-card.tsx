@@ -1,10 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FitAddon } from "@xterm/addon-fit";
+import type { Terminal } from "@xterm/xterm";
 import { useTerminal } from "@/hooks/use-terminal";
 import { cn } from "@/lib/utils";
 
-// Dynamic import types
-type TerminalType = import("@xterm/xterm").Terminal;
-type FitAddonType = import("@xterm/addon-fit").FitAddon;
+// Debounce utility for resize handling
+function debounce<T extends (...args: Array<unknown>) => void>(
+  fn: T,
+  ms: number,
+): ((...args: Parameters<T>) => void) & { cancel: () => void } {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const debounced = (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), ms);
+  };
+  debounced.cancel = () => clearTimeout(timeoutId);
+  return debounced;
+}
 
 interface TerminalCardProps {
   cwd?: string;
@@ -12,10 +24,14 @@ interface TerminalCardProps {
   onReady?: () => void;
 }
 
-export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
+export const TerminalCard = memo(function TerminalCard({
+  cwd,
+  className,
+  onReady,
+}: TerminalCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<TerminalType | null>(null);
-  const fitAddonRef = useRef<FitAddonType | null>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const isInitializedRef = useRef(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const onReadyRef = useRef(onReady);
@@ -99,7 +115,7 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
             brightCyan: "#67e8f9",
             brightWhite: "#fafafa",
           },
-          scrollback: 10000,
+          scrollback: 2000,
         });
 
         const fitAddon = new FitAddon();
@@ -160,32 +176,38 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
     });
   }, [cwd, isLoaded]);
 
+  // Debounced resize handler to avoid excessive IPC calls during drag resize
+  const handleResizeDebounced = useMemo(
+    () =>
+      debounce(() => {
+        if (fitAddonRef.current && terminalRef.current) {
+          fitAddonRef.current.fit();
+          resize(terminalRef.current.cols, terminalRef.current.rows);
+        }
+      }, 150),
+    [resize],
+  );
+
   // Handle resize
   useEffect(() => {
     if (!isLoaded) return;
 
-    const handleResize = () => {
-      if (fitAddonRef.current && terminalRef.current) {
-        fitAddonRef.current.fit();
-        resize(terminalRef.current.cols, terminalRef.current.rows);
-      }
-    };
-
     const resizeObserver = new ResizeObserver(() => {
-      handleResize();
+      handleResizeDebounced();
     });
 
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResizeDebounced);
 
     return () => {
       resizeObserver.disconnect();
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", handleResizeDebounced);
+      handleResizeDebounced.cancel();
     };
-  }, [isLoaded, resize]);
+  }, [isLoaded, handleResizeDebounced]);
 
   return (
     <div
@@ -217,4 +239,4 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
       )}
     </div>
   );
-}
+});

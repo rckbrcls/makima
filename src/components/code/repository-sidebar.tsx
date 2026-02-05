@@ -8,7 +8,6 @@ import {
   MoreHorizontal,
   Plus,
   Search,
-  Trash2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Repository } from "@/lib/code-types";
@@ -16,12 +15,7 @@ import type { Conversation } from "@/components/main/jarvis-types";
 import { formatRelativeTime } from "@/components/main/jarvis-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { NativeMenu, createMenuItem } from "@/components/ui/native-menu";
 import { cn } from "@/lib/utils";
 
 interface RepositorySidebarProps {
@@ -94,6 +88,8 @@ export function RepositorySidebar({
         repo.path.toLowerCase().includes(query),
     );
   }, [repositories, searchQuery]);
+
+  const menuItems = [createMenuItem("remove", "Remove")];
 
   return (
     <div className="relative flex h-full flex-col">
@@ -182,27 +178,23 @@ export function RepositorySidebar({
                       <MessageSquare className="size-3" />
                     </Button>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => onDeleteRepository(repo.id)}
-                        >
-                          <Trash2 className="mr-2 size-4" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <NativeMenu
+                      items={menuItems}
+                      onSelect={(id) => {
+                        if (id === "remove") {
+                          onDeleteRepository(repo.id);
+                        }
+                      }}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 opacity-0 group-hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </NativeMenu>
                   </div>
                 </div>
 

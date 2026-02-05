@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import type { Agent, Session } from "@/components/agents/types";
 
 // ============================================================================
@@ -113,3 +114,60 @@ export const useUIStore = create<UIStore>((set) => ({
       selectedRepo: null,
     }),
 }));
+
+// ============================================================================
+// Atomic Selectors - Fine-grained subscriptions for optimal re-renders
+// ============================================================================
+
+// Drawer selectors
+export const useApprovalDrawerOpen = () =>
+  useUIStore((s) => s.approvalDrawerOpen);
+
+export const useTerminalDrawerOpen = () =>
+  useUIStore((s) => s.terminalDrawerOpen);
+
+export const useCreateAgentDialogOpen = () =>
+  useUIStore((s) => s.createAgentDialogOpen);
+
+export const useMobileSidebarOpen = () =>
+  useUIStore((s) => s.mobileSidebarOpen);
+
+// Selection selectors
+export const useSelectedAgent = () => useUIStore((s) => s.selectedAgent);
+
+export const useSelectedSession = () => useUIStore((s) => s.selectedSession);
+
+export const useSelectedRepo = () => useUIStore((s) => s.selectedRepo);
+
+// Derived selectors
+export const useHasSelectedAgent = () =>
+  useUIStore((s) => s.selectedAgent !== null);
+
+export const useHasSelectedSession = () =>
+  useUIStore((s) => s.selectedSession !== null);
+
+export const useHasSelectedRepo = () =>
+  useUIStore((s) => s.selectedRepo !== null);
+
+// Actions selector (stable reference)
+export const useUIActions = () =>
+  useUIStore(
+    useShallow((s) => ({
+      openApprovalDrawer: s.openApprovalDrawer,
+      closeApprovalDrawer: s.closeApprovalDrawer,
+      setApprovalDrawerOpen: s.setApprovalDrawerOpen,
+      selectAgent: s.selectAgent,
+      selectSession: s.selectSession,
+      openMobileSidebar: s.openMobileSidebar,
+      closeMobileSidebar: s.closeMobileSidebar,
+      setMobileSidebarOpen: s.setMobileSidebarOpen,
+      selectRepo: s.selectRepo,
+      openCreateAgentDialog: s.openCreateAgentDialog,
+      closeCreateAgentDialog: s.closeCreateAgentDialog,
+      setCreateAgentDialogOpen: s.setCreateAgentDialogOpen,
+      openTerminalDrawer: s.openTerminalDrawer,
+      closeTerminalDrawer: s.closeTerminalDrawer,
+      setTerminalDrawerOpen: s.setTerminalDrawerOpen,
+      resetSelections: s.resetSelections,
+    })),
+  );

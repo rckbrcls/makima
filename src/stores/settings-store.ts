@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { useShallow } from "zustand/react/shallow";
 import { Store } from "@tauri-apps/plugin-store";
 import type { Provider } from "@/lib/provider-types";
 import type { AuthSourcePreference } from "@/lib/auth-types";
@@ -296,3 +297,66 @@ export const useSettingsStore = create<SettingsStore>()(
 // Hook to wait for hydration
 export const useSettingsHydrated = () =>
   useSettingsStore((state) => state._hasHydrated);
+
+// ============================================================================
+// Atomic Selectors - Fine-grained subscriptions for optimal re-renders
+// ============================================================================
+
+// Mode selectors
+export const useMode = () => useSettingsStore((s) => s.mode);
+
+export const useIsSafeMode = () => useSettingsStore((s) => s.mode === "safe");
+
+export const useIsAutoMode = () => useSettingsStore((s) => s.mode === "auto");
+
+// Preference selectors
+export const useAutoApproveReadOnly = () =>
+  useSettingsStore((s) => s.preferences.autoApproveReadOnly);
+
+export const useAutoApproveLowRisk = () =>
+  useSettingsStore((s) => s.preferences.autoApproveLowRisk);
+
+export const useCompactMode = () =>
+  useSettingsStore((s) => s.preferences.compactMode);
+
+export const useShowEventNotifications = () =>
+  useSettingsStore((s) => s.preferences.showEventNotifications);
+
+export const useDefaultProvider = () =>
+  useSettingsStore((s) => s.preferences.defaultProvider);
+
+export const useDefaultModel = () =>
+  useSettingsStore((s) => s.preferences.defaultModel);
+
+export const usePreferences = () => useSettingsStore((s) => s.preferences);
+
+// Provider config selectors
+export const useOllamaConfig = () =>
+  useSettingsStore((s) => s.providers.ollama);
+
+export const useOpenAIConfig = () =>
+  useSettingsStore((s) => s.providers.openai);
+
+export const useAnthropicConfig = () =>
+  useSettingsStore((s) => s.providers.anthropic);
+
+export const useOpenAIAuthPreference = () =>
+  useSettingsStore((s) => s.providers.openai.preferredAuthSource);
+
+export const useAnthropicAuthPreference = () =>
+  useSettingsStore((s) => s.providers.anthropic.preferredAuthSource);
+
+export const useProviders = () => useSettingsStore((s) => s.providers);
+
+// Actions selector (stable reference)
+export const useSettingsActions = () =>
+  useSettingsStore(
+    useShallow((s) => ({
+      setMode: s.setMode,
+      toggleMode: s.toggleMode,
+      setPreference: s.setPreference,
+      setPreferences: s.setPreferences,
+      setProviderConfig: s.setProviderConfig,
+      resetSettings: s.resetSettings,
+    })),
+  );
