@@ -10,6 +10,12 @@ import {
 
 import { GitBranch, Terminal } from "lucide-react";
 
+import { Kbd } from "@/components/ui/kbd";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { AddRepositoryDialog } from "./add-repository-dialog";
 import { GitChangesCard } from "./git-changes-card";
 import { RepositorySidebar } from "./repository-sidebar";
@@ -324,6 +330,25 @@ export function CodeTabWorkspace() {
     }
   }, []);
 
+  // Keyboard shortcuts for panels
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command + J for Terminal
+      if (e.metaKey && !e.altKey && e.code === "KeyJ") {
+        e.preventDefault();
+        toggleTerminal();
+      }
+      // Command + Option + B for Git
+      if (e.metaKey && e.altKey && e.code === "KeyB") {
+        e.preventDefault();
+        toggleGitChanges();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleTerminal, toggleGitChanges]);
+
   // Update composer rows
   useEffect(() => {
     const lines = composerValue.split("\n").length;
@@ -598,30 +623,44 @@ export function CodeTabWorkspace() {
                 <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                   {/* Toggle buttons at top-right */}
                   <div className="absolute top-3 right-3 z-10 flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      aria-expanded={!isTerminalCollapsed}
-                      onClick={toggleTerminal}
-                      title={
-                        isTerminalCollapsed ? "Show Terminal" : "Hide Terminal"
-                      }
-                    >
-                      <Terminal className="size-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      aria-expanded={!isGitChangesCollapsed}
-                      onClick={toggleGitChanges}
-                      title={
-                        isGitChangesCollapsed
-                          ? "Show Git Changes"
-                          : "Hide Git Changes"
-                      }
-                    >
-                      <GitBranch className="size-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          aria-expanded={!isTerminalCollapsed}
+                          onClick={toggleTerminal}
+                        >
+                          <Terminal className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <span className="flex items-center gap-2">
+                          {isTerminalCollapsed ? "Show Terminal" : "Hide Terminal"}
+                          <Kbd>⌘J</Kbd>
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon-sm"
+                          aria-expanded={!isGitChangesCollapsed}
+                          onClick={toggleGitChanges}
+                        >
+                          <GitBranch className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <span className="flex items-center gap-2">
+                          {isGitChangesCollapsed
+                            ? "Show Git Changes"
+                            : "Hide Git Changes"}
+                          <Kbd>⌘⌥B</Kbd>
+                        </span>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
 
                   <ConversationThread
