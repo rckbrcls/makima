@@ -32,22 +32,21 @@ export function useTerminal(options: TerminalOptions = {}) {
 
   const spawn = useCallback(
     async (cwd?: string, cols?: number, rows?: number): Promise<PtySession | null> => {
-      setError(null)
-      try {
-        const result = await invoke<PtySessionDb>('pty_spawn', {
-          cwd: cwd ?? optionsRef.current.cwd,
-          cols: cols ?? optionsRef.current.cols ?? 80,
-          rows: rows ?? optionsRef.current.rows ?? 24,
-        })
-        const ptySession = mapPtySession(result)
-        setSession(ptySession)
-        setIsConnected(true)
+      // Clean up previous session if exists
+      unlistenOutputRef.current?.()
+      unlistenExitRef.current?.()
 
-        // Set up event listeners
+      setError(null)
+
+      // Generate session ID on frontend
+      const sessionId = `pty-${Date.now()}`
+
+      try {
+        // Set up event listeners BEFORE spawning to avoid race condition
         unlistenOutputRef.current = await listen<PtyOutputPayload>(
           'pty:output',
           (event) => {
-            if (event.payload.sessionId === ptySession.sessionId) {
+            if (event.payload.sessionId === sessionId) {
               optionsRef.current.onOutput?.(event.payload.data)
             }
           },
@@ -56,7 +55,7 @@ export function useTerminal(options: TerminalOptions = {}) {
         unlistenExitRef.current = await listen<PtyExitPayload>(
           'pty:exit',
           (event) => {
-            if (event.payload.sessionId === ptySession.sessionId) {
+            if (event.payload.sessionId === sessionId) {
               setIsConnected(false)
               setSession(null)
               optionsRef.current.onExit?.(event.payload.exitCode ?? undefined)
@@ -64,8 +63,24 @@ export function useTerminal(options: TerminalOptions = {}) {
           },
         )
 
+        // Now spawn the PTY with the known session ID
+        const result = await invoke<PtySessionDb>('pty_spawn', {
+          sessionId: sessionId,
+          cwd: cwd ?? optionsRef.current.cwd,
+          cols: cols ?? optionsRef.current.cols ?? 80,
+          rows: rows ?? optionsRef.current.rows ?? 24,
+        })
+        const ptySession = mapPtySession(result)
+        setSession(ptySession)
+        setIsConnected(true)
+
         return ptySession
       } catch (err) {
+        // Clean up listeners on error
+        unlistenOutputRef.current?.()
+        unlistenExitRef.current?.()
+        unlistenOutputRef.current = null
+        unlistenExitRef.current = null
         setError(err instanceof Error ? err.message : String(err))
         return null
       }
@@ -75,7 +90,9 @@ export function useTerminal(options: TerminalOptions = {}) {
 
   const write = useCallback(
     async (data: string): Promise<boolean> => {
-      if (!session) return false
+      if (!session) {
+        return false
+      }
       try {
         await invoke('pty_write', {
           sessionId: session.sessionId,
@@ -108,6 +125,12 @@ export function useTerminal(options: TerminalOptions = {}) {
     [session],
   )
 
+  // Keep session ref for cleanup
+  const sessionRef = useRef<PtySession | null>(null)
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
   const kill = useCallback(async (): Promise<boolean> => {
     if (!session) return false
     try {
@@ -123,16 +146,16 @@ export function useTerminal(options: TerminalOptions = {}) {
     }
   }, [session])
 
-  // Cleanup on unmount
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
       unlistenOutputRef.current?.()
       unlistenExitRef.current?.()
-      if (session) {
-        invoke('pty_kill', { sessionId: session.sessionId }).catch(() => {})
+      if (sessionRef.current) {
+        invoke('pty_kill', { sessionId: sessionRef.current.sessionId }).catch(() => {})
       }
     }
-  }, [session])
+  }, []) // Empty deps - only runs on unmount
 
   return {
     session,

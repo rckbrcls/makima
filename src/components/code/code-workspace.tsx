@@ -38,14 +38,14 @@ export function CodeWorkspace({
   className,
 }: CodeWorkspaceProps) {
   return (
-    <div className={cn('flex h-full flex-col', className)}>
+    <div className={cn('flex h-full flex-col relative', className)}>
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left side: Chat + Terminal */}
         <ResizablePanel defaultSize={55} minSize={30}>
           <ResizablePanelGroup direction="vertical">
             {/* Chat area */}
             <ResizablePanel defaultSize={60} minSize={20}>
-              <div className="flex h-full flex-col overflow-hidden">
+              <div className="relative flex min-h-0 flex-1 flex-col">
                 <ConversationThread
                   activeConversation={conversation}
                   onViewRun={onViewRun}
@@ -68,7 +68,7 @@ export function CodeWorkspace({
 
             {/* Terminal */}
             <ResizablePanel defaultSize={40} minSize={15}>
-              <TerminalCard cwd={repoPath} className="h-full rounded-none border-0" />
+              <TerminalCard cwd={repoPath} className="h-full" />
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
@@ -77,7 +77,7 @@ export function CodeWorkspace({
 
         {/* Right side: Git Changes */}
         <ResizablePanel defaultSize={45} minSize={25}>
-          <GitChangesCard repoPath={repoPath} className="h-full rounded-none border-0 border-l border-zinc-800" />
+          <GitChangesCard repoPath={repoPath} className="h-full border-l border-zinc-800" />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

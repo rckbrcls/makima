@@ -28,10 +28,6 @@ export function ConversationComposer({
 }: ConversationComposerProps) {
   const isDisabled =
     hasRunningExecution || !composerValue.trim() || !isModelSelected;
-  console.log("[Composer] hasRunningExecution:", hasRunningExecution);
-  console.log("[Composer] composerValue:", composerValue);
-  console.log("[Composer] isModelSelected:", isModelSelected);
-  console.log("[Composer] isDisabled:", isDisabled);
 
   return (
     <div className="bg-card border-border absolute right-4 bottom-4 left-4 z-20 flex flex-col gap-2 rounded-2xl border p-2">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTerminal } from '@/hooks/use-terminal'
 import { cn } from '@/lib/utils'
 
@@ -18,8 +18,19 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
   const fitAddonRef = useRef<FitAddonType | null>(null)
   const isInitializedRef = useRef(false)
   const [isLoaded, setIsLoaded] = useState(false)
+  const onReadyRef = useRef(onReady)
+  const cwdRef = useRef(cwd)
 
-  const { spawn, write, resize, isConnected, error } = useTerminal({
+  // Keep refs updated
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
+
+  useEffect(() => {
+    cwdRef.current = cwd
+  }, [cwd])
+
+  const { spawn, write, resize, kill, isConnected, error } = useTerminal({
     cwd,
     onOutput: useCallback((data: string) => {
       terminalRef.current?.write(data)
@@ -29,10 +40,21 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
     }, []),
   })
 
+  // Store spawn/write in refs to avoid effect dependencies
+  const spawnRef = useRef(spawn)
+  const writeRef = useRef(write)
+  const killRef = useRef(kill)
+
+  useEffect(() => {
+    spawnRef.current = spawn
+    writeRef.current = write
+    killRef.current = kill
+  }, [spawn, write, kill])
+
+  // Initialize xterm
   useEffect(() => {
     if (!containerRef.current || isInitializedRef.current) return
 
-    // Dynamic import of xterm and addons
     const initTerminal = async () => {
       try {
         const [xtermModule, fitAddonModule, webLinksAddonModule] = await Promise.all([
@@ -41,7 +63,6 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
           import('@xterm/addon-web-links'),
         ])
 
-        // Also import CSS
         await import('@xterm/xterm/css/xterm.css')
 
         const { Terminal } = xtermModule
@@ -55,10 +76,10 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
           fontSize: 13,
           fontFamily: 'JetBrains Mono Variable, Menlo, Monaco, monospace',
           theme: {
-            background: 'transparent',
+            background: '#09090b',
             foreground: '#e4e4e7',
             cursor: '#e4e4e7',
-            cursorAccent: '#18181b',
+            cursorAccent: '#09090b',
             selectionBackground: '#3f3f46',
             black: '#18181b',
             red: '#f87171',
@@ -77,7 +98,6 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
             brightCyan: '#67e8f9',
             brightWhite: '#fafafa',
           },
-          allowTransparency: true,
           scrollback: 10000,
         })
 
@@ -88,7 +108,6 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
         terminal.loadAddon(webLinksAddon)
         terminal.open(containerRef.current)
 
-        // Fit after a short delay to ensure container is sized
         requestAnimationFrame(() => {
           fitAddon.fit()
         })
@@ -100,14 +119,14 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
 
         // Handle user input
         terminal.onData((data) => {
-          write(data)
+          writeRef.current(data)
         })
 
-        // Spawn the PTY session
+        // Spawn PTY session
         const cols = terminal.cols
         const rows = terminal.rows
-        spawn(cwd, cols, rows).then(() => {
-          onReady?.()
+        spawnRef.current(cwdRef.current, cols, rows).then(() => {
+          onReadyRef.current?.()
         })
       } catch (err) {
         console.error('Failed to load terminal:', err)
@@ -124,10 +143,26 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
         isInitializedRef.current = false
       }
     }
-  }, [cwd, spawn, write, onReady])
+  }, [])
+
+  // Handle cwd changes - respawn PTY
+  useEffect(() => {
+    if (!isLoaded || !cwd) return
+
+    // Kill existing session and spawn new one
+    terminalRef.current?.clear()
+
+    killRef.current().then(() => {
+      const cols = terminalRef.current?.cols ?? 80
+      const rows = terminalRef.current?.rows ?? 24
+      spawnRef.current(cwd, cols, rows)
+    })
+  }, [cwd, isLoaded])
 
   // Handle resize
   useEffect(() => {
+    if (!isLoaded) return
+
     const handleResize = () => {
       if (fitAddonRef.current && terminalRef.current) {
         fitAddonRef.current.fit()
@@ -149,39 +184,33 @@ export function TerminalCard({ cwd, className, onReady }: TerminalCardProps) {
       resizeObserver.disconnect()
       window.removeEventListener('resize', handleResize)
     }
-  }, [resize])
+  }, [isLoaded, resize])
 
   return (
     <div
       className={cn(
-        'bg-zinc-950 flex flex-col overflow-hidden rounded-lg border border-zinc-800',
+        'bg-[#09090B] flex flex-col overflow-hidden rounded-xl border border-border',
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <div className="size-3 rounded-full bg-red-500" />
-            <div className="size-3 rounded-full bg-yellow-500" />
-            <div className="size-3 rounded-full bg-green-500" />
-          </div>
-          <span className="text-xs text-zinc-400">Terminal</span>
-        </div>
+      <div className="flex items-center justify-between border-b border-border  px-3 py-2">
         {isConnected ? (
           <span className="flex items-center gap-1.5 text-xs text-emerald-400">
             <span className="size-1.5 rounded-full bg-emerald-400" />
             Connected
           </span>
         ) : (
-          <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-            <span className="size-1.5 rounded-full bg-zinc-500" />
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="size-1.5 rounded-full bg-muted-foreground" />
             Disconnected
           </span>
         )}
       </div>
+
       <div ref={containerRef} className="flex-1 p-2" />
+
       {error && (
-        <div className="border-t border-zinc-800 bg-red-950 px-3 py-1 text-xs text-red-400">
+        <div className="border-t border-border bg-destructive/10 px-3 py-1 text-xs text-destructive">
           {error}
         </div>
       )}

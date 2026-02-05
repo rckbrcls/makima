@@ -50,7 +50,6 @@ export const useCommandStore = create<CommandStore>((set, get) => ({
 
   refreshState: async () => {
     // Mock refresh - no-op or re-fetch from "backend"
-    console.log("Refreshed state (mock)");
   },
 
   runCommand: async (request: RunCommandInput) => {

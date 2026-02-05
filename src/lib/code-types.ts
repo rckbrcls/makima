@@ -78,7 +78,7 @@ export interface FileDiffDb {
 }
 
 export interface PtySessionDb {
-  session_id: string
+  sessionId: string
   pid: number
 }
 
@@ -125,7 +125,7 @@ export function mapFileDiff(db: FileDiffDb): FileDiff {
 
 export function mapPtySession(db: PtySessionDb): PtySession {
   return {
-    sessionId: db.session_id,
+    sessionId: db.sessionId,
     pid: db.pid,
   }
 }

@@ -7,14 +7,18 @@ use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Mutex;
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn pty_spawn(
     app: AppHandle,
     state: State<'_, PtyState>,
+    sessionId: Option<String>,
     cwd: Option<String>,
     cols: Option<u16>,
     rows: Option<u16>,
 ) -> Result<PtySession, String> {
-    let session_id = format!("pty-{}", chrono::Utc::now().timestamp_millis());
+    log::info!("PTY spawn called with sessionId: {:?}", sessionId);
+    let session_id = sessionId.unwrap_or_else(|| format!("pty-{}", chrono::Utc::now().timestamp_millis()));
+    log::info!("PTY spawn using session_id: {}", session_id);
     let cols = cols.unwrap_or(80);
     let rows = rows.unwrap_or(24);
 

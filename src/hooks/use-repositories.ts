@@ -12,15 +12,12 @@ export function useRepositories() {
   const [error, setError] = useState<string | null>(null)
 
   const loadRepositories = useCallback(async () => {
-    console.log('[useRepositories] loadRepositories called')
     setIsLoading(true)
     setError(null)
     try {
       const result = await invoke<RepositoryDb[]>('db_list_repositories')
-      console.log('[useRepositories] loadRepositories result:', result)
       setRepositories(result.map(mapRepository))
     } catch (err) {
-      console.error('[useRepositories] loadRepositories error:', err)
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setIsLoading(false)
@@ -48,7 +45,6 @@ export function useRepositories() {
       branch?: string,
       tech?: string[],
     ): Promise<Repository | null> => {
-      console.log('[useRepositories] createRepository called:', { name, path, branch, tech })
       try {
         const result = await invoke<RepositoryDb>('db_create_repository', {
           name,
@@ -56,15 +52,10 @@ export function useRepositories() {
           branch,
           tech,
         })
-        console.log('[useRepositories] createRepository result:', result)
         const repo = mapRepository(result)
-        setRepositories((prev) => {
-          console.log('[useRepositories] Updating repositories, prev:', prev.length, 'new:', repo.id)
-          return [repo, ...prev]
-        })
+        setRepositories((prev) => [repo, ...prev])
         return repo
       } catch (err) {
-        console.error('[useRepositories] createRepository error:', err)
         setError(err instanceof Error ? err.message : String(err))
         return null
       }

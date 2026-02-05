@@ -51,7 +51,6 @@ export function AddRepositoryDialog({
   }, [name])
 
   const handleSubmit = useCallback(async () => {
-    console.log('[AddRepositoryDialog] handleSubmit called:', { name, path, branch })
     if (!name.trim() || !path.trim()) {
       setError('Name and path are required')
       return
@@ -61,16 +60,13 @@ export function AddRepositoryDialog({
     setError(null)
 
     try {
-      console.log('[AddRepositoryDialog] Calling onAdd...')
       await onAdd(name.trim(), path.trim(), branch.trim() || undefined)
-      console.log('[AddRepositoryDialog] onAdd succeeded')
       // Reset form
       setName('')
       setPath('')
       setBranch('main')
       onOpenChange(false)
     } catch (err) {
-      console.error('[AddRepositoryDialog] onAdd error:', err)
       setError(err instanceof Error ? err.message : 'Failed to add repository')
     } finally {
       setIsLoading(false)

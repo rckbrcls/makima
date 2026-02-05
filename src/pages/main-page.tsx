@@ -311,8 +311,8 @@ export function MainPage() {
     }
   }, [conversations, createConversation]);
 
-  const handleRenameConversation = useCallback((id: string) => {
-    console.log("Rename:", id);
+  const handleRenameConversation = useCallback((_id: string) => {
+    // TODO: implement rename
   }, []);
 
   const handleDeleteConversation = useCallback(
@@ -354,33 +354,12 @@ export function MainPage() {
     }
   };
 
-  const handleArchiveConversation = (id: string) => {
+  const handleArchiveConversation = (_id: string) => {
     // TODO: Implementar lógica de arquivamento (mover para lista arquivada)
-    console.log("Archive:", id);
   };
 
   const handleSendMessage = useCallback(async () => {
-    console.log("[handleSendMessage] Starting...");
-    console.log(
-      "[handleSendMessage] activeConversation:",
-      !!activeConversation,
-    );
-    console.log(
-      "[handleSendMessage] composerValue:",
-      composerValue.trim().length > 0,
-    );
-    console.log("[handleSendMessage] model:", model);
-    console.log("[handleSendMessage] provider:", provider);
-    console.log("[handleSendMessage] auth.status:", auth.status);
-    console.log(
-      "[handleSendMessage] auth.status?.anthropic:",
-      auth.status?.anthropic,
-    );
-
     if (!activeConversation || !composerValue.trim()) {
-      console.log(
-        "[handleSendMessage] BLOCKED: no conversation or empty message",
-      );
       return;
     }
     // Only block if this specific conversation is already streaming
@@ -388,31 +367,22 @@ export function MainPage() {
       hasRunningExecution ||
       streamingStatesRef.current.has(activeConversation.id)
     ) {
-      console.log("[handleSendMessage] BLOCKED: already streaming");
       return;
     }
     if (!model) {
-      console.log("[handleSendMessage] BLOCKED: no model selected");
       return;
     }
 
     // Check provider availability
     if (provider === "ollama" && !connectionState.isConnected) {
-      console.log("[handleSendMessage] BLOCKED: ollama not connected");
       return;
     }
     if (provider === "openai" && !auth.status?.openai.is_configured) {
-      console.log("[handleSendMessage] BLOCKED: openai not configured");
       return;
     }
     if (provider === "anthropic" && !auth.status?.anthropic.is_configured) {
-      console.log(
-        "[handleSendMessage] BLOCKED: anthropic not configured, auth.status.anthropic=",
-        auth.status?.anthropic,
-      );
       return;
     }
-    console.log("[handleSendMessage] All checks passed, proceeding...");
 
     const now = Date.now();
     const messageId = buildMessageId();
@@ -708,100 +678,100 @@ export function MainPage() {
             <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
           </aside>
 
-          <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
-            {/* Code Tab Workspace */}
-            {isCodeTab ? (
-              <CodeTabWorkspace />
-            ) : (
-              <>
-                {/* <ConversationHeader
+          {/* Code Tab Workspace */}
+          {isCodeTab ? (
+            <CodeTabWorkspace />
+          ) : (
+            <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
+
+              {/* <ConversationHeader
                   activeConversation={activeConversation}
                   isConfigOpen={isConfigOpen}
                   onToggleConfig={() => setIsConfigOpen((prev) => !prev)}
                 /> */}
 
-                {isConfigOpen ? (
-                  <div className="flex-1 overflow-y-auto px-6 py-4">
-                    <ConfigPanel
-                      model={model}
-                      setModel={setModel}
-                      temperature={temperature}
-                      setTemperature={setTemperature}
-                      maxTokens={maxTokens}
-                      setMaxTokens={setMaxTokens}
-                      contextWindow={contextWindow}
-                      setContextWindow={setContextWindow}
-                      runtimeConcurrency={runtimeConcurrency}
-                      setRuntimeConcurrency={setRuntimeConcurrency}
-                      executionTimeout={executionTimeout}
-                      setExecutionTimeout={setExecutionTimeout}
-                      gpuEnabled={gpuEnabled}
-                      setGpuEnabled={setGpuEnabled}
-                      logLevel={logLevel}
-                      setLogLevel={setLogLevel}
-                      traceSample={traceSample}
-                      setTraceSample={setTraceSample}
-                      tools={tools}
-                      handleToolChange={handleToolChange}
-                      channels={channels}
-                      handleChannelChange={handleChannelChange}
-                      plugins={plugins}
-                      handlePluginChange={handlePluginChange}
-                      safety={safety}
-                      handleSafetyChange={handleSafetyChange}
-                      automation={automation}
-                      handleAutomationChange={handleAutomationChange}
-                      memory={memory}
-                      handleMemoryChange={handleMemoryChange}
-                      integrations={integrations}
-                      handleIntegrationChange={handleIntegrationChange}
-                      notifications={notifications}
-                      handleNotificationChange={handleNotificationChange}
-                    />
-                  </div>
-                ) : null}
+              {isConfigOpen ? (
+                <div className="flex-1 overflow-y-auto px-6 py-4">
+                  <ConfigPanel
+                    model={model}
+                    setModel={setModel}
+                    temperature={temperature}
+                    setTemperature={setTemperature}
+                    maxTokens={maxTokens}
+                    setMaxTokens={setMaxTokens}
+                    contextWindow={contextWindow}
+                    setContextWindow={setContextWindow}
+                    runtimeConcurrency={runtimeConcurrency}
+                    setRuntimeConcurrency={setRuntimeConcurrency}
+                    executionTimeout={executionTimeout}
+                    setExecutionTimeout={setExecutionTimeout}
+                    gpuEnabled={gpuEnabled}
+                    setGpuEnabled={setGpuEnabled}
+                    logLevel={logLevel}
+                    setLogLevel={setLogLevel}
+                    traceSample={traceSample}
+                    setTraceSample={setTraceSample}
+                    tools={tools}
+                    handleToolChange={handleToolChange}
+                    channels={channels}
+                    handleChannelChange={handleChannelChange}
+                    plugins={plugins}
+                    handlePluginChange={handlePluginChange}
+                    safety={safety}
+                    handleSafetyChange={handleSafetyChange}
+                    automation={automation}
+                    handleAutomationChange={handleAutomationChange}
+                    memory={memory}
+                    handleMemoryChange={handleMemoryChange}
+                    integrations={integrations}
+                    handleIntegrationChange={handleIntegrationChange}
+                    notifications={notifications}
+                    handleNotificationChange={handleNotificationChange}
+                  />
+                </div>
+              ) : null}
 
-                {!isConfigOpen ? (
-                  <div className="relative flex min-h-0 flex-1 flex-col">
-                    <ConversationThread
-                      activeConversation={activeConversation}
-                      onViewRun={setActiveRunId}
-                    />
-                    <ConversationComposer
-                      composerValue={composerValue}
-                      composerRows={composerRows}
-                      hasRunningExecution={hasRunningExecution}
-                      inputState={inputState}
-                      onComposerChange={setComposerValue}
-                      onSendMessage={handleSendMessage}
-                      onNewConversation={handleNewConversation}
-                      isModelSelected={Boolean(model)}
-                      modelSelector={
-                        <ModelSelector
-                          ollamaModels={ollamaModels}
-                          selectedModel={model}
-                          selectedProvider={provider}
-                          onSelectModel={handleSelectModel}
-                          isOllamaConnected={connectionState.isConnected}
-                          isLoadingModels={isLoadingModels}
-                          pullingModel={pullingModel}
-                          pullProgress={pullProgress}
-                          onPullModel={pullModel}
-                          onDeleteModel={deleteModel}
-                          onRefresh={fetchModels}
-                          authStatus={auth.status}
-                          openaiAuthPreference={providers.openai.preferredAuthSource}
-                          anthropicAuthPreference={
-                            providers.anthropic.preferredAuthSource
-                          }
-                        />
-                      }
-                    />
-                  </div>
-                ) : null}
-              </>
-            )}
-          </section>
+              {!isConfigOpen ? (
+                <div className="relative flex min-h-0 flex-1 flex-col">
+                  <ConversationThread
+                    activeConversation={activeConversation}
+                    onViewRun={setActiveRunId}
+                  />
+                  <ConversationComposer
+                    composerValue={composerValue}
+                    composerRows={composerRows}
+                    hasRunningExecution={hasRunningExecution}
+                    inputState={inputState}
+                    onComposerChange={setComposerValue}
+                    onSendMessage={handleSendMessage}
+                    onNewConversation={handleNewConversation}
+                    isModelSelected={Boolean(model)}
+                    modelSelector={
+                      <ModelSelector
+                        ollamaModels={ollamaModels}
+                        selectedModel={model}
+                        selectedProvider={provider}
+                        onSelectModel={handleSelectModel}
+                        isOllamaConnected={connectionState.isConnected}
+                        isLoadingModels={isLoadingModels}
+                        pullingModel={pullingModel}
+                        pullProgress={pullProgress}
+                        onPullModel={pullModel}
+                        onDeleteModel={deleteModel}
+                        onRefresh={fetchModels}
+                        authStatus={auth.status}
+                        openaiAuthPreference={providers.openai.preferredAuthSource}
+                        anthropicAuthPreference={
+                          providers.anthropic.preferredAuthSource
+                        }
+                      />
+                    }
+                  />
+                </div>
+              ) : null}
+            </section>
+
+          )}
         </div>
 
         <RunDetailsModal

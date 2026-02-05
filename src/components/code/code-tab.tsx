@@ -123,15 +123,12 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
 
   const handleAddRepository = useCallback(
     async (name: string, path: string, branch?: string) => {
-      console.log('[CodeTabProvider] handleAddRepository called:', { name, path, branch })
       try {
         const repo = await createRepository(name, path, branch)
-        console.log('[CodeTabProvider] handleAddRepository result:', repo)
         if (repo) {
           setActiveRepositoryId(repo.id)
         }
       } catch (err) {
-        console.error('[CodeTabProvider] handleAddRepository error:', err)
         throw err
       }
     },
@@ -356,7 +353,7 @@ export function CodeTabWorkspace() {
 
     const nextTitle =
       activeConversation.title === 'New conversation' ||
-      activeConversation.items.length === 0
+        activeConversation.items.length === 0
         ? userContent.slice(0, 32)
         : activeConversation.title
 
@@ -535,47 +532,49 @@ export function CodeTabWorkspace() {
         <ResizablePanelGroup direction="vertical">
           {/* Chat area */}
           <ResizablePanel defaultSize={60} minSize={20}>
-            <div className="flex h-full flex-col overflow-hidden">
-              <ConversationThread
-                activeConversation={activeConversation}
-                onViewRun={() => {}}
-              />
-              <ConversationComposer
-                composerValue={composerValue}
-                composerRows={composerRows}
-                hasRunningExecution={hasRunningExecution}
-                inputState={inputState}
-                onComposerChange={setComposerValue}
-                onSendMessage={handleSendMessage}
-                onNewConversation={() => ctx.handleNewConversation()}
-                isModelSelected={Boolean(model)}
-                modelSelector={
-                  <ModelSelector
-                    ollamaModels={ollamaModels}
-                    selectedModel={model}
-                    selectedProvider={provider}
-                    onSelectModel={handleSelectModel}
-                    isOllamaConnected={connectionState.isConnected}
-                    isLoadingModels={isLoadingModels}
-                    pullingModel={pullingModel}
-                    pullProgress={pullProgress}
-                    onPullModel={pullModel}
-                    onDeleteModel={deleteModel}
-                    onRefresh={fetchModels}
-                    authStatus={auth.status}
-                    openaiAuthPreference={providers.openai.preferredAuthSource}
-                    anthropicAuthPreference={providers.anthropic.preferredAuthSource}
-                  />
-                }
-              />
-            </div>
+            <section className="border-border bg-background my-3 mr-3 flex min-w-0 flex-1 relative flex-col overflow-hidden rounded-3xl border">
+              <div className="flex h-full flex-col relative overflow-hidden">
+                <ConversationThread
+                  activeConversation={activeConversation}
+                  onViewRun={() => { }}
+                />
+                <ConversationComposer
+                  composerValue={composerValue}
+                  composerRows={composerRows}
+                  hasRunningExecution={hasRunningExecution}
+                  inputState={inputState}
+                  onComposerChange={setComposerValue}
+                  onSendMessage={handleSendMessage}
+                  onNewConversation={() => ctx.handleNewConversation()}
+                  isModelSelected={Boolean(model)}
+                  modelSelector={
+                    <ModelSelector
+                      ollamaModels={ollamaModels}
+                      selectedModel={model}
+                      selectedProvider={provider}
+                      onSelectModel={handleSelectModel}
+                      isOllamaConnected={connectionState.isConnected}
+                      isLoadingModels={isLoadingModels}
+                      pullingModel={pullingModel}
+                      pullProgress={pullProgress}
+                      onPullModel={pullModel}
+                      onDeleteModel={deleteModel}
+                      onRefresh={fetchModels}
+                      authStatus={auth.status}
+                      openaiAuthPreference={providers.openai.preferredAuthSource}
+                      anthropicAuthPreference={providers.anthropic.preferredAuthSource}
+                    />
+                  }
+                />
+              </div>
+            </section>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
           {/* Terminal */}
           <ResizablePanel defaultSize={40} minSize={15}>
-            <TerminalCard cwd={repoPath} className="h-full rounded-none border-0" />
+            <TerminalCard cwd={repoPath} className="h-full" />
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>
@@ -584,7 +583,7 @@ export function CodeTabWorkspace() {
 
       {/* Right side: Git Changes */}
       <ResizablePanel defaultSize={45} minSize={25}>
-        <GitChangesCard repoPath={repoPath} className="h-full rounded-none border-0 border-l border-zinc-800" />
+        <GitChangesCard repoPath={repoPath} className="h-full border-l border-zinc-800" />
       </ResizablePanel>
     </ResizablePanelGroup>
   )
