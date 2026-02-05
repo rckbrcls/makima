@@ -68,8 +68,6 @@ export function CodeWorkspace({
               </div>
             </ResizablePanel>
 
-            <ResizableHandle withHandle />
-
             {/* Terminal */}
             <ResizablePanel defaultSize={40} minSize={15}>
               <TerminalCard cwd={repoPath} className="h-full" />

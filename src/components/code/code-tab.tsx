@@ -587,14 +587,14 @@ export function CodeTabWorkspace() {
   }
 
   return (
-    <section className="my-3 mr-3 flex h-full w-[calc(100vw-324px)] flex-col overflow-hidden">
-      <ResizablePanelGroup direction="horizontal" className="h-full">
+    <section className="my-3 mr-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <ResizablePanelGroup direction="horizontal" className="h-full w-full">
         {/* Left side: Chat + Terminal */}
         <ResizablePanel defaultSize={100} minSize={30}>
           <ResizablePanelGroup direction="vertical" className="h-full">
             {/* Chat area - takes full space when terminal collapsed */}
-            <ResizablePanel defaultSize={100} minSize={30}>
-              <div className="border-border bg-background relative flex h-full flex-col overflow-hidden rounded-3xl border">
+            <ResizablePanel defaultSize={70} minSize={30}>
+              <div className="border-border bg-background relative flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border">
                 <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                   {/* Toggle buttons at top-right */}
                   <div className="absolute top-3 right-3 z-10 flex gap-2">
@@ -664,7 +664,7 @@ export function CodeTabWorkspace() {
               </div>
             </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle />
 
           {/* Terminal - collapsible, starts collapsed */}
           <ResizablePanel
@@ -679,7 +679,7 @@ export function CodeTabWorkspace() {
         </ResizablePanelGroup>
       </ResizablePanel>
 
-      <ResizableHandle withHandle />
+      <ResizableHandle />
 
       {/* Right side: Git Changes - collapsible, starts collapsed */}
       <ResizablePanel

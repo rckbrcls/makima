@@ -57,7 +57,7 @@ export function MainPage() {
   return (
     <ChatTabProvider>
       <CodeTabProvider>
-        <div className="text-foreground relative h-full min-h-0 overflow-hidden">
+        <div className="text-foreground relative h-full max-h-dvh min-h-0 w-full max-w-[100vw] overflow-hidden">
           <TextureOverlay texture="grid" className="mix-blend-overlay" />
           <div className="relative z-10 flex h-full min-h-0">
             {/* Sidebar */}
@@ -85,7 +85,9 @@ export function MainPage() {
             </aside>
 
             {/* Workspace */}
-            {renderWorkspace()}
+            <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+              {renderWorkspace()}
+            </main>
           </div>
 
           <RunDetailsModal activeRun={null} onClose={() => {}} />
