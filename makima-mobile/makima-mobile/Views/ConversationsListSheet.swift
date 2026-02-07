@@ -2,16 +2,17 @@
 //  ConversationsListSheet.swift
 //  makima-mobile
 //
-//  Conversations list used inside the side drawer.
-//
 
 import SwiftUI
 
-struct ConversationsListSheet: View {
+struct ConversationsTabView: View {
+    @Environment(AppState.self) private var appState
+
     @Bindable var viewModel: ConversationsViewModel
     let onSelect: (Conversation) -> Void
     let onNew: () -> Void
-    let close: () -> Void
+    var onOpenSettings: (() -> Void)?
+    var onOpenAuth: (() -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -21,7 +22,6 @@ struct ConversationsListSheet: View {
                         ForEach(section.conversations, id: \.id) { conversation in
                             Button {
                                 onSelect(conversation)
-                                close()
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
@@ -58,8 +58,6 @@ struct ConversationsListSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(.clear)
             .searchable(text: $viewModel.searchQuery, prompt: "Search conversations")
             .onChange(of: viewModel.searchQuery) { _, _ in
                 viewModel.load()
@@ -67,25 +65,48 @@ struct ConversationsListSheet: View {
             .navigationTitle("Conversations")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") {
-                        close()
+                if let onOpenSettings {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            onOpenSettings()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                        .accessibilityIdentifier("conversations.settings.button")
                     }
-                    .accessibilityIdentifier("drawer.close.button")
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         onNew()
-                        close()
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
-                    .accessibilityIdentifier("drawer.new-conversation.button")
+                    .accessibilityIdentifier("conversations.new.button")
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if !appState.supabase.isConfigured || !appState.supabase.isAuthenticated {
+                    HStack {
+                        Spacer()
+                        Button {
+                            onOpenAuth?()
+                        } label: {
+                            Label("Sign In", systemImage: "person.crop.circle")
+                                .font(.subheadline)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .accessibilityIdentifier("conversations.signin.button")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 6)
+                    .padding(.bottom, 10)
+                    .background(Color(.systemBackground))
                 }
             }
         }
-        .glassEffect(.regular)
     }
 
     private func statusDot(for status: String) -> some View {

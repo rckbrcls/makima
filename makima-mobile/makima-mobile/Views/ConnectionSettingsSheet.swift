@@ -9,10 +9,13 @@ import SwiftUI
 
 struct ConnectionSettingsSheet: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
 
     @State private var url = ""
     @State private var anonKey = ""
     @State private var isSaved = false
+
+    var showCloseButton = false
 
     var body: some View {
         List {
@@ -126,6 +129,15 @@ struct ConnectionSettingsSheet: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if showCloseButton {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
         .onAppear {
             url = appState.supabaseURL
             anonKey = appState.supabaseAnonKey

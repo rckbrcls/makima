@@ -2,9 +2,6 @@
 //  MainChatView.swift
 //  makima-mobile
 //
-//  Single-screen chat-centric view. Auth, pairing, and settings
-//  are accessible from toolbar and bottom bar.
-//
 
 import SwiftUI
 import SwiftData
@@ -13,181 +10,100 @@ struct MainChatView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
 
-    @State private var chatVM: ChatViewModel?
-    @State private var approvalVM: ApprovalViewModel?
-    @State private var conversationsVM = ConversationsViewModel()
-
-    @State private var showConversations = false
-    @State private var showAuth = false
-    @State private var showPair = false
+    @State private var shell = MobileShellViewModel()
 
     var body: some View {
-        NavigationStack {
-            SideDrawerView(isOpen: $showConversations, maxWidth: 360) {
-                ConversationsListSheet(
-                    viewModel: conversationsVM,
-                    onSelect: { conversation in
-                        conversationsVM.setActive(conversation)
-                        chatVM?.loadConversation(conversation, context: modelContext)
-                    },
-                    onNew: {
-                        let conv = conversationsVM.createConversation(
-                            sessionId: appState.relay.currentSessionId
-                        )
-                        chatVM?.loadConversation(conv, context: modelContext)
-                    },
-                    close: { showConversations = false }
-                )
-            } content: {
-                ZStack(alignment: .top) {
-                    Color(.systemBackground)
-                        .ignoresSafeArea()
-
-                    VStack {
-                        if let chatVM, !chatVM.messages.isEmpty {
-                            ChatThreadView(messages: chatVM.messages)
-                        } else {
-                            BlobEmptyStateView()
-                        }
+        TabView(selection: $shell.currentPage) {
+            ConversationsTabView(
+                viewModel: shell.conversationsVM,
+                onSelect: { conversation in
+                    shell.conversationsVM.setActive(conversation)
+                    shell.chatVM?.loadConversation(conversation, context: modelContext)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .chat
                     }
-
-                    if let approvalVM, !approvalVM.pendingApprovals.isEmpty {
-                        ApprovalBannerView(
-                            approvals: approvalVM.pendingApprovals,
-                            onApprove: { approval in
-                                Task { await approvalVM.approve(approval) }
-                            },
-                            onReject: { approval in
-                                Task { await approvalVM.reject(approval) }
-                            }
-                        )
+                },
+                onNew: {
+                    let conversation = shell.conversationsVM.createConversation(
+                        sessionId: appState.relay.currentSessionId
+                    )
+                    shell.chatVM?.loadConversation(conversation, context: modelContext)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .chat
                     }
-                }
-                .safeAreaInset(edge: .bottom) {
-                    bottomBar
-                }
-            }
-            .navigationTitle(chatVM?.currentConversation?.title ?? "Makima")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
-                            showConversations.toggle()
-                        }
-                        HapticFeedback.tap()
-                    } label: {
-                        Image(systemName: "sidebar.left")
-                    }
-                    .glassEffect(.regular.interactive())
-                    .accessibilityIdentifier("drawer.toggle.button")
-                }
-
-                ToolbarItem(placement: .principal) {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 8, height: 8)
-
-                        if let agent = appState.relay.activeAgentName {
-                            Text(agent)
-                                .font(.caption.bold())
-                        }
-                    }
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        ConnectionSettingsSheet()
-                    } label: {
-                        Image(systemName: "gear")
-                    }
-                    .glassEffect(.regular.interactive())
-                }
-            }
-            .sheet(isPresented: $showAuth) {
-                AuthSheetView()
-            }
-            .sheet(isPresented: $showPair) {
-                PairView()
-            }
-        }
-        .onAppear {
-            conversationsVM.bind(context: modelContext)
-
-            if chatVM == nil {
-                chatVM = ChatViewModel(relay: appState.relay)
-            }
-            if approvalVM == nil {
-                approvalVM = ApprovalViewModel(relay: appState.relay)
-            }
-
-            if let active = conversationsVM.activeConversation {
-                chatVM?.loadConversation(active, context: modelContext)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var bottomBar: some View {
-        if !appState.supabase.isConfigured || !appState.supabase.isAuthenticated {
-            VStack(spacing: 8) {
-                Button {
-                    showAuth = true
-                } label: {
-                    Label("Sign In to Get Started", systemImage: "person.crop.circle")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .glassEffect(.regular.interactive())
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.bar)
-        } else if !appState.isPaired {
-            VStack(spacing: 8) {
-                Button {
-                    showPair = true
-                } label: {
-                    Label("Connect to Desktop", systemImage: "link.circle")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .glassEffect(.regular.interactive())
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.bar)
-        } else if let chatVM {
-            GlassComposerView(
-                text: Binding(
-                    get: { chatVM.composerText },
-                    set: { chatVM.composerText = $0 }
-                ),
-                isStreaming: chatVM.isAgentStreaming,
-                onSend: {
-                    if chatVM.currentConversation == nil {
-                        let conv = conversationsVM.createConversation(
-                            sessionId: appState.relay.currentSessionId
-                        )
-                        chatVM.currentConversation = conv
-                    }
-                    Task { await chatVM.sendMessage() }
+                },
+                onOpenSettings: {
+                    shell.showSettings = true
+                },
+                onOpenAuth: {
+                    shell.showAuth = true
                 }
             )
+            .tag(MobilePage.conversations)
+
+            ChatTabView(
+                chatVM: shell.chatVM,
+                approvalVM: shell.approvalVM,
+                conversationsVM: shell.conversationsVM,
+                isActive: shell.currentPage == .chat,
+                showAuth: $shell.showAuth,
+                showPair: $shell.showPair,
+                onOpenConversations: {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .conversations
+                    }
+                },
+                onOpenCodes: {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .codes
+                    }
+                }
+            )
+            .tag(MobilePage.chat)
+
+            CodesTabView(
+                onBackToChat: {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .chat
+                    }
+                }
+            )
+            .tag(MobilePage.codes)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .indexViewStyle(.page(backgroundDisplayMode: .never))
+        .onAppear {
+            bootstrapIfNeeded()
+        }
+        .sheet(isPresented: $shell.showAuth) {
+            AuthSheetView()
+        }
+        .sheet(isPresented: $shell.showPair) {
+            PairView()
+        }
+        .sheet(isPresented: $shell.showSettings) {
+            NavigationStack {
+                ConnectionSettingsSheet(showCloseButton: true)
+            }
         }
     }
 
-    private var statusColor: Color {
-        switch appState.relay.connectionStatus {
-        case .active, .paired: return .green
-        case .pairing: return .orange
-        case .disconnected: return .gray
-        case .error: return .red
+    private func bootstrapIfNeeded() {
+        guard !shell.didInitialize else { return }
+
+        shell.conversationsVM.bind(context: modelContext)
+
+        if shell.chatVM == nil {
+            shell.chatVM = ChatViewModel(relay: appState.relay)
         }
+        if shell.approvalVM == nil {
+            shell.approvalVM = ApprovalViewModel(relay: appState.relay)
+        }
+
+        if let active = shell.conversationsVM.activeConversation {
+            shell.chatVM?.loadConversation(active, context: modelContext)
+        }
+
+        shell.didInitialize = true
     }
 }

@@ -1,6 +1,11 @@
-import { Play, Plus, RotateCcw, Square } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Play, Plus, RotateCcw, Square } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   useCliActiveSession,
   useCliSessionActions,
@@ -14,6 +19,10 @@ interface CliToolbarProps {
   onStart: () => void
   onStop: () => void
   onRestart: () => void
+  isAgentPanelCollapsed?: boolean
+  onToggleAgentPanel?: () => void
+  isGitPanelCollapsed?: boolean
+  onToggleGitPanel?: () => void
 }
 
 export function CliToolbar({
@@ -21,6 +30,10 @@ export function CliToolbar({
   onStart,
   onStop,
   onRestart,
+  isAgentPanelCollapsed,
+  onToggleAgentPanel,
+  isGitPanelCollapsed,
+  onToggleGitPanel,
 }: CliToolbarProps) {
   const installedClis = useInstalledClis()
   const selectedCommand = useSelectedCliCommand()
@@ -106,6 +119,66 @@ export function CliToolbar({
               <RotateCcw className="mr-1 size-3" />
               Restart
             </Button>
+          </>
+        )}
+
+        {(onToggleAgentPanel || onToggleGitPanel) && (
+          <>
+            <div className="bg-border mx-1 h-4 w-px" />
+
+            {onToggleAgentPanel && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={onToggleAgentPanel}
+                  >
+                    {isAgentPanelCollapsed ? (
+                      <PanelLeftOpen className="size-3.5" />
+                    ) : (
+                      <PanelLeftClose className="size-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <span className="flex items-center gap-1.5">
+                    {isAgentPanelCollapsed ? "Show" : "Hide"} Agent
+                    <kbd className="bg-background text-muted-foreground rounded px-1 py-0.5 font-mono text-[10px]">
+                      ⌘B
+                    </kbd>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {onToggleGitPanel && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={onToggleGitPanel}
+                  >
+                    {isGitPanelCollapsed ? (
+                      <PanelRightOpen className="size-3.5" />
+                    ) : (
+                      <PanelRightClose className="size-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <span className="flex items-center gap-1.5">
+                    {isGitPanelCollapsed ? "Show" : "Hide"} Git Changes
+                    <kbd className="bg-background text-muted-foreground rounded px-1 py-0.5 font-mono text-[10px]">
+                      ⌥⌘B
+                    </kbd>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </>
         )}
       </div>

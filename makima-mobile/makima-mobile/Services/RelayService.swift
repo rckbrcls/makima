@@ -15,6 +15,20 @@ enum RelayConnectionStatus: String {
     case error
 }
 
+struct CodeSessionItem: Identifiable {
+    let id: String
+    let sessionId: String
+    let agentName: String
+    let desktopName: String?
+    let status: String
+    let connectedAt: Date?
+    let createdAt: Date
+
+    var sortDate: Date {
+        connectedAt ?? createdAt
+    }
+}
+
 // MARK: - Codable DTOs for Supabase operations
 
 private struct RelayMessageInsert: Encodable {
@@ -82,6 +96,15 @@ private struct RelayMessageRecord: Decodable {
     let payload: [String: AnyJSON]?
     let consumed: Bool?
     let created_at: String?
+}
+
+private struct RelaySessionCodeRecord: Decodable {
+    let id: String
+    let desktop_name: String?
+    let active_agent_name: String?
+    let status: String
+    let mobile_connected_at: String?
+    let created_at: String
 }
 
 // MARK: - RelayService
@@ -208,7 +231,58 @@ final class RelayService {
         error = nil
     }
 
+    func fetchRelaySessionsForCodes() async throws -> [CodeSessionItem] {
+        guard let client = SupabaseService.shared.client else {
+            throw RelayServiceError.notConfigured
+        }
+
+        let rows: [RelaySessionCodeRecord] = try await client
+            .from("relay_sessions")
+            .select("id, desktop_name, active_agent_name, status, mobile_connected_at, created_at")
+            .execute()
+            .value
+
+        let items = rows.compactMap { row -> CodeSessionItem? in
+            guard let agentName = row.active_agent_name?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !agentName.isEmpty else {
+                return nil
+            }
+
+            return CodeSessionItem(
+                id: row.id,
+                sessionId: row.id,
+                agentName: agentName,
+                desktopName: row.desktop_name,
+                status: row.status,
+                connectedAt: Self.parseISODate(row.mobile_connected_at),
+                createdAt: Self.parseISODate(row.created_at) ?? Date.distantPast
+            )
+        }
+
+        return items.sorted { lhs, rhs in
+            lhs.sortDate > rhs.sortDate
+        }
+    }
+
     // MARK: - Private
+
+    private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let iso8601: ISO8601DateFormatter = {
+        ISO8601DateFormatter()
+    }()
+
+    private static func parseISODate(_ value: String?) -> Date? {
+        guard let value else { return nil }
+        if let date = iso8601WithFractionalSeconds.date(from: value) {
+            return date
+        }
+        return iso8601.date(from: value)
+    }
 
     private func subscribeToSession(sessionId: String, client: SupabaseClient) async {
         let ch = client.realtimeV2.channel("relay:\(sessionId)")

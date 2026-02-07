@@ -7,56 +7,81 @@ final class DrawerNavigationUITests: XCTestCase {
     }
 
     @MainActor
-    func testDrawerOpensFromTopButton() throws {
+    func testAppOpensOnMainChatWithToolbarButtons() throws {
         let app = XCUIApplication()
         app.launch()
 
-        let toggleButton = app.buttons["drawer.toggle.button"]
-        XCTAssertTrue(toggleButton.waitForExistence(timeout: 5))
-
-        toggleButton.tap()
-
-        let searchField = app.searchFields.firstMatch
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
-        XCTAssertTrue(searchField.isHittable)
+        let conversationsButton = app.buttons["chat.open.conversations.button"]
+        let codesButton = app.buttons["chat.open.codes.button"]
+        XCTAssertTrue(conversationsButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(codesButton.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.tabBars.count, 0)
     }
 
     @MainActor
-    func testDrawerOpensFromEdgeSwipe() throws {
+    func testSelectingConversationReturnsToChatPage() throws {
         let app = XCUIApplication()
         app.launch()
 
-        let window = app.windows.element(boundBy: 0)
-        XCTAssertTrue(window.waitForExistence(timeout: 5))
+        let conversationsButton = app.buttons["chat.open.conversations.button"]
+        XCTAssertTrue(conversationsButton.waitForExistence(timeout: 5))
+        conversationsButton.tap()
 
-        let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.55))
-        let end = window.coordinate(withNormalizedOffset: CGVector(dx: 0.62, dy: 0.55))
-        start.press(forDuration: 0.03, thenDragTo: end)
+        let conversationsNavBar = app.navigationBars["Conversations"]
+        XCTAssertTrue(conversationsNavBar.waitForExistence(timeout: 2))
 
-        let searchField = app.searchFields.firstMatch
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
-        XCTAssertTrue(searchField.isHittable)
-    }
-
-    @MainActor
-    func testCreateConversationFromDrawer() throws {
-        let app = XCUIApplication()
-        app.launch()
-
-        let toggleButton = app.buttons["drawer.toggle.button"]
-        XCTAssertTrue(toggleButton.waitForExistence(timeout: 5))
-        toggleButton.tap()
-
-        let newConversationButton = app.buttons["drawer.new-conversation.button"]
+        let newConversationButton = app.buttons["conversations.new.button"]
         XCTAssertTrue(newConversationButton.waitForExistence(timeout: 2))
         newConversationButton.tap()
 
-        toggleButton.tap()
+        XCTAssertTrue(conversationsButton.waitForExistence(timeout: 2))
+        XCTAssertFalse(conversationsNavBar.exists)
+    }
 
-        let searchField = app.searchFields.firstMatch
-        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+    @MainActor
+    func testSettingsButtonOpensSettingsSheet() throws {
+        let app = XCUIApplication()
+        app.launch()
 
-        searchField.tap()
-        searchField.typeText("New")
+        let conversationsButton = app.buttons["chat.open.conversations.button"]
+        XCTAssertTrue(conversationsButton.waitForExistence(timeout: 5))
+        conversationsButton.tap()
+
+        let settingsButton = app.buttons["conversations.settings.button"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 2))
+        settingsButton.tap()
+
+        let settingsTitle = app.navigationBars["Settings"].firstMatch
+        XCTAssertTrue(settingsTitle.waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testSignInButtonIsInConversationsBottom() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let conversationsButton = app.buttons["chat.open.conversations.button"]
+        XCTAssertTrue(conversationsButton.waitForExistence(timeout: 5))
+        conversationsButton.tap()
+
+        let signInButton = app.buttons["conversations.signin.button"]
+        XCTAssertTrue(signInButton.waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testCodesNavigationFromToolbar() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let codesButton = app.buttons["chat.open.codes.button"]
+        XCTAssertTrue(codesButton.waitForExistence(timeout: 5))
+        codesButton.tap()
+
+        let codesNavBar = app.navigationBars["Codes"]
+        XCTAssertTrue(codesNavBar.waitForExistence(timeout: 2))
+
+        let emptyState = app.otherElements["codes.empty.state"]
+        XCTAssertTrue(emptyState.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertEqual(app.tabBars.count, 0)
     }
 }

@@ -14,6 +14,7 @@ import { CliToolbar } from "./cli-toolbar"
 import { GitChangesCard } from "./git-changes-card"
 import { RepositorySidebar } from "./repository-sidebar"
 import type { Repository } from "@/lib/code-types"
+import type { PanelImperativeHandle } from "react-resizable-panels"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -323,6 +324,66 @@ export function CodeTabWorkspace() {
     [activeSessionId, updateSessionStatus],
   )
 
+  // Agent panel collapse
+  const agentPanelRef = useRef<PanelImperativeHandle | null>(null)
+  const [isAgentCollapsed, setIsAgentCollapsed] = useState(false)
+
+  const handleAgentPanelResize = useCallback(() => {
+    const panel = agentPanelRef.current
+    if (panel) {
+      setIsAgentCollapsed(panel.isCollapsed())
+    }
+  }, [])
+
+  const toggleAgentPanel = useCallback(() => {
+    const panel = agentPanelRef.current
+    if (!panel) return
+    if (panel.isCollapsed()) {
+      panel.expand()
+    } else {
+      panel.collapse()
+    }
+  }, [])
+
+  // Git panel collapse
+  const gitPanelRef = useRef<PanelImperativeHandle | null>(null)
+  const [isGitCollapsed, setIsGitCollapsed] = useState(false)
+
+  const handleGitPanelResize = useCallback(() => {
+    const panel = gitPanelRef.current
+    if (panel) {
+      setIsGitCollapsed(panel.isCollapsed())
+    }
+  }, [])
+
+  const toggleGitPanel = useCallback(() => {
+    const panel = gitPanelRef.current
+    if (!panel) return
+    if (panel.isCollapsed()) {
+      panel.expand()
+    } else {
+      panel.collapse()
+    }
+  }, [])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // ⌘B — toggle agent panel
+      if (e.metaKey && !e.altKey && e.code === "KeyB") {
+        e.preventDefault()
+        toggleAgentPanel()
+      }
+      // ⌥⌘B — toggle git panel
+      if (e.metaKey && e.altKey && e.code === "KeyB") {
+        e.preventDefault()
+        toggleGitPanel()
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [toggleAgentPanel, toggleGitPanel])
+
   // Derive shouldSpawn for the active session
   const shouldSpawn = activeSessionId
     ? spawningSessions.has(activeSessionId)
@@ -348,6 +409,10 @@ export function CodeTabWorkspace() {
         onStart={handleStart}
         onStop={handleStop}
         onRestart={handleRestart}
+        isAgentPanelCollapsed={isAgentCollapsed}
+        onToggleAgentPanel={toggleAgentPanel}
+        isGitPanelCollapsed={isGitCollapsed}
+        onToggleGitPanel={toggleGitPanel}
       />
 
       {/* Main content: Terminal + Git Changes */}
@@ -355,8 +420,15 @@ export function CodeTabWorkspace() {
         direction="horizontal"
         className="h-full min-h-0 w-full"
       >
-        {/* Terminal - main area, key forces remount on session switch */}
-        <ResizablePanel defaultSize={60} minSize={30}>
+        {/* Terminal - collapsible agent panel */}
+        <ResizablePanel
+          panelRef={agentPanelRef}
+          defaultSize={60}
+          minSize={30}
+          collapsible
+          collapsedSize={0}
+          onResize={handleAgentPanelResize}
+        >
           <CliTerminalCard
             key={activeSessionId ?? "no-session"}
             cwd={repoPath}
@@ -368,10 +440,17 @@ export function CodeTabWorkspace() {
           />
         </ResizablePanel>
 
-        <ResizableHandle />
+        <ResizableHandle className="mx-1.5" />
 
-        {/* Git Changes - side panel */}
-        <ResizablePanel defaultSize={40} minSize={20}>
+        {/* Git Changes - collapsible side panel */}
+        <ResizablePanel
+          panelRef={gitPanelRef}
+          defaultSize={40}
+          minSize={20}
+          collapsible
+          collapsedSize={0}
+          onResize={handleGitPanelResize}
+        >
           <GitChangesCard
             repoPath={repoPath}
             pollInterval={pollInterval}
