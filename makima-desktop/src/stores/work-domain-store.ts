@@ -10,6 +10,11 @@ import type {
   Session,
   SessionStatus,
 } from "@/lib/work-types"
+import type {
+  OpenClawInstallation,
+  GatewayProcessStatus,
+  WorkChatMessage,
+} from "@/lib/openclaw-types"
 
 // ============================================================================
 // Work Domain Store - Agents, Sessions, Runs, Approvals
@@ -35,6 +40,19 @@ interface WorkDomainState {
 
   // Mode
   executionMode: ExecutionMode
+
+  // OpenClaw connection
+  openclawConnection: {
+    status: "disconnected" | "connecting" | "connected" | "error"
+    gatewayVersion?: string
+    error?: string
+  }
+  openclawInstallation: OpenClawInstallation | null
+  openclawGatewayStatus: GatewayProcessStatus | null
+
+  // Chat
+  chatMessages: Array<WorkChatMessage>
+  isAgentStreaming: boolean
 
   // General state
   error: string | null
@@ -77,6 +95,20 @@ interface WorkDomainActions {
   setExecutionMode: (mode: ExecutionMode) => void
   toggleExecutionMode: () => void
 
+  // OpenClaw connection
+  setOpenClawConnectionStatus: (
+    status: WorkDomainState["openclawConnection"],
+  ) => void
+  setOpenClawInstallation: (installation: OpenClawInstallation | null) => void
+  setOpenClawGatewayStatus: (status: GatewayProcessStatus | null) => void
+
+  // Chat messages
+  addChatMessage: (message: WorkChatMessage) => void
+  updateChatMessage: (id: string, updates: Partial<WorkChatMessage>) => void
+  setChatMessages: (messages: Array<WorkChatMessage>) => void
+  clearChatMessages: () => void
+  setIsAgentStreaming: (streaming: boolean) => void
+
   // Error handling
   setError: (error: string | null) => void
   clearError: () => void
@@ -98,6 +130,11 @@ const initialState: WorkDomainState = {
   activeRunId: null,
   approvals: [],
   executionMode: "safe",
+  openclawConnection: { status: "disconnected" },
+  openclawInstallation: null,
+  openclawGatewayStatus: null,
+  chatMessages: [],
+  isAgentStreaming: false,
   error: null,
 }
 
@@ -264,6 +301,41 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
     })),
 
   // ============================================================================
+  // OpenClaw connection
+  // ============================================================================
+
+  setOpenClawConnectionStatus: (openclawConnection) =>
+    set({ openclawConnection }),
+
+  setOpenClawInstallation: (openclawInstallation) =>
+    set({ openclawInstallation }),
+
+  setOpenClawGatewayStatus: (openclawGatewayStatus) =>
+    set({ openclawGatewayStatus }),
+
+  // ============================================================================
+  // Chat messages
+  // ============================================================================
+
+  addChatMessage: (message) =>
+    set((state) => ({
+      chatMessages: [...state.chatMessages, message],
+    })),
+
+  updateChatMessage: (id, updates) =>
+    set((state) => ({
+      chatMessages: state.chatMessages.map((m) =>
+        m.id === id ? { ...m, ...updates } : m,
+      ),
+    })),
+
+  setChatMessages: (chatMessages) => set({ chatMessages }),
+
+  clearChatMessages: () => set({ chatMessages: [] }),
+
+  setIsAgentStreaming: (isAgentStreaming) => set({ isAgentStreaming }),
+
+  // ============================================================================
   // Error handling
   // ============================================================================
 
@@ -282,6 +354,8 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
       runs: [],
       activeRunId: null,
       approvals: [],
+      chatMessages: [],
+      isAgentStreaming: false,
     }),
 }))
 
@@ -384,6 +458,28 @@ export const useWorkIsSafeMode = () =>
 export const useWorkIsAutoMode = () =>
   useWorkDomainStore((s) => s.executionMode === "auto")
 
+// OpenClaw connection selectors
+export const useOpenClawConnectionStatus = () =>
+  useWorkDomainStore(
+    useShallow((s) => s.openclawConnection),
+  )
+
+export const useOpenClawConnected = () =>
+  useWorkDomainStore((s) => s.openclawConnection.status === "connected")
+
+export const useOpenClawInstallation = () =>
+  useWorkDomainStore((s) => s.openclawInstallation)
+
+export const useOpenClawGatewayStatus = () =>
+  useWorkDomainStore((s) => s.openclawGatewayStatus)
+
+// Chat selectors
+export const useWorkChatMessages = () =>
+  useWorkDomainStore((s) => s.chatMessages)
+
+export const useWorkIsAgentStreaming = () =>
+  useWorkDomainStore((s) => s.isAgentStreaming)
+
 // Error selectors
 export const useWorkError = () => useWorkDomainStore((s) => s.error)
 
@@ -422,6 +518,16 @@ export const useWorkDomainActions = () =>
       // Mode
       setExecutionMode: s.setExecutionMode,
       toggleExecutionMode: s.toggleExecutionMode,
+      // OpenClaw
+      setOpenClawConnectionStatus: s.setOpenClawConnectionStatus,
+      setOpenClawInstallation: s.setOpenClawInstallation,
+      setOpenClawGatewayStatus: s.setOpenClawGatewayStatus,
+      // Chat
+      addChatMessage: s.addChatMessage,
+      updateChatMessage: s.updateChatMessage,
+      setChatMessages: s.setChatMessages,
+      clearChatMessages: s.clearChatMessages,
+      setIsAgentStreaming: s.setIsAgentStreaming,
       // Error
       setError: s.setError,
       clearError: s.clearError,

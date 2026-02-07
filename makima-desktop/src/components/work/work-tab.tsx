@@ -1,11 +1,13 @@
 import { createContext, useCallback, useContext, useEffect } from "react"
-import { Bot, Play, Shield, ShieldOff, Zap } from "lucide-react"
+import { Bot, Play, Shield, Zap } from "lucide-react"
 
-import type { Agent, Approval, Run, Session } from "@/lib/work-types"
+import type { Agent, Run, Session } from "@/lib/work-types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
+  useOpenClawConnected,
+  useOpenClawConnectionStatus,
   useWorkActiveAgent,
   useWorkActiveAgentId,
   useWorkActiveSession,
@@ -16,9 +18,17 @@ import {
   useWorkDomainStore,
   useWorkExecutionMode,
   useWorkIsLoadingAgents,
-  useWorkPendingApprovals,
   useWorkSessionRuns,
-} from "@/stores/work-domain-store"
+} from "@/stores"
+import {
+  useOpenClawGateway,
+  useOpenClawConnection,
+  useOpenClawAgent,
+  useOpenClawApprovals,
+} from "@/hooks/openclaw"
+import { WorkSetupCard } from "./work-setup-card"
+import { WorkChat } from "./work-chat"
+import { WorkApprovalBanner } from "./work-approval-banner"
 
 // ============================================================================
 // Context
@@ -59,62 +69,37 @@ interface WorkDomainProviderProps {
 }
 
 export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
+  const isConnected = useOpenClawConnected()
+
   const {
-    setAgents,
     addAgent,
     removeAgent,
     addSession,
     updateSessionStatus,
-    resolveApproval,
     setIsLoadingAgents,
     setError,
+    clearChatMessages,
   } = useWorkDomainActions()
 
-  // TODO: Replace with actual Tauri IPC calls when backend is implemented
+  const { detectInstallation, refreshGatewayStatus } = useOpenClawGateway()
+  useOpenClawConnection() // Sets up event listeners for connection status
+  const { loadAgents: loadOpenClawAgents } = useOpenClawAgent()
+  const { approve, reject } = useOpenClawApprovals()
+
+  // Load agents from OpenClaw when connected
   const loadAgents = useCallback(async () => {
-    try {
-      setIsLoadingAgents(true)
-      // Mock data for now - will be replaced with actual DB call
-      const mockAgents: Array<Agent> = [
-        {
-          id: "agent-1",
-          name: "Jarvis",
-          description: "General-purpose assistant agent",
-          config: {
-            provider: "ollama",
-            model: "llama3.2",
-            systemPrompt: "You are Jarvis, a helpful assistant.",
-          },
-          createdAt: Date.now() - 86400000,
-          updatedAt: Date.now(),
-        },
-        {
-          id: "agent-2",
-          name: "Code Agent",
-          description: "Specialized for code generation and review",
-          config: {
-            provider: "ollama",
-            model: "codellama",
-            systemPrompt: "You are a code expert.",
-            tools: ["file_read", "file_write", "bash"],
-          },
-          createdAt: Date.now() - 172800000,
-          updatedAt: Date.now(),
-        },
-      ]
-      setAgents(mockAgents)
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
+    if (!isConnected) {
       setIsLoadingAgents(false)
+      return
     }
-  }, [setAgents, setIsLoadingAgents, setError])
+    await loadOpenClawAgents()
+  }, [isConnected, loadOpenClawAgents, setIsLoadingAgents])
 
   const createAgent = useCallback(
     async (name: string, description?: string): Promise<Agent | null> => {
       try {
-        // TODO: Replace with actual Tauri IPC call
+        // Creating agents through the gateway is not yet supported
+        // For now, create a local-only agent entry
         const newAgent: Agent = {
           id: `agent-${Date.now()}`,
           name,
@@ -136,7 +121,6 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
   const deleteAgent = useCallback(
     async (id: string): Promise<boolean> => {
       try {
-        // TODO: Replace with actual Tauri IPC call
         removeAgent(id)
         return true
       } catch (err) {
@@ -150,7 +134,6 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
   const startSession = useCallback(
     async (agentId: string, title?: string): Promise<Session | null> => {
       try {
-        // TODO: Replace with actual Tauri IPC call
         const newSession: Session = {
           id: `session-${Date.now()}`,
           agentId,
@@ -160,19 +143,19 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
           updatedAt: Date.now(),
         }
         addSession(newSession)
+        clearChatMessages()
         return newSession
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
         return null
       }
     },
-    [addSession, setError],
+    [addSession, clearChatMessages, setError],
   )
 
   const endSession = useCallback(
     async (sessionId: string): Promise<boolean> => {
       try {
-        // TODO: Replace with actual Tauri IPC call
         updateSessionStatus(sessionId, "finished")
         return true
       } catch (err) {
@@ -185,36 +168,30 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
 
   const approveAction = useCallback(
     async (approvalId: string): Promise<boolean> => {
-      try {
-        // TODO: Replace with actual Tauri IPC call
-        resolveApproval(approvalId, "approved")
-        return true
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
-      }
+      return approve(approvalId)
     },
-    [resolveApproval, setError],
+    [approve],
   )
 
   const rejectAction = useCallback(
     async (approvalId: string): Promise<boolean> => {
-      try {
-        // TODO: Replace with actual Tauri IPC call
-        resolveApproval(approvalId, "rejected")
-        return true
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
-      }
+      return reject(approvalId)
     },
-    [resolveApproval, setError],
+    [reject],
   )
 
-  // Load agents on mount
+  // On mount: detect installation and gateway status
   useEffect(() => {
-    loadAgents()
-  }, [loadAgents])
+    detectInstallation()
+    refreshGatewayStatus()
+  }, [detectInstallation, refreshGatewayStatus])
+
+  // When connected, load agents
+  useEffect(() => {
+    if (isConnected) {
+      loadAgents()
+    }
+  }, [isConnected, loadAgents])
 
   const value: WorkDomainContextValue = {
     loadAgents,
@@ -244,6 +221,8 @@ export function WorkSidebar() {
   const activeSessionId = useWorkActiveSessionId()
   const isLoading = useWorkIsLoadingAgents()
   const executionMode = useWorkExecutionMode()
+  const isConnected = useOpenClawConnected()
+  const connectionStatus = useOpenClawConnectionStatus()
 
   const { setActiveAgentId, setActiveSessionId, toggleExecutionMode } =
     useWorkDomainActions()
@@ -252,7 +231,6 @@ export function WorkSidebar() {
   const handleSelectAgent = useCallback(
     (agentId: string) => {
       setActiveAgentId(agentId)
-      // Auto-select first session if available
       const agentSessions = useWorkDomainStore
         .getState()
         .sessions.filter((s) => s.agentId === agentId)
@@ -297,6 +275,21 @@ export function WorkSidebar() {
 
   return (
     <div className="relative flex h-full flex-col">
+      {/* Connection Status */}
+      <div className="mb-3 flex items-center gap-2">
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            isConnected ? "bg-emerald-500" : "bg-rose-500",
+          )}
+        />
+        <span className="text-muted-foreground text-xs">
+          {isConnected
+            ? `Connected${connectionStatus.gatewayVersion ? ` (v${connectionStatus.gatewayVersion})` : ""}`
+            : "Offline"}
+        </span>
+      </div>
+
       {/* Mode Toggle */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-serif text-sm font-bold">AGENTS</h2>
@@ -327,6 +320,11 @@ export function WorkSidebar() {
 
       {/* Agents List */}
       <div className="flex-1 space-y-1 overflow-y-auto">
+        {agents.length === 0 && isConnected && (
+          <p className="text-muted-foreground px-2 py-4 text-center text-xs">
+            No agents configured in the gateway
+          </p>
+        )}
         {agents.map((agent) => (
           <div key={agent.id}>
             <button
@@ -351,7 +349,7 @@ export function WorkSidebar() {
 
             {/* Sessions for this agent (when expanded) */}
             {activeAgentId === agent.id && sessions.length > 0 && (
-              <div className="ml-6 mt-1 space-y-0.5 border-l border-zinc-800 pl-2">
+              <div className="ml-6 mt-1 space-y-0.5 border-l border-border pl-2">
                 {sessions.map((session) => (
                   <button
                     key={session.id}
@@ -359,8 +357,8 @@ export function WorkSidebar() {
                     className={cn(
                       "w-full rounded-md px-2 py-1 text-left text-xs transition-colors",
                       activeSessionId === session.id
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200",
+                        ? "glass-selected text-foreground"
+                        : "glass-hover text-muted-foreground",
                     )}
                   >
                     <div className="flex items-center gap-1.5">
@@ -371,7 +369,7 @@ export function WorkSidebar() {
                             ? "bg-emerald-500"
                             : session.status === "error"
                               ? "bg-rose-500"
-                              : "bg-zinc-600",
+                              : "bg-muted-foreground",
                         )}
                       />
                       {session.title}
@@ -400,7 +398,7 @@ export function WorkSidebar() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start gap-2 text-zinc-500"
+          className="text-muted-foreground w-full justify-start gap-2"
           onClick={handleCreateAgent}
         >
           <Bot className="size-3.5" />
@@ -419,17 +417,21 @@ export function WorkWorkspace() {
   const activeAgent = useWorkActiveAgent()
   const activeSession = useWorkActiveSession()
   const runs = useWorkSessionRuns()
-  const pendingApprovals = useWorkPendingApprovals()
-  const executionMode = useWorkExecutionMode()
+  const isConnected = useOpenClawConnected()
 
-  const { approveAction, rejectAction } = useWorkDomainContext()
+  // Show setup card when not connected
+  if (!isConnected) {
+    return <WorkSetupCard />
+  }
 
   // Empty state - no agent selected
   if (!activeAgent) {
     return (
       <section className="border-border bg-background my-3 mr-3 flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-3xl border">
-        <Bot className="mb-4 size-12 text-zinc-700" />
-        <p className="text-muted-foreground text-sm">Select an agent to start</p>
+        <Bot className="mb-4 size-12 text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">
+          Select an agent to start
+        </p>
         <p className="text-muted-foreground mt-1 text-xs">
           Agents execute real commands and manipulate your filesystem
         </p>
@@ -461,10 +463,12 @@ export function WorkWorkspace() {
   return (
     <section className="border-border bg-background my-3 mr-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
       {/* Header */}
-      <header className="border-b border-zinc-800 p-4">
+      <header className="border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-foreground font-medium">{activeSession.title}</h3>
+            <h3 className="text-foreground font-medium">
+              {activeSession.title}
+            </h3>
             <p className="text-muted-foreground text-xs">
               Agent: {activeAgent.name}
             </p>
@@ -476,7 +480,7 @@ export function WorkWorkspace() {
                 ? "border-emerald-600 bg-emerald-900 text-emerald-300"
                 : activeSession.status === "error"
                   ? "border-rose-600 bg-rose-900 text-rose-300"
-                  : "border-zinc-600 bg-zinc-900 text-zinc-300",
+                  : "border-border bg-muted text-muted-foreground",
             )}
           >
             {activeSession.status}
@@ -484,79 +488,25 @@ export function WorkWorkspace() {
         </div>
       </header>
 
-      {/* Pending Approvals */}
-      {pendingApprovals.length > 0 && (
-        <div className="border-b border-amber-900/50 bg-amber-950/30 p-4">
-          <h4 className="mb-2 flex items-center gap-2 text-sm font-medium text-amber-400">
-            <ShieldOff className="size-4" />
-            Pending Approvals ({pendingApprovals.length})
-          </h4>
-          <div className="space-y-2">
-            {pendingApprovals.map((approval) => (
-              <div
-                key={approval.id}
-                className="flex items-center justify-between rounded-lg bg-zinc-900/50 p-3"
-              >
-                <div>
-                  <p className="text-foreground text-sm">
-                    {approval.action.description}
-                  </p>
-                  <code className="mt-1 text-xs text-zinc-500">
-                    {approval.action.payload}
-                  </code>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-emerald-600 text-emerald-500 hover:bg-emerald-950"
-                    onClick={() => approveAction(approval.id)}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-rose-600 text-rose-500 hover:bg-rose-950"
-                    onClick={() => rejectAction(approval.id)}
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Approval Banner */}
+      <WorkApprovalBanner />
 
-      {/* Runs */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {runs.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <p className="text-muted-foreground text-sm">No runs yet</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {executionMode === "safe"
-                ? "All actions will require approval"
-                : "Actions will execute automatically"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
+      {/* Chat + Runs */}
+      <WorkChat />
+
+      {/* Runs (if any exist alongside chat) */}
+      {runs.length > 0 && (
+        <div className="border-t border-border p-4">
+          <h4 className="text-muted-foreground mb-2 text-xs font-medium">
+            Runs ({runs.length})
+          </h4>
+          <div className="max-h-48 space-y-2 overflow-y-auto">
             {runs.map((run) => (
               <RunCard key={run.id} run={run} />
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Composer placeholder */}
-      <div className="border-t border-zinc-800 p-4">
-        <div className="bg-muted/50 flex items-center justify-center rounded-lg p-4">
-          <p className="text-muted-foreground text-sm">
-            Agent execution interface coming soon...
-          </p>
         </div>
-      </div>
+      )}
     </section>
   )
 }
@@ -571,16 +521,16 @@ interface RunCardProps {
 
 function RunCard({ run }: RunCardProps) {
   const statusColors = {
-    pending: "border-zinc-600 bg-zinc-900 text-zinc-400",
+    pending: "border-border bg-muted text-muted-foreground",
     waiting_approval: "border-amber-600 bg-amber-900 text-amber-300",
     running: "border-sky-600 bg-sky-900 text-sky-300",
     completed: "border-emerald-600 bg-emerald-900 text-emerald-300",
     failed: "border-rose-600 bg-rose-900 text-rose-300",
-    cancelled: "border-zinc-600 bg-zinc-900 text-zinc-400",
+    cancelled: "border-border bg-muted text-muted-foreground",
   }
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+    <div className="glass rounded-lg p-3">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -591,7 +541,7 @@ function RunCard({ run }: RunCardProps) {
           </div>
           <p className="text-foreground mt-2 text-sm">{run.input}</p>
           {run.output && (
-            <pre className="mt-2 max-h-32 overflow-auto rounded bg-zinc-950 p-2 text-xs text-zinc-400">
+            <pre className="bg-background mt-2 max-h-32 overflow-auto rounded p-2 text-xs text-muted-foreground">
               {run.output}
             </pre>
           )}

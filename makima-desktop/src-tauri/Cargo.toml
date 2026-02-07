@@ -35,7 +35,9 @@ tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 tokio-stream = "0.1"
 portable-pty = "0.8"
+base64 = "0.22"
 git2 = "0.19"
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 
 [target."cfg(target_os = \"macos\")".dependencies]
 cocoa = "0.26"

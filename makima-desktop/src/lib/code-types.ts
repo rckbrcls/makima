@@ -40,12 +40,36 @@ export interface PtySession {
 
 export interface PtyOutputPayload {
   sessionId: string;
+  seq: number;
   data: string;
 }
 
 export interface PtyExitPayload {
   sessionId: string;
   exitCode?: number;
+}
+
+// AI CLI types
+export interface AiCliInfo {
+  name: string
+  command: string
+  version: string | null
+  installed: boolean
+}
+
+export interface AiCliDetectionResult {
+  clis: Array<AiCliInfo>
+}
+
+export interface CliSession {
+  id: string
+  repositoryId: string
+  cliName: string
+  cliCommand: string
+  ptySessionId: string | null
+  status: "idle" | "running" | "exited" | "error"
+  startedAt: number
+  exitCode?: number
 }
 
 // Database response types (snake_case from Rust)

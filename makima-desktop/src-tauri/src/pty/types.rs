@@ -19,6 +19,7 @@ pub struct PtySession {
 #[serde(rename_all = "camelCase")]
 pub struct PtyOutputPayload {
     pub session_id: String,
+    pub seq: u64,
     pub data: String,
 }
 

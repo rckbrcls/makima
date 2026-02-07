@@ -1,12 +1,34 @@
 use dashmap::DashMap;
 use portable_pty::{MasterPty, PtySize};
 use std::io::Write;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Condvar, Mutex as StdMutex};
 use tokio::sync::Mutex;
+
+pub struct BackpressureState {
+    pub seq_counter: AtomicU64,
+    pub last_acked_seq: AtomicU64,
+    pub ack_condvar: Condvar,
+    pub ack_mutex: StdMutex<()>,
+    pub alive: AtomicBool,
+}
+
+impl BackpressureState {
+    pub fn new() -> Self {
+        Self {
+            seq_counter: AtomicU64::new(0),
+            last_acked_seq: AtomicU64::new(0),
+            ack_condvar: Condvar::new(),
+            ack_mutex: StdMutex::new(()),
+            alive: AtomicBool::new(true),
+        }
+    }
+}
 
 pub struct PtyInstance {
     pub master: Arc<Mutex<Box<dyn MasterPty + Send>>>,
     pub writer: Arc<Mutex<Box<dyn Write + Send>>>,
+    pub backpressure: Arc<BackpressureState>,
 }
 
 pub struct PtyState {
@@ -43,6 +65,16 @@ impl PtyState {
 
     pub fn sessions_clone(&self) -> Arc<DashMap<String, PtyInstance>> {
         self.sessions.clone()
+    }
+
+    pub fn ack_session(&self, session_id: &str, seq: u64) -> Result<(), String> {
+        let session = self.get(session_id).ok_or("Session not found")?;
+        session
+            .backpressure
+            .last_acked_seq
+            .fetch_max(seq, Ordering::Release);
+        session.backpressure.ack_condvar.notify_one();
+        Ok(())
     }
 
     pub async fn write_to_session(&self, session_id: &str, data: &[u8]) -> Result<(), String> {

@@ -1,0 +1,154 @@
+import { create } from "zustand"
+import { useShallow } from "zustand/react/shallow"
+import type { AiCliInfo, CliSession } from "@/lib/code-types"
+
+// ============================================================================
+// CLI Session Store - Ephemeral state for AI CLI sessions
+// ============================================================================
+
+interface CliSessionState {
+  availableClis: Array<AiCliInfo>
+  selectedCliCommand: string | null
+  sessions: Map<string, CliSession>
+  activeRepositoryId: string | null
+  activeSessionId: string | null
+}
+
+interface CliSessionActions {
+  setAvailableClis: (clis: Array<AiCliInfo>) => void
+  setSelectedCliCommand: (command: string | null) => void
+  setActiveRepositoryId: (id: string | null) => void
+  setActiveSessionId: (id: string | null) => void
+  createSession: (session: CliSession) => void
+  updateSessionStatus: (
+    sessionId: string,
+    status: CliSession["status"],
+    exitCode?: number,
+  ) => void
+  updateSessionPty: (sessionId: string, ptySessionId: string) => void
+  removeSession: (sessionId: string) => void
+}
+
+export type CliSessionStore = CliSessionState & CliSessionActions
+
+const initialState: CliSessionState = {
+  availableClis: [],
+  selectedCliCommand: null,
+  sessions: new Map(),
+  activeRepositoryId: null,
+  activeSessionId: null,
+}
+
+export const useCliSessionStore = create<CliSessionStore>((set) => ({
+  ...initialState,
+
+  setAvailableClis: (clis) => {
+    set({ availableClis: clis })
+    // Auto-select first installed CLI if none selected
+    const installed = clis.filter((c) => c.installed)
+    set((state) => ({
+      selectedCliCommand:
+        state.selectedCliCommand ?? (installed[0]?.command || null),
+    }))
+  },
+
+  setSelectedCliCommand: (command) => set({ selectedCliCommand: command }),
+
+  setActiveRepositoryId: (id) => set({ activeRepositoryId: id }),
+
+  setActiveSessionId: (id) => set({ activeSessionId: id }),
+
+  createSession: (session) =>
+    set((state) => {
+      const next = new Map(state.sessions)
+      next.set(session.id, session)
+      return { sessions: next }
+    }),
+
+  updateSessionStatus: (sessionId, status, exitCode) =>
+    set((state) => {
+      const existing = state.sessions.get(sessionId)
+      if (!existing) return state
+      const next = new Map(state.sessions)
+      next.set(sessionId, { ...existing, status, exitCode })
+      return { sessions: next }
+    }),
+
+  updateSessionPty: (sessionId, ptySessionId) =>
+    set((state) => {
+      const existing = state.sessions.get(sessionId)
+      if (!existing) return state
+      const next = new Map(state.sessions)
+      next.set(sessionId, { ...existing, ptySessionId, status: "running" })
+      return { sessions: next }
+    }),
+
+  removeSession: (sessionId) =>
+    set((state) => {
+      const next = new Map(state.sessions)
+      next.delete(sessionId)
+      const resetActive =
+        state.activeSessionId === sessionId
+          ? { activeSessionId: null }
+          : {}
+      return { sessions: next, ...resetActive }
+    }),
+}))
+
+// ============================================================================
+// Atomic Selectors
+// ============================================================================
+
+export const useAvailableClis = () =>
+  useCliSessionStore((s) => s.availableClis)
+
+export const useInstalledClis = () =>
+  useCliSessionStore(
+    useShallow((s) => s.availableClis.filter((c) => c.installed)),
+  )
+
+export const useSelectedCliCommand = () =>
+  useCliSessionStore((s) => s.selectedCliCommand)
+
+export const useCliActiveRepositoryId = () =>
+  useCliSessionStore((s) => s.activeRepositoryId)
+
+export const useCliActiveSessionId = () =>
+  useCliSessionStore((s) => s.activeSessionId)
+
+export const useCliActiveSession = () =>
+  useCliSessionStore((s) => {
+    if (!s.activeSessionId) return null
+    return s.sessions.get(s.activeSessionId) ?? null
+  })
+
+export const useCliSessions = () => useCliSessionStore((s) => s.sessions)
+
+export const useCliGitPollInterval = () =>
+  useCliSessionStore((s) => {
+    if (!s.activeRepositoryId) return 5000
+    for (const session of s.sessions.values()) {
+      if (
+        session.repositoryId === s.activeRepositoryId &&
+        session.status === "running"
+      ) {
+        return 1000
+      }
+    }
+    return 5000
+  })
+
+// Actions selector (stable reference)
+export const useCliSessionActions = () =>
+  useCliSessionStore(
+    useShallow((s) => ({
+      setAvailableClis: s.setAvailableClis,
+      setSelectedCliCommand: s.setSelectedCliCommand,
+      setActiveRepositoryId: s.setActiveRepositoryId,
+      setActiveSessionId: s.setActiveSessionId,
+      createSession: s.createSession,
+      updateSessionStatus: s.updateSessionStatus,
+      updateSessionPty: s.updateSessionPty,
+      removeSession: s.removeSession,
+    })),
+  )

@@ -10,10 +10,19 @@ import type {
 } from "@/lib/code-types";
 import { mapPtySession } from "@/lib/code-types";
 
+const ACK_INTERVAL_MS = 64;
+
+function decodeBase64(b64: string): string {
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
 export interface TerminalOptions {
   cwd?: string;
   cols?: number;
   rows?: number;
+  command?: string;
+  args?: Array<string>;
   onOutput?: (data: string) => void;
   onExit?: (exitCode?: number) => void;
 }
@@ -26,25 +35,70 @@ export function useTerminal(options: TerminalOptions = {}) {
   const unlistenExitRef = useRef<UnlistenFn | null>(null);
   const optionsRef = useRef(options);
 
+  // ACK tracking refs
+  const lastReceivedSeqRef = useRef<number>(-1);
+  const lastAckedSeqRef = useRef<number>(-1);
+  const ackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
   // Keep options ref updated
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  const stopAckTimer = useCallback(() => {
+    if (ackTimerRef.current !== null) {
+      clearInterval(ackTimerRef.current);
+      ackTimerRef.current = null;
+    }
+    // Send final flush ACK if there are unacked seqs
+    const sid = sessionIdRef.current;
+    if (sid && lastReceivedSeqRef.current > lastAckedSeqRef.current) {
+      const seq = lastReceivedSeqRef.current;
+      lastAckedSeqRef.current = seq;
+      invoke("pty_ack", { sessionId: sid, seq }).catch(() => {
+        // Session may already be gone — ignore
+      });
+    }
+  }, []);
+
+  const startAckTimer = useCallback(() => {
+    stopAckTimer();
+    ackTimerRef.current = setInterval(() => {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+      const received = lastReceivedSeqRef.current;
+      if (received > lastAckedSeqRef.current) {
+        lastAckedSeqRef.current = received;
+        invoke("pty_ack", { sessionId: sid, seq: received }).catch(() => {
+          // Session may already be gone — ignore
+        });
+      }
+    }, ACK_INTERVAL_MS);
+  }, [stopAckTimer]);
 
   const spawn = useCallback(
     async (
       cwd?: string,
       cols?: number,
       rows?: number,
+      command?: string,
+      args?: Array<string>,
     ): Promise<PtySession | null> => {
       // Clean up previous session if exists
       unlistenOutputRef.current?.();
       unlistenExitRef.current?.();
+      stopAckTimer();
 
       setError(null);
 
+      // Reset ACK tracking
+      lastReceivedSeqRef.current = -1;
+      lastAckedSeqRef.current = -1;
+
       // Generate session ID on frontend
       const sessionId = `pty-${Date.now()}`;
+      sessionIdRef.current = sessionId;
 
       try {
         // Set up event listeners BEFORE spawning to avoid race condition
@@ -52,7 +106,9 @@ export function useTerminal(options: TerminalOptions = {}) {
           "pty:output",
           (event) => {
             if (event.payload.sessionId === sessionId) {
-              optionsRef.current.onOutput?.(event.payload.data);
+              lastReceivedSeqRef.current = event.payload.seq;
+              const decoded = decodeBase64(event.payload.data);
+              optionsRef.current.onOutput?.(decoded);
             }
           },
         );
@@ -61,6 +117,8 @@ export function useTerminal(options: TerminalOptions = {}) {
           "pty:exit",
           (event) => {
             if (event.payload.sessionId === sessionId) {
+              stopAckTimer();
+              sessionIdRef.current = null;
               setIsConnected(false);
               setSession(null);
               optionsRef.current.onExit?.(event.payload.exitCode ?? undefined);
@@ -74,10 +132,13 @@ export function useTerminal(options: TerminalOptions = {}) {
           cwd: cwd ?? optionsRef.current.cwd,
           cols: cols ?? optionsRef.current.cols ?? 80,
           rows: rows ?? optionsRef.current.rows ?? 24,
+          command: command ?? optionsRef.current.command,
+          args: args ?? optionsRef.current.args,
         });
         const ptySession = mapPtySession(result);
         setSession(ptySession);
         setIsConnected(true);
+        startAckTimer();
 
         return ptySession;
       } catch (err) {
@@ -86,11 +147,13 @@ export function useTerminal(options: TerminalOptions = {}) {
         unlistenExitRef.current?.();
         unlistenOutputRef.current = null;
         unlistenExitRef.current = null;
+        stopAckTimer();
+        sessionIdRef.current = null;
         setError(err instanceof Error ? err.message : String(err));
         return null;
       }
     },
-    [],
+    [startAckTimer, stopAckTimer],
   );
 
   // Keep session ref for stable callbacks and cleanup
@@ -139,6 +202,8 @@ export function useTerminal(options: TerminalOptions = {}) {
     const currentSession = sessionRef.current;
     if (!currentSession) return false;
     try {
+      stopAckTimer();
+      sessionIdRef.current = null;
       await invoke("pty_kill", {
         sessionId: currentSession.sessionId,
       });
@@ -149,20 +214,16 @@ export function useTerminal(options: TerminalOptions = {}) {
       setError(err instanceof Error ? err.message : String(err));
       return false;
     }
-  }, []);
+  }, [stopAckTimer]);
 
-  // Cleanup on unmount only
+  // Cleanup on unmount - only unlisten events, PTY process managed explicitly via kill()
   useEffect(() => {
     return () => {
       unlistenOutputRef.current?.();
       unlistenExitRef.current?.();
-      if (sessionRef.current) {
-        invoke("pty_kill", { sessionId: sessionRef.current.sessionId }).catch(
-          () => {},
-        );
-      }
+      stopAckTimer();
     };
-  }, []); // Empty deps - only runs on unmount
+  }, [stopAckTimer]);
 
   return {
     session,

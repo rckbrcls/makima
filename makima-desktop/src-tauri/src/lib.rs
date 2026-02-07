@@ -13,6 +13,7 @@ mod auth;
 mod database;
 mod git;
 mod ollama;
+mod openclaw;
 mod openai;
 mod providers;
 mod pty;
@@ -33,8 +34,14 @@ use ollama::{
     ollama_get_process_status, ollama_health_check, ollama_list_models, ollama_pull_model,
     ollama_start_process, ollama_stop_process, OllamaState,
 };
+use openclaw::{
+    openclaw_connect, openclaw_detect_installation, openclaw_disconnect,
+    openclaw_get_config, openclaw_get_connection_status, openclaw_get_gateway_status,
+    openclaw_list_agents, openclaw_resolve_approval, openclaw_send_message,
+    openclaw_start_gateway, openclaw_stop_gateway, OpenClawState,
+};
 use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
-use pty::{pty_kill, pty_resize, pty_spawn, pty_write, PtyState};
+use pty::{detect_ai_clis, pty_ack, pty_kill, pty_resize, pty_spawn, pty_write, PtyState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,6 +51,7 @@ pub fn run() {
         .manage(OllamaState::default())
         .manage(OpenAIState::default())
         .manage(AnthropicState::default())
+        .manage(OpenClawState::default())
         .manage(PtyState::new())
         .invoke_handler(tauri::generate_handler![
             ollama_health_check,
@@ -82,10 +90,23 @@ pub fn run() {
             pty_write,
             pty_resize,
             pty_kill,
+            pty_ack,
+            detect_ai_clis,
             git_status,
             git_diff,
             git_diff_all,
             git_current_branch,
+            openclaw_detect_installation,
+            openclaw_start_gateway,
+            openclaw_stop_gateway,
+            openclaw_get_gateway_status,
+            openclaw_connect,
+            openclaw_disconnect,
+            openclaw_get_connection_status,
+            openclaw_send_message,
+            openclaw_list_agents,
+            openclaw_resolve_approval,
+            openclaw_get_config,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

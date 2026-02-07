@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 
 interface GitChangesCardProps {
   repoPath?: string;
+  pollInterval?: number;
   className?: string;
 }
 
@@ -69,10 +70,10 @@ function DiffViewer({ diff }: { diff: FileDiff }) {
   );
 }
 
-export function GitChangesCard({ repoPath, className }: GitChangesCardProps) {
+export function GitChangesCard({ repoPath, pollInterval = 5000, className }: GitChangesCardProps) {
   const { status, isLoading, error, fetchStatus, fetchDiff } = useGitStatus({
     path: repoPath,
-    pollInterval: 5000,
+    pollInterval,
     autoStart: Boolean(repoPath),
   });
 

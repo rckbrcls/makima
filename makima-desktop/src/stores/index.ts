@@ -20,6 +20,8 @@ export {
   useOllamaConfig,
   useOpenAIConfig,
   useAnthropicConfig,
+  useOpenClawConfig,
+  useSupabaseConfig,
   useOpenAIAuthPreference,
   useAnthropicAuthPreference,
   useProviders,
@@ -159,6 +161,22 @@ export {
 } from "./code-domain-store";
 export type { CodeDomainStore } from "./code-domain-store";
 
+// CLI Session Store (AI CLI sessions - ephemeral)
+export {
+  useCliSessionStore,
+  // Atomic selectors
+  useAvailableClis,
+  useInstalledClis,
+  useSelectedCliCommand,
+  useCliActiveRepositoryId,
+  useCliActiveSessionId,
+  useCliActiveSession,
+  useCliSessions,
+  useCliGitPollInterval,
+  useCliSessionActions,
+} from "./cli-session-store"
+export type { CliSessionStore } from "./cli-session-store"
+
 // Work Domain Store (agents, sessions, runs, approvals)
 export {
   useWorkDomainStore,
@@ -193,6 +211,14 @@ export {
   useWorkExecutionMode,
   useWorkIsSafeMode,
   useWorkIsAutoMode,
+  // OpenClaw selectors
+  useOpenClawConnectionStatus,
+  useOpenClawConnected,
+  useOpenClawInstallation,
+  useOpenClawGatewayStatus,
+  // Chat selectors
+  useWorkChatMessages,
+  useWorkIsAgentStreaming,
   // Error selectors
   useWorkError,
   // Actions
