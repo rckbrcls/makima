@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -133,6 +133,30 @@ function buildSideBySideRows(lines: Array<DiffLine>): Array<SideBySideRow> {
 
 function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
   const rows = useMemo(() => buildSideBySideRows(diff.lines), [diff.lines])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [splitPercent, setSplitPercent] = useState(50)
+  const dragging = useRef(false)
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    dragging.current = true
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragging.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100
+      setSplitPercent(Math.min(80, Math.max(20, pct)))
+    }
+
+    const onMouseUp = () => {
+      dragging.current = false
+      document.removeEventListener("mousemove", onMouseMove)
+      document.removeEventListener("mouseup", onMouseUp)
+    }
+
+    document.addEventListener("mousemove", onMouseMove)
+    document.addEventListener("mouseup", onMouseUp)
+  }, [])
 
   if (!diff.lines.length) {
     return (
@@ -143,7 +167,7 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
   }
 
   return (
-    <div className="overflow-x-auto font-mono text-xs">
+    <div ref={containerRef} className="relative overflow-x-auto font-mono text-xs">
       {rows.map((row, idx) => {
         if (row.type === "hunk") {
           return (
@@ -160,8 +184,9 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
           <div key={idx} className="flex min-w-max">
             {/* Left side (old) */}
             <div
+              style={{ width: `${splitPercent}%` }}
               className={cn(
-                "flex w-1/2 border-r border-border px-2 py-0.5 whitespace-pre",
+                "flex shrink-0 px-2 py-0.5 whitespace-pre",
                 row.left?.kind === "del" && "bg-red-950 text-red-300",
                 row.left?.kind === "context" && "text-muted-foreground",
                 !row.left && "bg-card",
@@ -175,8 +200,9 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
 
             {/* Right side (new) */}
             <div
+              style={{ width: `${100 - splitPercent}%` }}
               className={cn(
-                "flex w-1/2 px-2 py-0.5 whitespace-pre",
+                "flex shrink-0 px-2 py-0.5 whitespace-pre",
                 row.right?.kind === "add" && "bg-emerald-950 text-emerald-300",
                 row.right?.kind === "context" && "text-muted-foreground",
                 !row.right && "bg-card",
@@ -190,6 +216,13 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
           </div>
         )
       })}
+
+      {/* Drag handle */}
+      <div
+        className="absolute top-0 bottom-0 z-10 w-1 cursor-col-resize bg-border hover:bg-primary"
+        style={{ left: `${splitPercent}%`, marginLeft: "-2px" }}
+        onMouseDown={onMouseDown}
+      />
     </div>
   )
 }
