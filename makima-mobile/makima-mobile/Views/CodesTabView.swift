@@ -15,6 +15,8 @@ struct CodesTabView: View {
     var onBackToChat: (() -> Void)?
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             Group {
                 if !appState.supabase.isConfigured || !appState.supabase.isAuthenticated {
@@ -55,7 +57,7 @@ struct CodesTabView: View {
                                 if let desktopName = session.desktopName, !desktopName.isEmpty {
                                     Label(desktopName, systemImage: "desktopcomputer")
                                         .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(theme.mutedForeground)
                                 }
 
                                 HStack(spacing: 8) {
@@ -65,22 +67,26 @@ struct CodesTabView: View {
                                         Image(systemName: "clock")
                                     }
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(theme.mutedForeground)
 
                                     Text(String(session.sessionId.prefix(8)) + "...")
                                         .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(theme.mutedForeground)
                                 }
                             }
                             .padding(.vertical, 4)
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .background(theme.background)
                     .refreshable {
                         await loadSessions()
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(theme.background)
             .navigationTitle("Codes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -101,6 +107,9 @@ struct CodesTabView: View {
                 }
             }
         }
+        .background(theme.background.ignoresSafeArea())
+        .toolbarBackground(theme.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func loadSessions() async {
@@ -134,11 +143,6 @@ struct CodesTabView: View {
     }
 
     private func statusColor(_ status: String) -> Color {
-        switch status {
-        case "active": return .green
-        case "paired": return .orange
-        case "disconnected": return .gray
-        default: return .secondary
-        }
+        appState.resolvedTheme.sessionStatusColor(status)
     }
 }

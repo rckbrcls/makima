@@ -9,6 +9,8 @@ struct StatusView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             List {
                 // Connection
@@ -19,7 +21,7 @@ struct StatusView: View {
                                 .fill(statusColor)
                                 .frame(width: 8, height: 8)
                             Text(appState.relay.connectionStatus.rawValue.capitalized)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(theme.mutedForeground)
                         }
                     }
 
@@ -35,7 +37,7 @@ struct StatusView: View {
                         LabeledContent("Session") {
                             Text(String(sessionId.prefix(8)) + "...")
                                 .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(theme.mutedForeground)
                         }
                     }
                 }
@@ -45,13 +47,13 @@ struct StatusView: View {
                     LabeledContent("Push Notifications") {
                         if appState.notifications.isRegistered {
                             Label("Registered", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(theme.connectionStatusColor(.active))
                         } else if appState.notifications.permissionGranted {
                             Label("Pending", systemImage: "clock")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(theme.connectionStatusColor(.pairing))
                         } else {
                             Label("Not Enabled", systemImage: "xmark.circle")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(theme.connectionStatusColor(.disconnected))
                         }
                     }
 
@@ -76,11 +78,6 @@ struct StatusView: View {
     }
 
     private var statusColor: Color {
-        switch appState.relay.connectionStatus {
-        case .active, .paired: return .green
-        case .pairing: return .orange
-        case .disconnected: return .gray
-        case .error: return .red
-        }
+        appState.resolvedTheme.connectionStatusColor(appState.relay.connectionStatus)
     }
 }

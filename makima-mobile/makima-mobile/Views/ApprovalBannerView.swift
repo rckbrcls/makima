@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ApprovalBannerView: View {
+    @Environment(AppState.self) private var appState
+
     let approvals: [ApprovalRequest]
     let onApprove: (ApprovalRequest) -> Void
     let onReject: (ApprovalRequest) -> Void
@@ -15,6 +17,8 @@ struct ApprovalBannerView: View {
     @State private var isExpanded = false
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         if !approvals.isEmpty {
             VStack(spacing: 0) {
                 // Compact banner
@@ -25,7 +29,7 @@ struct ApprovalBannerView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.shield.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(theme.chart3)
 
                         Text("\(approvals.count) pending approval\(approvals.count == 1 ? "" : "s")")
                             .font(.subheadline.bold())
@@ -34,11 +38,11 @@ struct ApprovalBannerView: View {
 
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.mutedForeground)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
-                    .background(Color(.systemOrange).opacity(0.12))
+                    .background(theme.chart3.opacity(0.14))
                 }
                 .buttonStyle(.plain)
 

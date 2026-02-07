@@ -6,66 +6,70 @@
 import SwiftUI
 
 struct ChatBubbleView: View {
+    @Environment(AppState.self) private var appState
+
     let message: ChatMessage
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         HStack {
             switch message.role {
             case "user":
                 Spacer(minLength: 60)
-                userBubble
+                userBubble(theme: theme)
             case "assistant":
-                assistantBubble
+                assistantBubble(theme: theme)
                 Spacer(minLength: 60)
             case "tool":
-                toolBubble
+                toolBubble(theme: theme)
                 Spacer(minLength: 40)
             case "system":
-                systemBubble
+                systemBubble(theme: theme)
             default:
                 Text(message.content)
             }
         }
     }
 
-    private var userBubble: some View {
+    private func userBubble(theme: MakimaThemePalette) -> some View {
         Text(message.content)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(.blue)
-            .foregroundStyle(.white)
+            .background(theme.primary)
+            .foregroundStyle(theme.primaryForeground)
             .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private var assistantBubble: some View {
+    private func assistantBubble(theme: MakimaThemePalette) -> some View {
         HStack(alignment: .bottom, spacing: 6) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 0) {
                     Text(message.content)
 
                     if message.isStreaming {
-                        StreamingCursorView()
+                        StreamingCursorView(color: theme.foreground)
                     }
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color(.systemGray5))
+                .background(theme.muted)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
     }
 
-    private var toolBubble: some View {
+    private func toolBubble(theme: MakimaThemePalette) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "wrench.fill")
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(theme.chart3)
 
             VStack(alignment: .leading, spacing: 2) {
                 if let toolName = message.toolName {
                     Text(toolName)
                         .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.mutedForeground)
                 }
                 Text(message.content)
                     .font(.callout)
@@ -73,19 +77,19 @@ struct ChatBubbleView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(.systemGray6))
+        .background(theme.secondary)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var systemBubble: some View {
+    private func systemBubble(theme: MakimaThemePalette) -> some View {
         HStack {
             Spacer()
             Text(message.content)
                 .font(.callout)
-                .foregroundStyle(.red)
+                .foregroundStyle(theme.destructiveForeground)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(Color.red.opacity(0.1))
+                .background(theme.destructive.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             Spacer()
         }
@@ -93,11 +97,13 @@ struct ChatBubbleView: View {
 }
 
 private struct StreamingCursorView: View {
+    let color: Color
+
     @State private var isVisible = true
 
     var body: some View {
         Rectangle()
-            .fill(Color(.label))
+            .fill(color)
             .frame(width: 2, height: 16)
             .opacity(isVisible ? 1 : 0)
             .onAppear {

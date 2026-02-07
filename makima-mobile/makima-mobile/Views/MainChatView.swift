@@ -13,6 +13,8 @@ struct MainChatView: View {
     @State private var shell = MobileShellViewModel()
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         TabView(selection: $shell.currentPage) {
             ConversationsTabView(
                 viewModel: shell.conversationsVM,
@@ -72,6 +74,7 @@ struct MainChatView: View {
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .indexViewStyle(.page(backgroundDisplayMode: .never))
+        .background(theme.background.ignoresSafeArea())
         .onAppear {
             bootstrapIfNeeded()
         }

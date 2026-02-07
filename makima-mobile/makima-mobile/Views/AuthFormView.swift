@@ -14,6 +14,8 @@ struct AuthFormView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         Section(isSignUp ? "Create Account" : "Sign In") {
             TextField("Email", text: $email)
                 .textContentType(.emailAddress)
@@ -27,7 +29,7 @@ struct AuthFormView: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(.caption)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(theme.destructiveForeground)
             }
 
             Button {

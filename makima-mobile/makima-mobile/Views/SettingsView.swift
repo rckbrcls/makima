@@ -12,8 +12,26 @@ struct SettingsView: View {
     @State private var isSaved = false
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             Form {
+                Section("Appearance") {
+                    Picker(
+                        "Theme",
+                        selection: Binding(
+                            get: { appState.themePreference },
+                            set: { appState.themePreference = $0 }
+                        )
+                    ) {
+                        ForEach(AppThemePreference.allCases) { preference in
+                            Text(preference.title).tag(preference)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("settings.theme.picker")
+                }
+
                 // Supabase Configuration
                 Section("Supabase") {
                     TextField("Project URL", text: $url)
@@ -36,7 +54,7 @@ struct SettingsView: View {
 
                     if isSaved {
                         Label("Configuration saved", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(theme.chart2)
                             .font(.caption)
                     }
                 }

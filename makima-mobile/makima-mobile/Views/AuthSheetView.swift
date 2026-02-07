@@ -24,6 +24,8 @@ struct AuthSheetView: View {
     @State private var configSaved = false
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             Form {
                 // Auth form
@@ -40,7 +42,7 @@ struct AuthSheetView: View {
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(theme.destructiveForeground)
                     }
 
                     Button {
@@ -83,7 +85,7 @@ struct AuthSheetView: View {
 
                         if configSaved {
                             Label("Saved", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(theme.chart2)
                                 .font(.caption)
                         }
                     }

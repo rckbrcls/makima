@@ -11,6 +11,9 @@ struct ChatTabView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
 
+    @State private var didComposerFocusOnce = false
+    @State private var didComposerBlurAfterInitialFocus = false
+
     let chatVM: ChatViewModel?
     let approvalVM: ApprovalViewModel?
     let conversationsVM: ConversationsViewModel
@@ -22,9 +25,11 @@ struct ChatTabView: View {
     let onOpenCodes: () -> Void
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             ZStack(alignment: .top) {
-                Color(.systemBackground)
+                theme.background
                     .ignoresSafeArea()
 
                 if let chatVM {
@@ -48,15 +53,6 @@ struct ChatTabView: View {
             .safeAreaInset(edge: .bottom) {
                 bottomBar
             }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 10)
-                    .onEnded { value in
-                        if value.translation.height > 24 &&
-                            abs(value.translation.height) > abs(value.translation.width) {
-                            dismissKeyboard()
-                        }
-                    }
-            )
             .navigationTitle(chatVM?.currentConversation?.title ?? "Makima")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -94,6 +90,9 @@ struct ChatTabView: View {
                 }
             }
         }
+        .background(theme.background.ignoresSafeArea())
+        .toolbarBackground(theme.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     @ViewBuilder
@@ -117,8 +116,16 @@ struct ChatTabView: View {
                         get: { chatVM.composerText },
                         set: { chatVM.composerText = $0 }
                     ),
-                    shouldFocus: isActive,
+                    shouldFocus: isActive && !didComposerFocusOnce,
+                    allowProgrammaticFocus: !didComposerBlurAfterInitialFocus,
                     isStreaming: chatVM.isAgentStreaming,
+                    onFocusChanged: { isFocused in
+                        if isFocused {
+                            didComposerFocusOnce = true
+                        } else if didComposerFocusOnce {
+                            didComposerBlurAfterInitialFocus = true
+                        }
+                    },
                     onSend: {
                         guard appState.supabase.isConfigured, appState.supabase.isAuthenticated else {
                             showAuth = true
@@ -145,16 +152,16 @@ struct ChatTabView: View {
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 12)
-        .background(Color(.systemBackground))
+        .background(appState.resolvedTheme.background)
+        .onChange(of: isActive) { _, isCurrentTab in
+            if !isCurrentTab {
+                dismissKeyboard()
+            }
+        }
     }
 
     private var statusColor: Color {
-        switch appState.relay.connectionStatus {
-        case .active, .paired: return .green
-        case .pairing: return .orange
-        case .disconnected: return .gray
-        case .error: return .red
-        }
+        appState.resolvedTheme.connectionStatusColor(appState.relay.connectionStatus)
     }
 
     private func dismissKeyboard() {

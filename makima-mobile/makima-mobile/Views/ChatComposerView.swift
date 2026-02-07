@@ -6,20 +6,30 @@
 import SwiftUI
 
 struct ChatComposerView: View {
+    @Environment(AppState.self) private var appState
+
     @Binding var text: String
     var shouldFocus = true
+    var allowProgrammaticFocus = true
     let isStreaming: Bool
+    var onFocusChanged: ((Bool) -> Void)? = nil
     let onSend: () -> Void
 
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         HStack(alignment: .bottom, spacing: 8) {
             TextField("Message...", text: $text, axis: .vertical)
                 .lineLimit(1...6)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color(.secondarySystemBackground))
+                .background(theme.card)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(theme.border, lineWidth: 1)
+                }
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .focused($isTextFieldFocused)
                 .submitLabel(.send)
@@ -27,16 +37,16 @@ struct ChatComposerView: View {
                     if canSend || isStreaming {
                         onSend()
                     }
-                    isTextFieldFocused = true
+                    requestProgrammaticFocus()
                 }
 
             Button {
                 onSend()
-                isTextFieldFocused = true
+                requestProgrammaticFocus()
             } label: {
                 Image(systemName: isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
                     .font(.system(size: 30))
-                    .foregroundStyle(canSend || isStreaming ? .blue : Color(.systemGray3))
+                    .foregroundStyle(canSend || isStreaming ? theme.ring : theme.mutedForeground)
             }
             .disabled(!canSend && !isStreaming)
             .accessibilityIdentifier("composer.send.button")
@@ -45,26 +55,30 @@ struct ChatComposerView: View {
         .padding(.vertical, 2)
         .onAppear {
             if shouldFocus {
-                DispatchQueue.main.async {
-                    isTextFieldFocused = true
-                }
+                requestProgrammaticFocus()
             }
         }
         .onTapGesture {
             isTextFieldFocused = true
         }
+        .onChange(of: isTextFieldFocused) { _, isFocused in
+            onFocusChanged?(isFocused)
+        }
         .onChange(of: shouldFocus) { _, isFocused in
             if isFocused {
-                DispatchQueue.main.async {
-                    isTextFieldFocused = true
-                }
-            } else {
-                isTextFieldFocused = false
+                requestProgrammaticFocus()
             }
         }
     }
 
     private var canSend: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func requestProgrammaticFocus() {
+        guard allowProgrammaticFocus else { return }
+        DispatchQueue.main.async {
+            isTextFieldFocused = true
+        }
     }
 }

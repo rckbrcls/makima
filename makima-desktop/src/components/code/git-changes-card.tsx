@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -53,26 +53,40 @@ function DiffViewer({ diff }: { diff: FileDiff }) {
 
   return (
     <div className="overflow-x-auto font-mono text-xs">
-      {diff.lines.map((line, idx) => (
-        <div
-          key={idx}
-          className={cn(
-            "flex min-w-max px-2 py-0.5 whitespace-pre",
-            line.kind === "add" && "bg-emerald-950 text-emerald-300",
-            line.kind === "del" && "bg-red-950 text-red-300",
-            line.kind === "hunk" && "bg-blue-950 text-blue-300",
-            line.kind === "context" && "text-muted-foreground",
-          )}
-        >
-          <span className="text-muted-foreground w-8 text-right select-none">
-            {line.oldLineno ?? ""}
-          </span>
-          <span className="text-muted-foreground w-8 text-right select-none">
-            {line.newLineno ?? ""}
-          </span>
-          <span className="ml-2 flex-1">{line.content}</span>
-        </div>
-      ))}
+      {diff.lines.map((line, idx) => {
+        if (line.kind === "hunk") {
+          return (
+            <div
+              key={idx}
+              className="bg-accent leading-6 border-y border-accent"
+            >
+              <span className="text-muted-foreground w-12 inline-block shrink-0 select-none px-2 text-right" />
+              <span className="text-muted-foreground w-12 inline-block shrink-0 select-none px-2 text-right" />
+            </div>
+          )
+        }
+
+        return (
+          <div
+            key={idx}
+            className={cn(
+              "flex min-w-max whitespace-pre leading-6",
+              line.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
+              line.kind === "del" && "bg-diff-del-bg text-diff-del-fg",
+              line.kind === "context" && "text-muted-foreground",
+            )}
+          >
+            <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
+              {line.oldLineno ?? ""}
+            </span>
+            <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
+              {line.newLineno ?? ""}
+            </span>
+            <span className="border-border shrink-0 border-r" />
+            <span className="px-3 flex-1">{line.content}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -80,8 +94,7 @@ function DiffViewer({ diff }: { diff: FileDiff }) {
 // --- Side-by-side diff ---
 
 interface SideBySideRow {
-  type: "hunk" | "pair"
-  hunkContent?: string
+  type: "pair" | "separator"
   left?: DiffLine
   right?: DiffLine
 }
@@ -94,7 +107,7 @@ function buildSideBySideRows(lines: Array<DiffLine>): Array<SideBySideRow> {
     const line = lines[i]
 
     if (line.kind === "hunk") {
-      rows.push({ type: "hunk", hunkContent: line.content })
+      rows.push({ type: "separator" })
       i++
       continue
     }
@@ -131,32 +144,30 @@ function buildSideBySideRows(lines: Array<DiffLine>): Array<SideBySideRow> {
   return rows
 }
 
+function DiffRow({ line, side }: { line?: DiffLine; side: "left" | "right" }) {
+  const lineNo = side === "left" ? line?.oldLineno : line?.newLineno
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-max whitespace-pre leading-6",
+        !line && "diff-filler-hatched",
+        line?.kind === "del" && "bg-diff-del-bg text-diff-del-fg",
+        line?.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
+        line?.kind === "context" && "text-muted-foreground",
+      )}
+    >
+      <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
+        {lineNo ?? ""}
+      </span>
+      <span className="border-border shrink-0 border-r" />
+      <span className="px-3">{line?.content ?? ""}</span>
+    </div>
+  )
+}
+
 function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
   const rows = useMemo(() => buildSideBySideRows(diff.lines), [diff.lines])
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [splitPercent, setSplitPercent] = useState(50)
-  const dragging = useRef(false)
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    dragging.current = true
-
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!dragging.current || !containerRef.current) return
-      const rect = containerRef.current.getBoundingClientRect()
-      const pct = ((ev.clientX - rect.left) / rect.width) * 100
-      setSplitPercent(Math.min(80, Math.max(20, pct)))
-    }
-
-    const onMouseUp = () => {
-      dragging.current = false
-      document.removeEventListener("mousemove", onMouseMove)
-      document.removeEventListener("mouseup", onMouseUp)
-    }
-
-    document.addEventListener("mousemove", onMouseMove)
-    document.addEventListener("mouseup", onMouseUp)
-  }, [])
 
   if (!diff.lines.length) {
     return (
@@ -167,62 +178,24 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
   }
 
   return (
-    <div ref={containerRef} className="relative overflow-x-auto font-mono text-xs">
-      {rows.map((row, idx) => {
-        if (row.type === "hunk") {
-          return (
-            <div
-              key={idx}
-              className="flex min-w-max bg-blue-950 px-2 py-0.5 text-blue-300 whitespace-pre"
-            >
-              <span className="flex-1">{row.hunkContent}</span>
+    <div className="h-full overflow-auto font-mono text-xs">
+      {rows.map((row, idx) =>
+        row.type === "separator" ? (
+          <div key={idx} className="flex">
+            <div className="bg-accent h-6 flex-1 border-y border-accent" />
+            <div className="border-border bg-accent h-6 flex-1 border-y border-accent border-l" />
+          </div>
+        ) : (
+          <div key={idx} className="flex">
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <DiffRow line={row.left} side="left" />
             </div>
-          )
-        }
-
-        return (
-          <div key={idx} className="flex min-w-max">
-            {/* Left side (old) */}
-            <div
-              style={{ width: `${splitPercent}%` }}
-              className={cn(
-                "flex shrink-0 px-2 py-0.5 whitespace-pre",
-                row.left?.kind === "del" && "bg-red-950 text-red-300",
-                row.left?.kind === "context" && "text-muted-foreground",
-                !row.left && "bg-card",
-              )}
-            >
-              <span className="text-muted-foreground w-8 text-right select-none">
-                {row.left?.oldLineno ?? ""}
-              </span>
-              <span className="ml-2 flex-1">{row.left?.content ?? ""}</span>
-            </div>
-
-            {/* Right side (new) */}
-            <div
-              style={{ width: `${100 - splitPercent}%` }}
-              className={cn(
-                "flex shrink-0 px-2 py-0.5 whitespace-pre",
-                row.right?.kind === "add" && "bg-emerald-950 text-emerald-300",
-                row.right?.kind === "context" && "text-muted-foreground",
-                !row.right && "bg-card",
-              )}
-            >
-              <span className="text-muted-foreground w-8 text-right select-none">
-                {row.right?.newLineno ?? ""}
-              </span>
-              <span className="ml-2 flex-1">{row.right?.content ?? ""}</span>
+            <div className="border-border min-w-0 flex-1 overflow-hidden border-l">
+              <DiffRow line={row.right} side="right" />
             </div>
           </div>
-        )
-      })}
-
-      {/* Drag handle */}
-      <div
-        className="absolute top-0 bottom-0 z-10 w-1 cursor-col-resize bg-border hover:bg-primary"
-        style={{ left: `${splitPercent}%`, marginLeft: "-2px" }}
-        onMouseDown={onMouseDown}
-      />
+        ),
+      )}
     </div>
   )
 }
@@ -498,7 +471,14 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
           )}
 
           {/* Diff content */}
-          <div className="bg-secondary flex-1 overflow-auto">
+          <div
+            className={cn(
+              "bg-secondary min-h-0 flex-1",
+              diffView === "split" && selectedDiff && !isLoadingDiff
+                ? "overflow-hidden"
+                : "overflow-auto",
+            )}
+          >
             {isLoadingDiff ? (
               <div className="flex h-full items-center justify-center">
                 <RefreshCw className="text-muted-foreground size-4 animate-spin" />

@@ -18,6 +18,8 @@ struct ConnectionSettingsSheet: View {
     var showCloseButton = false
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         List {
             // Connection
             Section("Connection") {
@@ -27,7 +29,7 @@ struct ConnectionSettingsSheet: View {
                             .fill(statusColor)
                             .frame(width: 8, height: 8)
                         Text(appState.relay.connectionStatus.rawValue.capitalized)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.mutedForeground)
                     }
                 }
 
@@ -43,9 +45,25 @@ struct ConnectionSettingsSheet: View {
                     LabeledContent("Session") {
                         Text(String(sessionId.prefix(8)) + "...")
                             .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.mutedForeground)
                     }
                 }
+            }
+
+            Section("Appearance") {
+                Picker(
+                    "Theme",
+                    selection: Binding(
+                        get: { appState.themePreference },
+                        set: { appState.themePreference = $0 }
+                    )
+                ) {
+                    ForEach(AppThemePreference.allCases) { preference in
+                        Text(preference.title).tag(preference)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("settings.theme.picker")
             }
 
             // Supabase Configuration
@@ -70,7 +88,7 @@ struct ConnectionSettingsSheet: View {
 
                 if isSaved {
                     Label("Configuration saved", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(theme.chart2)
                         .font(.caption)
                 }
             }
@@ -99,13 +117,13 @@ struct ConnectionSettingsSheet: View {
                 LabeledContent("Push Notifications") {
                     if appState.notifications.isRegistered {
                         Label("Registered", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(theme.connectionStatusColor(.active))
                     } else if appState.notifications.permissionGranted {
                         Label("Pending", systemImage: "clock")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(theme.connectionStatusColor(.pairing))
                     } else {
                         Label("Not Enabled", systemImage: "xmark.circle")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.connectionStatusColor(.disconnected))
                     }
                 }
             }
@@ -145,11 +163,6 @@ struct ConnectionSettingsSheet: View {
     }
 
     private var statusColor: Color {
-        switch appState.relay.connectionStatus {
-        case .active, .paired: return .green
-        case .pairing: return .orange
-        case .disconnected: return .gray
-        case .error: return .red
-        }
+        appState.resolvedTheme.connectionStatusColor(appState.relay.connectionStatus)
     }
 }

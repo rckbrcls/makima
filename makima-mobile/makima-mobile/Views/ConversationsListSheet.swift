@@ -9,12 +9,15 @@ struct ConversationsTabView: View {
     @Environment(AppState.self) private var appState
 
     @Bindable var viewModel: ConversationsViewModel
+    @State private var isSearchPresented = false
     let onSelect: (Conversation) -> Void
     let onNew: () -> Void
     var onOpenSettings: (() -> Void)?
     var onOpenAuth: (() -> Void)?
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             List {
                 ForEach(viewModel.groupedConversations) { section in
@@ -27,18 +30,18 @@ struct ConversationsTabView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(conversation.title)
                                             .font(.body)
-                                            .foregroundStyle(.primary)
+                                            .foregroundStyle(theme.foreground)
 
                                         Text(conversation.updatedAt, style: .relative)
                                             .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(theme.mutedForeground)
                                     }
 
                                     Spacer()
 
                                     if conversation.id == viewModel.activeConversation?.id {
                                         Circle()
-                                            .fill(.blue)
+                                            .fill(theme.ring)
                                             .frame(width: 8, height: 8)
                                     }
 
@@ -58,7 +61,14 @@ struct ConversationsTabView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .searchable(text: $viewModel.searchQuery, prompt: "Search conversations")
+            .scrollContentBackground(.hidden)
+            .background(theme.background)
+            .searchable(
+                text: $viewModel.searchQuery,
+                isPresented: $isSearchPresented,
+                placement: .navigationBarDrawer(displayMode: .automatic),
+                prompt: "Search conversations"
+            )
             .onChange(of: viewModel.searchQuery) { _, _ in
                 viewModel.load()
             }
@@ -76,7 +86,14 @@ struct ConversationsTabView: View {
                     }
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        isSearchPresented = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityIdentifier("conversations.search.button")
+
                     Button {
                         onNew()
                     } label: {
@@ -103,10 +120,13 @@ struct ConversationsTabView: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 6)
                     .padding(.bottom, 10)
-                    .background(Color(.systemBackground))
+                    .background(theme.background)
                 }
             }
         }
+        .background(theme.background.ignoresSafeArea())
+        .toolbarBackground(theme.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func statusDot(for status: String) -> some View {
@@ -116,10 +136,6 @@ struct ConversationsTabView: View {
     }
 
     private func statusColor(for status: String) -> Color {
-        switch status {
-        case "running", "streaming": return .orange
-        case "error": return .red
-        default: return .clear
-        }
+        appState.resolvedTheme.sessionStatusColor(status)
     }
 }

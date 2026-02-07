@@ -13,6 +13,8 @@ struct PairView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         NavigationStack {
             VStack(spacing: 32) {
                 Spacer()
@@ -20,14 +22,14 @@ struct PairView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "link.circle.fill")
                         .font(.system(size: 64))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(theme.ring)
 
                     Text("Connect to Desktop")
                         .font(.title2.bold())
 
                     Text("Enter the 6-character pairing code shown on your desktop app.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.mutedForeground)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                 }
@@ -38,7 +40,11 @@ struct PairView: View {
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .padding()
-                    .background(.quaternary)
+                    .background(theme.muted)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(theme.border, lineWidth: 1)
+                    }
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal, 48)
                     .onChange(of: code) { _, newValue in
@@ -48,7 +54,7 @@ struct PairView: View {
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.callout)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(theme.destructiveForeground)
                         .padding(.horizontal)
                 }
 

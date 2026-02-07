@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct BlobEmptyStateView: View {
+    @Environment(AppState.self) private var appState
+
     @State private var displayedText = ""
     @State private var isTouching = false
 
@@ -15,6 +17,8 @@ struct BlobEmptyStateView: View {
     private let typingInterval: TimeInterval = 0.06
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         VStack(spacing: 24) {
             Spacer()
 
@@ -28,7 +32,7 @@ struct BlobEmptyStateView: View {
 
             Text(displayedText)
                 .font(.title3.weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.mutedForeground)
                 .frame(height: 28)
 
             Spacer()

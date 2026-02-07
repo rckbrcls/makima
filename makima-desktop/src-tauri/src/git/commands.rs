@@ -95,7 +95,8 @@ pub fn git_diff(repo_path: String, file_path: String) -> Result<FileDiff, String
         let kind = match line.origin() {
             '+' => "add",
             '-' => "del",
-            'F' | 'B' | '@' => return true,
+            'F' | 'B' => return true,
+            'H' => "hunk",
             _ => "context",
         }
         .to_string();
@@ -156,7 +157,8 @@ pub fn git_diff_all(repo_path: String) -> Result<Vec<FileDiff>, String> {
         let kind = match line.origin() {
             '+' => "add",
             '-' => "del",
-            'F' | 'B' | '@' => return true,
+            'F' | 'B' => return true,
+            'H' => "hunk",
             _ => "context",
         }
         .to_string();

@@ -6,11 +6,15 @@
 import SwiftUI
 
 struct ApprovalCardView: View {
+    @Environment(AppState.self) private var appState
+
     let approval: ApprovalRequest
     let onApprove: () -> Void
     let onReject: () -> Void
 
     var body: some View {
+        let theme = appState.resolvedTheme
+
         VStack(alignment: .leading, spacing: 12) {
             // Header: tool name + risk badge
             HStack {
@@ -25,17 +29,17 @@ struct ApprovalCardView: View {
             // Description
             Text(approval.toolDescription)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.mutedForeground)
 
             // Arguments preview
             if approval.toolArguments != "{}" {
                 Text(approval.toolArguments)
                     .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.mutedForeground)
                     .lineLimit(3)
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemGray6))
+                    .background(theme.muted)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
@@ -57,9 +61,9 @@ struct ApprovalCardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(theme.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        .shadow(color: theme.foreground.opacity(0.08), radius: 4, y: 2)
     }
 
     private var riskBadge: some View {
@@ -73,10 +77,6 @@ struct ApprovalCardView: View {
     }
 
     private var riskColor: Color {
-        switch approval.risk {
-        case "high": return .red
-        case "medium": return .orange
-        default: return .green
-        }
+        appState.resolvedTheme.riskColor(approval.risk)
     }
 }
