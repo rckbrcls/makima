@@ -12,9 +12,9 @@ import { mapPtySession } from "@/lib/code-types";
 
 const ACK_INTERVAL_MS = 64;
 
-function decodeBase64(b64: string): string {
+function decodeBase64(b64: string, decoder: TextDecoder): string {
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-  return new TextDecoder().decode(bytes)
+  return decoder.decode(bytes, { stream: true })
 }
 
 export interface TerminalOptions {
@@ -40,6 +40,9 @@ export function useTerminal(options: TerminalOptions = {}) {
   const lastAckedSeqRef = useRef<number>(-1);
   const ackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+
+  // Streaming UTF-8 decoder — holds incomplete multi-byte sequences between chunks
+  const decoderRef = useRef<TextDecoder>(new TextDecoder());
 
   // Keep options ref updated
   useEffect(() => {
@@ -92,9 +95,10 @@ export function useTerminal(options: TerminalOptions = {}) {
 
       setError(null);
 
-      // Reset ACK tracking
+      // Reset ACK tracking and decoder for new session
       lastReceivedSeqRef.current = -1;
       lastAckedSeqRef.current = -1;
+      decoderRef.current = new TextDecoder();
 
       // Generate session ID on frontend
       const sessionId = `pty-${Date.now()}`;
@@ -107,7 +111,7 @@ export function useTerminal(options: TerminalOptions = {}) {
           (event) => {
             if (event.payload.sessionId === sessionId) {
               lastReceivedSeqRef.current = event.payload.seq;
-              const decoded = decodeBase64(event.payload.data);
+              const decoded = decodeBase64(event.payload.data, decoderRef.current);
               optionsRef.current.onOutput?.(decoded);
             }
           },
