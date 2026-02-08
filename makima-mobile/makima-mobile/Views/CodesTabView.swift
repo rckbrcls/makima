@@ -88,7 +88,7 @@ struct CodesTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(theme.background)
             .navigationTitle("Codes")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 if let onBackToChat {
                     ToolbarItem(placement: .topBarLeading) {

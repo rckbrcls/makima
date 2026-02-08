@@ -35,6 +35,33 @@ enum MakimaThemeSemanticTone: Equatable {
     case muted
 }
 
+private enum MakimaThemeColorName: String {
+    case background = "ThemeBackground"
+    case foreground = "ThemeForeground"
+    case card = "ThemeCard"
+    case cardForeground = "ThemeCardForeground"
+    case popover = "ThemePopover"
+    case popoverForeground = "ThemePopoverForeground"
+    case primary = "ThemePrimary"
+    case primaryForeground = "ThemePrimaryForeground"
+    case secondary = "ThemeSecondary"
+    case secondaryForeground = "ThemeSecondaryForeground"
+    case muted = "ThemeMuted"
+    case mutedForeground = "ThemeMutedForeground"
+    case accent = "ThemeAccent"
+    case accentForeground = "ThemeAccentForeground"
+    case destructive = "ThemeDestructive"
+    case destructiveForeground = "ThemeDestructiveForeground"
+    case border = "ThemeBorder"
+    case input = "ThemeInput"
+    case ring = "ThemeRing"
+    case chart1 = "ThemeChart1"
+    case chart2 = "ThemeChart2"
+    case chart3 = "ThemeChart3"
+    case chart4 = "ThemeChart4"
+    case chart5 = "ThemeChart5"
+}
+
 struct MakimaThemePalette {
     let background: Color
     let foreground: Color
@@ -63,8 +90,8 @@ struct MakimaThemePalette {
 
     static func palette(for preference: AppThemePreference) -> MakimaThemePalette {
         switch preference {
-        case .light: return .light
-        case .dark: return .dark
+        case .light, .dark:
+            return .native
         }
     }
 
@@ -128,73 +155,36 @@ struct MakimaThemePalette {
 }
 
 private extension MakimaThemePalette {
-    static let light = MakimaThemePalette(
-        background: Color(hex: "#F5F5F5"),
-        foreground: Color(hex: "#0A0A0A"),
-        card: Color(hex: "#FFFFFF"),
-        cardForeground: Color(hex: "#0A0A0A"),
-        popover: Color(hex: "#FFFFFF"),
-        popoverForeground: Color(hex: "#0A0A0A"),
-        primary: Color(hex: "#1A1A1A"),
-        primaryForeground: Color(hex: "#E2E2E2"),
-        secondary: Color(hex: "#F5F5F5"),
-        secondaryForeground: Color(hex: "#171717"),
-        muted: Color(hex: "#F5F5F5"),
-        mutedForeground: Color(hex: "#737373"),
-        accent: Color(hex: "#F5F5F5"),
-        accentForeground: Color(hex: "#171717"),
-        destructive: Color(hex: "#E7000B"),
-        destructiveForeground: Color(hex: "#E7000B"),
-        border: Color(hex: "#E5E5E5"),
-        input: Color(hex: "#E5E5E5"),
-        ring: Color(hex: "#75CAF2"),
-        chart1: Color(hex: "#75CAF2"),
-        chart2: Color(hex: "#ABDEA0"),
-        chart3: Color(hex: "#EDE091"),
-        chart4: Color(hex: "#FFB2CB"),
-        chart5: Color(hex: "#C7AFF5")
-    )
-
-    static let dark = MakimaThemePalette(
-        background: Color(hex: "#0C0C0C"),
-        foreground: Color(hex: "#FAFAFA"),
-        card: Color(hex: "#121212"),
-        cardForeground: Color(hex: "#FAFAFA"),
-        popover: Color(hex: "#121212"),
-        popoverForeground: Color(hex: "#FAFAFA"),
-        primary: Color(hex: "#FFFFFF"),
-        primaryForeground: Color(hex: "#0A0A0A"),
-        secondary: Color(hex: "#262626"),
-        secondaryForeground: Color(hex: "#FAFAFA"),
-        muted: Color(hex: "#262626"),
-        mutedForeground: Color(hex: "#A1A1A1"),
-        accent: Color(hex: "#404040"),
-        accentForeground: Color(hex: "#FAFAFA"),
-        destructive: Color(hex: "#82181A"),
-        destructiveForeground: Color(hex: "#FB2C36"),
-        border: Color(hex: "#262626"),
-        input: Color(hex: "#262626"),
-        ring: Color(hex: "#75CAF2"),
-        chart1: Color(hex: "#75CAF2"),
-        chart2: Color(hex: "#ABDEA0"),
-        chart3: Color(hex: "#EDE091"),
-        chart4: Color(hex: "#FFB2CB"),
-        chart5: Color(hex: "#C7AFF5")
+    static let native = MakimaThemePalette(
+        background: .makima(.background),
+        foreground: .makima(.foreground),
+        card: .makima(.card),
+        cardForeground: .makima(.cardForeground),
+        popover: .makima(.popover),
+        popoverForeground: .makima(.popoverForeground),
+        primary: .makima(.primary),
+        primaryForeground: .makima(.primaryForeground),
+        secondary: .makima(.secondary),
+        secondaryForeground: .makima(.secondaryForeground),
+        muted: .makima(.muted),
+        mutedForeground: .makima(.mutedForeground),
+        accent: .makima(.accent),
+        accentForeground: .makima(.accentForeground),
+        destructive: .makima(.destructive),
+        destructiveForeground: .makima(.destructiveForeground),
+        border: .makima(.border),
+        input: .makima(.input),
+        ring: .makima(.ring),
+        chart1: .makima(.chart1),
+        chart2: .makima(.chart2),
+        chart3: .makima(.chart3),
+        chart4: .makima(.chart4),
+        chart5: .makima(.chart5)
     )
 }
 
 private extension Color {
-    init(hex: String, opacity: Double = 1) {
-        let cleaned = hex
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "#", with: "")
-        let validHex = cleaned.count == 6 ? cleaned : "000000"
-        let value = UInt64(validHex, radix: 16) ?? 0
-
-        let red = Double((value >> 16) & 0xFF) / 255
-        let green = Double((value >> 8) & 0xFF) / 255
-        let blue = Double(value & 0xFF) / 255
-
-        self.init(.sRGB, red: red, green: green, blue: blue, opacity: opacity)
+    static func makima(_ name: MakimaThemeColorName) -> Color {
+        Color(name.rawValue)
     }
 }

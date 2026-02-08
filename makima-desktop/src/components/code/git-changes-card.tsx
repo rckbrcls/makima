@@ -9,16 +9,21 @@ import React, {
 import {
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Columns2,
   File,
   FileEdit,
   FileMinus,
   FilePlus,
+  FolderIcon,
+  FolderOpenIcon,
   GitBranch,
+  List,
   RefreshCw,
   Rows2,
+  ListTree,
 } from "lucide-react"
-import type { FileDiff, GitFileChange } from "@/lib/code-types"
+import type { FileDiff, GitFileChange, GitStatus } from "@/lib/code-types"
 import type { IntralineSpan, RowModel } from "@/lib/diff-engine"
 import { buildRowModels } from "@/lib/diff-engine"
 import { ScrollSyncController } from "@/lib/scroll-sync"
@@ -40,19 +45,150 @@ interface GitChangesCardProps {
 function FileIcon({ status }: { status: GitFileChange["status"] }) {
   switch (status) {
     case "added":
-      return <FilePlus className="size-4 text-emerald-400" />
+      return <FilePlus className="size-4 text-diff-add-fg" />
     case "deleted":
-      return <FileMinus className="size-4 text-red-400" />
+      return <FileMinus className="size-4 text-diff-del-fg" />
     case "modified":
-      return <FileEdit className="size-4 text-amber-400" />
+      return <FileEdit className="size-4 text-foreground" />
     case "renamed":
-      return <File className="size-4 text-blue-400" />
+      return <File className="size-4 text-ring" />
     default:
-      return <File className="text-muted-foreground size-4" />
+      return <File className="size-4 text-muted-foreground" />
   }
 }
 
-function DiffViewer({ diff }: { diff: FileDiff }) {
+// --- File tree helpers ---
+
+interface FileTreeNode {
+  name: string
+  fullPath: string
+  isFile: boolean
+  status?: GitFileChange["status"]
+  staged?: boolean
+  children: Map<string, FileTreeNode>
+}
+
+function buildFileTree(
+  files: Array<{ path: string; status?: GitFileChange["status"]; staged?: boolean }>,
+): FileTreeNode {
+  const root: FileTreeNode = {
+    name: "",
+    fullPath: "",
+    isFile: false,
+    children: new Map(),
+  }
+
+  for (const file of files) {
+    const parts = file.path.split("/")
+    let current = root
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      const isLast = i === parts.length - 1
+
+      if (!current.children.has(part)) {
+        current.children.set(part, {
+          name: part,
+          fullPath: parts.slice(0, i + 1).join("/"),
+          isFile: isLast,
+          status: isLast ? file.status : undefined,
+          staged: isLast ? file.staged : undefined,
+          children: new Map(),
+        })
+      }
+
+      current = current.children.get(part)!
+    }
+  }
+
+  return root
+}
+
+function FileTreeView({
+  node,
+  selectedFile,
+  onFileClick,
+  depth = 0,
+}: {
+  node: FileTreeNode
+  selectedFile: string | null
+  onFileClick: (path: string, staged?: boolean) => void
+  depth?: number
+}) {
+  const [expanded, setExpanded] = useState(true)
+  const sortedChildren = useMemo(() => {
+    const entries = Array.from(node.children.values())
+    // folders first, then files, alphabetical within each group
+    return entries.sort((a, b) => {
+      if (a.isFile !== b.isFile) return a.isFile ? 1 : -1
+      return a.name.localeCompare(b.name)
+    })
+  }, [node.children])
+
+  return (
+    <>
+      {sortedChildren.map((child) =>
+        child.isFile ? (
+          <button
+            key={child.fullPath}
+            className={cn(
+              "glass-hover flex w-full items-center gap-2 py-1 text-xs",
+              selectedFile === child.fullPath && "glass-selected",
+            )}
+            style={{ paddingLeft: depth * 12 + 16 }}
+            onClick={() => onFileClick(child.fullPath, child.staged)}
+          >
+            <FileIcon status={child.status ?? "modified"} />
+            <span className="text-foreground truncate">{child.name}</span>
+          </button>
+        ) : (
+          <div key={child.fullPath}>
+            <button
+              className="glass-hover flex w-full items-center gap-1 py-1 text-xs text-muted-foreground"
+              style={{ paddingLeft: depth * 12 + 8 }}
+              onClick={() => setExpanded((prev) => !prev)}
+            >
+              {expanded ? (
+                <FolderOpenIcon className="size-3.5" />
+              ) : (
+                <FolderIcon className="size-3.5" />
+              )}
+              <span className="truncate">{child.name}</span>
+            </button>
+            {expanded && (
+              <FileTreeView
+                node={child}
+                selectedFile={selectedFile}
+                onFileClick={onFileClick}
+                depth={depth + 1}
+              />
+            )}
+          </div>
+        ),
+      )}
+    </>
+  )
+}
+
+function DiffViewer({
+  diff,
+  scrollRequestId,
+  targetHunkIndex,
+}: {
+  diff: FileDiff
+  scrollRequestId?: number
+  targetHunkIndex?: number
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (targetHunkIndex == null || targetHunkIndex < 0) return
+    const el = containerRef.current?.querySelector(
+      `[data-hunk-index="${targetHunkIndex}"]`,
+    )
+    el?.scrollIntoView({ block: "start", behavior: "smooth" })
+  }, [scrollRequestId])
+
   if (!diff.lines.length) {
     return (
       <div className="text-muted-foreground px-4 py-2 text-xs">
@@ -61,13 +197,17 @@ function DiffViewer({ diff }: { diff: FileDiff }) {
     )
   }
 
+  let hunkCounter = -1
+
   return (
-    <div className="overflow-x-auto font-mono text-xs">
+    <div ref={containerRef} className="overflow-x-auto font-mono text-xs">
       {diff.lines.map((line, idx) => {
         if (line.kind === "hunk") {
+          hunkCounter++
           return (
             <div
               key={idx}
+              data-hunk-index={hunkCounter}
               className="bg-accent leading-6 border-y border-accent"
             >
               <span className="text-muted-foreground w-12 inline-block shrink-0 select-none px-2 text-right" />
@@ -170,8 +310,24 @@ const DiffRowSide = React.memo(function DiffRowSide({
   )
 })
 
-function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
+function SideBySideDiffViewer({
+  diff,
+  scrollRequestId,
+  targetHunkIndex,
+}: {
+  diff: FileDiff
+  scrollRequestId?: number
+  targetHunkIndex?: number
+}) {
   const rows = useMemo(() => buildRowModels(diff.lines), [diff.lines])
+
+  const hunkRowIndices = useMemo(
+    () => rows.reduce<Array<number>>((acc, row, i) => {
+      if (row.isSeparator) acc.push(i)
+      return acc
+    }, []),
+    [rows],
+  )
   const [split, setSplit] = useState(50)
   const [range, setRange] = useState({ start: 0, end: 50 })
 
@@ -263,6 +419,17 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
       })
     }
   }, [rows.length])
+
+  // Scroll to target hunk when requested
+  useEffect(() => {
+    if (targetHunkIndex == null || targetHunkIndex < 0) return
+    if (targetHunkIndex >= hunkRowIndices.length) return
+    const rowIndex = hunkRowIndices[targetHunkIndex]
+    scrollRef.current?.scrollTo({
+      top: rowIndex * ROW_HEIGHT,
+      behavior: "smooth",
+    })
+  }, [scrollRequestId])
 
   if (!diff.lines.length) {
     return (
@@ -362,6 +529,271 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
   )
 }
 
+// --- File list view components ---
+
+function getFileName(path: string) {
+  return path.split("/").pop() ?? path
+}
+
+interface FileListProps {
+  status: GitStatus | null
+  selectedFile: string | null
+  expandedSections: Set<string>
+  toggleSection: (section: string) => void
+  onFileClick: (path: string, staged?: boolean) => void
+  totalChanges: number
+  isLoading: boolean
+}
+
+function FlatFileList({
+  status,
+  selectedFile,
+  expandedSections,
+  toggleSection,
+  onFileClick,
+  totalChanges,
+  isLoading,
+}: FileListProps) {
+  return (
+    <>
+      {/* Staged */}
+      {status?.staged && status.staged.length > 0 && (
+        <div>
+          <button
+            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-diff-add-fg"
+            onClick={() => toggleSection("staged")}
+          >
+            {expandedSections.has("staged") ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+            Staged ({status.staged.length})
+          </button>
+          {expandedSections.has("staged") && (
+            <div className="pb-1">
+              {status.staged.map((file) => (
+                <button
+                  key={file.path}
+                  className={cn(
+                    "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
+                    selectedFile === file.path && "glass-selected",
+                  )}
+                  onClick={() => onFileClick(file.path, true)}
+                >
+                  <FileIcon status={file.status} />
+                  <span className="text-foreground truncate">
+                    {getFileName(file.path)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Unstaged */}
+      {status?.unstaged && status.unstaged.length > 0 && (
+        <div>
+          <button
+            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-foreground"
+            onClick={() => toggleSection("unstaged")}
+          >
+            {expandedSections.has("unstaged") ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+            Changes ({status.unstaged.length})
+          </button>
+          {expandedSections.has("unstaged") && (
+            <div className="pb-1">
+              {status.unstaged.map((file) => (
+                <button
+                  key={file.path}
+                  className={cn(
+                    "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
+                    selectedFile === file.path && "glass-selected",
+                  )}
+                  onClick={() => onFileClick(file.path)}
+                >
+                  <FileIcon status={file.status} />
+                  <span className="text-foreground truncate">
+                    {getFileName(file.path)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Untracked */}
+      {status?.untracked && status.untracked.length > 0 && (
+        <div>
+          <button
+            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground"
+            onClick={() => toggleSection("untracked")}
+          >
+            {expandedSections.has("untracked") ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+            Untracked ({status.untracked.length})
+          </button>
+          {expandedSections.has("untracked") && (
+            <div className="pb-1">
+              {status.untracked.map((filePath) => (
+                <button
+                  key={filePath}
+                  className={cn(
+                    "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
+                    selectedFile === filePath && "glass-selected",
+                  )}
+                  onClick={() => onFileClick(filePath)}
+                >
+                  <FilePlus className="size-4 text-muted-foreground" />
+                  <span className="text-muted-foreground truncate">
+                    {getFileName(filePath)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {totalChanges === 0 && !isLoading && (
+        <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+          <p className="text-muted-foreground text-xs">No changes detected</p>
+        </div>
+      )}
+    </>
+  )
+}
+
+function TreeFileList({
+  status,
+  selectedFile,
+  expandedSections,
+  toggleSection,
+  onFileClick,
+  totalChanges,
+  isLoading,
+}: FileListProps) {
+  const stagedTree = useMemo(() => {
+    if (!status?.staged?.length) return null
+    return buildFileTree(
+      status.staged.map((f) => ({ path: f.path, status: f.status, staged: true })),
+    )
+  }, [status?.staged])
+
+  const unstagedTree = useMemo(() => {
+    if (!status?.unstaged?.length) return null
+    return buildFileTree(
+      status.unstaged.map((f) => ({ path: f.path, status: f.status, staged: false })),
+    )
+  }, [status?.unstaged])
+
+  const untrackedTree = useMemo(() => {
+    if (!status?.untracked?.length) return null
+    return buildFileTree(
+      status.untracked.map((p) => ({ path: p, status: "added" as const, staged: false })),
+    )
+  }, [status?.untracked])
+
+  return (
+    <>
+      {/* Staged */}
+      {stagedTree && (
+        <div>
+          <button
+            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-diff-add-fg"
+            onClick={() => toggleSection("staged")}
+          >
+            {expandedSections.has("staged") ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+            Staged ({status!.staged.length})
+          </button>
+          {expandedSections.has("staged") && (
+            <div className="pb-1">
+              <FileTreeView
+                node={stagedTree}
+                selectedFile={selectedFile}
+                onFileClick={onFileClick}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Unstaged */}
+      {unstagedTree && (
+        <div>
+          <button
+            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-foreground"
+            onClick={() => toggleSection("unstaged")}
+          >
+            {expandedSections.has("unstaged") ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+            Changes ({status!.unstaged.length})
+          </button>
+          {expandedSections.has("unstaged") && (
+            <div className="pb-1">
+              <FileTreeView
+                node={unstagedTree}
+                selectedFile={selectedFile}
+                onFileClick={onFileClick}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Untracked */}
+      {untrackedTree && (
+        <div>
+          <button
+            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground"
+            onClick={() => toggleSection("untracked")}
+          >
+            {expandedSections.has("untracked") ? (
+              <ChevronDown className="size-3" />
+            ) : (
+              <ChevronRight className="size-3" />
+            )}
+            Untracked ({status!.untracked.length})
+          </button>
+          {expandedSections.has("untracked") && (
+            <div className="pb-1">
+              <FileTreeView
+                node={untrackedTree}
+                selectedFile={selectedFile}
+                onFileClick={onFileClick}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {totalChanges === 0 && !isLoading && (
+        <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+          <p className="text-muted-foreground text-xs">No changes detected</p>
+        </div>
+      )}
+    </>
+  )
+}
+
 export function GitChangesCard({ repoPath, pollInterval = 5000, className }: GitChangesCardProps) {
   const { status, isLoading, error, fetchStatus, fetchDiff } = useGitStatus({
     path: repoPath,
@@ -376,6 +808,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
   const [selectedDiff, setSelectedDiff] = useState<FileDiff | null>(null)
   const [isLoadingDiff, setIsLoadingDiff] = useState(false)
   const [diffView, setDiffView] = useState<"inline" | "split">("inline")
+  const [fileListView, setFileListView] = useState<"flat" | "tree">("flat")
 
   const toggleSection = useCallback((section: string) => {
     setExpandedSections((prev) => {
@@ -399,6 +832,8 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
 
       setSelectedFile(filePath)
       setIsLoadingDiff(true)
+      setCurrentHunkIndex(0)
+      pendingHunkNav.current = null
       const diff = await fetchDiff(filePath, { staged })
       setSelectedDiff(diff)
       setIsLoadingDiff(false)
@@ -409,6 +844,83 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
   const handleRefresh = useCallback(() => {
     fetchStatus()
   }, [fetchStatus])
+
+  const allFiles = useMemo(() => {
+    const files: Array<{ path: string; staged: boolean }> = []
+    for (const f of status?.staged ?? []) files.push({ path: f.path, staged: true })
+    for (const f of status?.unstaged ?? []) files.push({ path: f.path, staged: false })
+    for (const p of status?.untracked ?? []) files.push({ path: p, staged: false })
+    return files
+  }, [status])
+
+  const currentFileIndex = useMemo(
+    () => (selectedFile ? allFiles.findIndex((f) => f.path === selectedFile) : -1),
+    [allFiles, selectedFile],
+  )
+
+  // Hunk (change) navigation
+  const hunkPositions = useMemo(() => {
+    if (!selectedDiff) return []
+    return selectedDiff.lines.reduce<Array<number>>((acc, line, i) => {
+      if (line.kind === "hunk") acc.push(i)
+      return acc
+    }, [])
+  }, [selectedDiff])
+
+  const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
+  const [scrollRequestId, setScrollRequestId] = useState(0)
+  const pendingHunkNav = useRef<"first" | "last" | null>(null)
+
+  // After diff loads from a cross-file nav, scroll to pending hunk
+  useEffect(() => {
+    if (!isLoadingDiff && selectedDiff && pendingHunkNav.current !== null) {
+      const idx =
+        pendingHunkNav.current === "last"
+          ? Math.max(0, hunkPositions.length - 1)
+          : 0
+      setCurrentHunkIndex(idx)
+      setScrollRequestId((prev) => prev + 1)
+      pendingHunkNav.current = null
+    }
+  }, [isLoadingDiff, selectedDiff, hunkPositions])
+
+  const navigateChange = useCallback(
+    (delta: 1 | -1) => {
+      const nextHunk = currentHunkIndex + delta
+
+      if (nextHunk >= 0 && nextHunk < hunkPositions.length) {
+        // Navigate within current file
+        setCurrentHunkIndex(nextHunk)
+        setScrollRequestId((prev) => prev + 1)
+      } else if (delta === 1 && currentFileIndex < allFiles.length - 1) {
+        // Past last hunk → next file, first hunk
+        const file = allFiles[currentFileIndex + 1]
+        setSelectedFile(file.path)
+        setIsLoadingDiff(true)
+        pendingHunkNav.current = "first"
+        fetchDiff(file.path, { staged: file.staged }).then((diff) => {
+          setSelectedDiff(diff)
+          setIsLoadingDiff(false)
+        })
+      } else if (delta === -1 && currentFileIndex > 0) {
+        // Before first hunk → prev file, last hunk
+        const file = allFiles[currentFileIndex - 1]
+        setSelectedFile(file.path)
+        setIsLoadingDiff(true)
+        pendingHunkNav.current = "last"
+        fetchDiff(file.path, { staged: file.staged }).then((diff) => {
+          setSelectedDiff(diff)
+          setIsLoadingDiff(false)
+        })
+      }
+    },
+    [currentHunkIndex, hunkPositions, currentFileIndex, allFiles, fetchDiff],
+  )
+
+  const canGoPrev = currentHunkIndex > 0 || currentFileIndex > 0
+  const canGoNext =
+    currentHunkIndex < hunkPositions.length - 1 ||
+    currentFileIndex < allFiles.length - 1
 
   // Reset state when repoPath changes
   useEffect(() => {
@@ -452,144 +964,81 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
             {status?.branch ?? "Loading..."}
           </span>
           {totalChanges > 0 && (
-            <span className="rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-medium text-amber-950">
+            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
               {totalChanges}
             </span>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-6"
-          onClick={handleRefresh}
-          disabled={isLoading}
-        >
-          <RefreshCw className={cn("size-3", isLoading && "animate-spin")} />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("size-6", fileListView === "flat" && "bg-muted")}
+                onClick={() => setFileListView("flat")}
+              >
+                <List className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Flat list</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("size-6", fileListView === "tree" && "bg-muted")}
+                onClick={() => setFileListView("tree")}
+              >
+                <ListTree className="size-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Tree view</TooltipContent>
+          </Tooltip>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-6"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("size-3", isLoading && "animate-spin")} />
+          </Button>
+        </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="border-border border-b bg-red-950 px-3 py-1 text-xs text-red-400">
+        <div className="border-border border-b bg-destructive px-3 py-1 text-xs text-destructive-foreground">
           {error}
         </div>
       )}
 
       {/* File tree and diff */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* File tree */}
+        {/* File list */}
         <div className="border-border w-64 flex-none overflow-y-auto border-r">
-          {/* Staged */}
-          {status?.staged && status.staged.length > 0 && (
-            <div>
-              <button
-                className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-emerald-400"
-                onClick={() => toggleSection("staged")}
-              >
-                {expandedSections.has("staged") ? (
-                  <ChevronDown className="size-3" />
-                ) : (
-                  <ChevronRight className="size-3" />
-                )}
-                Staged ({status.staged.length})
-              </button>
-              {expandedSections.has("staged") && (
-                <div className="pb-1">
-                  {status.staged.map((file) => (
-                    <button
-                      key={file.path}
-                      className={cn(
-                        "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
-                        selectedFile === file.path && "glass-selected",
-                      )}
-                      onClick={() => handleFileClick(file.path, true)}
-                    >
-                      <FileIcon status={file.status} />
-                      <span className="text-foreground truncate">
-                        {file.path}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Unstaged */}
-          {status?.unstaged && status.unstaged.length > 0 && (
-            <div>
-              <button
-                className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-amber-400"
-                onClick={() => toggleSection("unstaged")}
-              >
-                {expandedSections.has("unstaged") ? (
-                  <ChevronDown className="size-3" />
-                ) : (
-                  <ChevronRight className="size-3" />
-                )}
-                Changes ({status.unstaged.length})
-              </button>
-              {expandedSections.has("unstaged") && (
-                <div className="pb-1">
-                  {status.unstaged.map((file) => (
-                    <button
-                      key={file.path}
-                      className={cn(
-                        "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
-                        selectedFile === file.path && "glass-selected",
-                      )}
-                      onClick={() => handleFileClick(file.path)}
-                    >
-                      <FileIcon status={file.status} />
-                      <span className="text-foreground truncate">
-                        {file.path}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Untracked */}
-          {status?.untracked && status.untracked.length > 0 && (
-            <div>
-              <button
-                className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground"
-                onClick={() => toggleSection("untracked")}
-              >
-                {expandedSections.has("untracked") ? (
-                  <ChevronDown className="size-3" />
-                ) : (
-                  <ChevronRight className="size-3" />
-                )}
-                Untracked ({status.untracked.length})
-              </button>
-              {expandedSections.has("untracked") && (
-                <div className="pb-1">
-                  {status.untracked.map((filePath) => (
-                    <button
-                      key={filePath}
-                      className={cn(
-                        "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
-                        selectedFile === filePath && "glass-selected",
-                      )}
-                      onClick={() => handleFileClick(filePath)}
-                    >
-                      <FilePlus className="text-muted-foreground size-4" />
-                      <span className="text-muted-foreground truncate">{filePath}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {totalChanges === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-              <p className="text-muted-foreground text-xs">No changes detected</p>
-            </div>
+          {fileListView === "flat" ? (
+            <FlatFileList
+              status={status}
+              selectedFile={selectedFile}
+              expandedSections={expandedSections}
+              toggleSection={toggleSection}
+              onFileClick={handleFileClick}
+              totalChanges={totalChanges}
+              isLoading={isLoading}
+            />
+          ) : (
+            <TreeFileList
+              status={status}
+              selectedFile={selectedFile}
+              expandedSections={expandedSections}
+              toggleSection={toggleSection}
+              onFileClick={handleFileClick}
+              totalChanges={totalChanges}
+              isLoading={isLoading}
+            />
           )}
         </div>
 
@@ -602,6 +1051,40 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                 {selectedDiff.path}
               </span>
               <div className="flex items-center gap-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6"
+                      disabled={!canGoPrev}
+                      onClick={() => navigateChange(-1)}
+                    >
+                      <ChevronUp className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Previous change</TooltipContent>
+                </Tooltip>
+                {hunkPositions.length > 0 && (
+                  <span className="text-muted-foreground min-w-[2rem] text-center text-[10px]">
+                    {currentHunkIndex + 1}/{hunkPositions.length}
+                  </span>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6"
+                      disabled={!canGoNext}
+                      onClick={() => navigateChange(1)}
+                    >
+                      <ChevronDown className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Next change</TooltipContent>
+                </Tooltip>
+                <div className="border-border mx-1 h-4 border-l" />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -647,9 +1130,17 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
               </div>
             ) : selectedDiff ? (
               diffView === "inline" ? (
-                <DiffViewer diff={selectedDiff} />
+                <DiffViewer
+                  diff={selectedDiff}
+                  targetHunkIndex={currentHunkIndex}
+                  scrollRequestId={scrollRequestId}
+                />
               ) : (
-                <SideBySideDiffViewer diff={selectedDiff} />
+                <SideBySideDiffViewer
+                  diff={selectedDiff}
+                  targetHunkIndex={currentHunkIndex}
+                  scrollRequestId={scrollRequestId}
+                />
               )
             ) : (
               <div className="flex h-full items-center justify-center">

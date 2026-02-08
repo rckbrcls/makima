@@ -67,6 +67,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         let titleFont = MakimaTypography.navigationTitleFont()
         let largeTitleFont = MakimaTypography.navigationLargeTitleFont()
         let navigationBar = UINavigationBar.appearance()
+        let horizontalTitleInset: CGFloat = 20
 
         func styledAppearance(from base: UINavigationBarAppearance?) -> UINavigationBarAppearance {
             let appearance = (base?.copy() as? UINavigationBarAppearance) ?? UINavigationBarAppearance()
@@ -89,6 +90,20 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         )
         navigationBar.compactAppearance = styledAppearance(
             from: navigationBar.compactAppearance ?? standardAppearance
+        )
+
+        navigationBar.directionalLayoutMargins = NSDirectionalEdgeInsets(
+            top: navigationBar.directionalLayoutMargins.top,
+            leading: horizontalTitleInset,
+            bottom: navigationBar.directionalLayoutMargins.bottom,
+            trailing: horizontalTitleInset
+        )
+
+        navigationBar.layoutMargins = UIEdgeInsets(
+            top: navigationBar.layoutMargins.top,
+            left: horizontalTitleInset,
+            bottom: navigationBar.layoutMargins.bottom,
+            right: horizontalTitleInset
         )
     }
 }

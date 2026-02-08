@@ -28,10 +28,10 @@ struct ConversationsTabView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(conversation.title)
-                                            .font(MakimaTypography.bodyTitle(size: 17))
+                                            .font(.headline)
                                             .foregroundStyle(theme.foreground)
 
-                                        Text(conversation.updatedAt, style: .relative)
+                                        Text(updatedAtLabel(for: conversation.updatedAt))
                                             .font(.caption)
                                             .foregroundStyle(theme.mutedForeground)
                                     }
@@ -71,7 +71,7 @@ struct ConversationsTabView: View {
                 viewModel.load()
             }
             .navigationTitle("Conversations")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 if let onOpenSettings {
                     ToolbarItem(placement: .topBarLeading) {
@@ -129,4 +129,21 @@ struct ConversationsTabView: View {
     private func statusColor(for status: String) -> Color {
         appState.resolvedTheme.sessionStatusColor(status)
     }
+
+    private func updatedAtLabel(for date: Date) -> String {
+        let now = Date()
+        let seconds = Int(now.timeIntervalSince(date))
+
+        if seconds < 60 {
+            return "just now"
+        }
+
+        return Self.relativeDateFormatter.localizedString(for: date, relativeTo: now)
+    }
+
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
 }
