@@ -25,7 +25,7 @@ struct PairView: View {
                         .foregroundStyle(theme.ring)
 
                     Text("Connect to Desktop")
-                        .font(MakimaTypography.title(size: 22, relativeTo: .title2))
+                        .font(.title2.bold())
 
                     Text("Enter the 6-character pairing code shown on your desktop app.")
                         .font(.subheadline)

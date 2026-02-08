@@ -28,7 +28,7 @@ struct ConversationsTabView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(conversation.title)
-                                            .font(.headline)
+                                            .font(.body)
                                             .foregroundStyle(theme.foreground)
 
                                         Text(updatedAtLabel(for: conversation.updatedAt))
@@ -60,6 +60,7 @@ struct ConversationsTabView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .contentMargins(.horizontal, 0, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(theme.background)
             .searchable(
@@ -103,7 +104,7 @@ struct ConversationsTabView: View {
                             Label("Sign In", systemImage: "person.crop.circle")
                                 .font(.subheadline)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                         .controlSize(.small)
                         .accessibilityIdentifier("conversations.signin.button")
                         Spacer()

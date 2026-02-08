@@ -19,7 +19,7 @@ struct ApprovalCardView: View {
             // Header: tool name + risk badge
             HStack {
                 Text(approval.toolName)
-                    .font(MakimaTypography.title(size: 17))
+                    .font(.headline)
 
                 Spacer()
 

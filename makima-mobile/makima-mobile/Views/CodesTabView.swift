@@ -47,7 +47,7 @@ struct CodesTabView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text(session.agentName)
-                                        .font(MakimaTypography.title(size: 17))
+                                        .font(.headline)
 
                                     Spacer()
 
@@ -78,6 +78,7 @@ struct CodesTabView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .contentMargins(.horizontal, 0, for: .scrollContent)
                     .scrollContentBackground(.hidden)
                     .background(theme.background)
                     .refreshable {

@@ -173,21 +173,21 @@ function FileTreeView({
 function DiffViewer({
   diff,
   scrollRequestId,
-  targetHunkIndex,
+  targetChangeIndex,
 }: {
   diff: FileDiff
   scrollRequestId?: number
-  targetHunkIndex?: number
+  targetChangeIndex?: number
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (targetHunkIndex == null || targetHunkIndex < 0) return
+    if (targetChangeIndex == null || targetChangeIndex < 0) return
     const el = containerRef.current?.querySelector(
-      `[data-hunk-index="${targetHunkIndex}"]`,
+      `[data-change-index="${targetChangeIndex}"]`,
     )
     el?.scrollIntoView({ block: "start", behavior: "smooth" })
-  }, [scrollRequestId])
+  }, [scrollRequestId, targetChangeIndex])
 
   if (!diff.lines.length) {
     return (
@@ -197,17 +197,25 @@ function DiffViewer({
     )
   }
 
-  let hunkCounter = -1
+  let changeCounter = -1
+  let inChange = false
 
   return (
     <div ref={containerRef} className="overflow-x-auto font-mono text-xs">
       {diff.lines.map((line, idx) => {
+        const isChange = line.kind === "add" || line.kind === "del"
+        let changeIndex: number | undefined
+        if (isChange && !inChange) {
+          changeCounter++
+          changeIndex = changeCounter
+        }
+        inChange = isChange
+
         if (line.kind === "hunk") {
-          hunkCounter++
+          inChange = false
           return (
             <div
               key={idx}
-              data-hunk-index={hunkCounter}
               className="bg-accent leading-6 border-y border-accent"
             >
               <span className="text-muted-foreground w-12 inline-block shrink-0 select-none px-2 text-right" />
@@ -219,6 +227,7 @@ function DiffViewer({
         return (
           <div
             key={idx}
+            data-change-index={changeIndex}
             className={cn(
               "flex min-w-max whitespace-pre leading-6",
               line.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
@@ -313,21 +322,25 @@ const DiffRowSide = React.memo(function DiffRowSide({
 function SideBySideDiffViewer({
   diff,
   scrollRequestId,
-  targetHunkIndex,
+  targetChangeIndex,
 }: {
   diff: FileDiff
   scrollRequestId?: number
-  targetHunkIndex?: number
+  targetChangeIndex?: number
 }) {
   const rows = useMemo(() => buildRowModels(diff.lines), [diff.lines])
 
-  const hunkRowIndices = useMemo(
-    () => rows.reduce<Array<number>>((acc, row, i) => {
-      if (row.isSeparator) acc.push(i)
-      return acc
-    }, []),
-    [rows],
-  )
+  const changeRowIndices = useMemo(() => {
+    const positions: Array<number> = []
+    let inChange = false
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      const isChange = !row.isSeparator && !row.isContext
+      if (isChange && !inChange) positions.push(i)
+      inChange = isChange
+    }
+    return positions
+  }, [rows])
   const [split, setSplit] = useState(50)
   const [range, setRange] = useState({ start: 0, end: 50 })
 
@@ -420,16 +433,16 @@ function SideBySideDiffViewer({
     }
   }, [rows.length])
 
-  // Scroll to target hunk when requested
+  // Scroll to target change block when requested
   useEffect(() => {
-    if (targetHunkIndex == null || targetHunkIndex < 0) return
-    if (targetHunkIndex >= hunkRowIndices.length) return
-    const rowIndex = hunkRowIndices[targetHunkIndex]
+    if (targetChangeIndex == null || targetChangeIndex < 0) return
+    if (targetChangeIndex >= changeRowIndices.length) return
+    const rowIndex = changeRowIndices[targetChangeIndex]
     scrollRef.current?.scrollTo({
       top: rowIndex * ROW_HEIGHT,
       behavior: "smooth",
     })
-  }, [scrollRequestId])
+  }, [scrollRequestId, targetChangeIndex, changeRowIndices])
 
   if (!diff.lines.length) {
     return (
@@ -832,8 +845,8 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
 
       setSelectedFile(filePath)
       setIsLoadingDiff(true)
-      setCurrentHunkIndex(0)
-      pendingHunkNav.current = null
+      setCurrentChangeIndex(0)
+      pendingChangeNav.current = null
       const diff = await fetchDiff(filePath, { staged })
       setSelectedDiff(diff)
       setIsLoadingDiff(false)
@@ -858,68 +871,73 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
     [allFiles, selectedFile],
   )
 
-  // Hunk (change) navigation
-  const hunkPositions = useMemo(() => {
+  // Change block navigation
+  const changePositions = useMemo(() => {
     if (!selectedDiff) return []
-    return selectedDiff.lines.reduce<Array<number>>((acc, line, i) => {
-      if (line.kind === "hunk") acc.push(i)
-      return acc
-    }, [])
+    const positions: Array<number> = []
+    let inChange = false
+    for (let i = 0; i < selectedDiff.lines.length; i++) {
+      const kind = selectedDiff.lines[i].kind
+      const isChange = kind === "add" || kind === "del"
+      if (isChange && !inChange) positions.push(i)
+      inChange = kind === "hunk" ? false : isChange
+    }
+    return positions
   }, [selectedDiff])
 
-  const [currentHunkIndex, setCurrentHunkIndex] = useState(0)
+  const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
   const [scrollRequestId, setScrollRequestId] = useState(0)
-  const pendingHunkNav = useRef<"first" | "last" | null>(null)
+  const pendingChangeNav = useRef<"first" | "last" | null>(null)
 
-  // After diff loads from a cross-file nav, scroll to pending hunk
+  // After diff loads from a cross-file nav, scroll to pending change
   useEffect(() => {
-    if (!isLoadingDiff && selectedDiff && pendingHunkNav.current !== null) {
+    if (!isLoadingDiff && selectedDiff && pendingChangeNav.current !== null) {
       const idx =
-        pendingHunkNav.current === "last"
-          ? Math.max(0, hunkPositions.length - 1)
+        pendingChangeNav.current === "last"
+          ? Math.max(0, changePositions.length - 1)
           : 0
-      setCurrentHunkIndex(idx)
+      setCurrentChangeIndex(idx)
       setScrollRequestId((prev) => prev + 1)
-      pendingHunkNav.current = null
+      pendingChangeNav.current = null
     }
-  }, [isLoadingDiff, selectedDiff, hunkPositions])
+  }, [isLoadingDiff, selectedDiff, changePositions])
 
   const navigateChange = useCallback(
     (delta: 1 | -1) => {
-      const nextHunk = currentHunkIndex + delta
+      const nextChange = currentChangeIndex + delta
 
-      if (nextHunk >= 0 && nextHunk < hunkPositions.length) {
+      if (nextChange >= 0 && nextChange < changePositions.length) {
         // Navigate within current file
-        setCurrentHunkIndex(nextHunk)
+        setCurrentChangeIndex(nextChange)
         setScrollRequestId((prev) => prev + 1)
       } else if (delta === 1 && currentFileIndex < allFiles.length - 1) {
-        // Past last hunk → next file, first hunk
+        // Past last change → next file, first change
         const file = allFiles[currentFileIndex + 1]
         setSelectedFile(file.path)
         setIsLoadingDiff(true)
-        pendingHunkNav.current = "first"
+        pendingChangeNav.current = "first"
         fetchDiff(file.path, { staged: file.staged }).then((diff) => {
           setSelectedDiff(diff)
           setIsLoadingDiff(false)
         })
       } else if (delta === -1 && currentFileIndex > 0) {
-        // Before first hunk → prev file, last hunk
+        // Before first change → prev file, last change
         const file = allFiles[currentFileIndex - 1]
         setSelectedFile(file.path)
         setIsLoadingDiff(true)
-        pendingHunkNav.current = "last"
+        pendingChangeNav.current = "last"
         fetchDiff(file.path, { staged: file.staged }).then((diff) => {
           setSelectedDiff(diff)
           setIsLoadingDiff(false)
         })
       }
     },
-    [currentHunkIndex, hunkPositions, currentFileIndex, allFiles, fetchDiff],
+    [currentChangeIndex, changePositions, currentFileIndex, allFiles, fetchDiff],
   )
 
-  const canGoPrev = currentHunkIndex > 0 || currentFileIndex > 0
+  const canGoPrev = currentChangeIndex > 0 || currentFileIndex > 0
   const canGoNext =
-    currentHunkIndex < hunkPositions.length - 1 ||
+    currentChangeIndex < changePositions.length - 1 ||
     currentFileIndex < allFiles.length - 1
 
   // Reset state when repoPath changes
@@ -1057,7 +1075,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                       variant="ghost"
                       size="icon"
                       className="size-6"
-                      disabled={!canGoPrev}
+                      disabled={!canGoPrev || isLoadingDiff}
                       onClick={() => navigateChange(-1)}
                     >
                       <ChevronUp className="size-3.5" />
@@ -1065,9 +1083,9 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                   </TooltipTrigger>
                   <TooltipContent side="bottom">Previous change</TooltipContent>
                 </Tooltip>
-                {hunkPositions.length > 0 && (
+                {changePositions.length > 0 && (
                   <span className="text-muted-foreground min-w-[2rem] text-center text-[10px]">
-                    {currentHunkIndex + 1}/{hunkPositions.length}
+                    {currentChangeIndex + 1}/{changePositions.length}
                   </span>
                 )}
                 <Tooltip>
@@ -1076,7 +1094,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                       variant="ghost"
                       size="icon"
                       className="size-6"
-                      disabled={!canGoNext}
+                      disabled={!canGoNext || isLoadingDiff}
                       onClick={() => navigateChange(1)}
                     >
                       <ChevronDown className="size-3.5" />
@@ -1132,13 +1150,13 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
               diffView === "inline" ? (
                 <DiffViewer
                   diff={selectedDiff}
-                  targetHunkIndex={currentHunkIndex}
+                  targetChangeIndex={currentChangeIndex}
                   scrollRequestId={scrollRequestId}
                 />
               ) : (
                 <SideBySideDiffViewer
                   diff={selectedDiff}
-                  targetHunkIndex={currentHunkIndex}
+                  targetChangeIndex={currentChangeIndex}
                   scrollRequestId={scrollRequestId}
                 />
               )

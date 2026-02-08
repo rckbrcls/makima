@@ -32,7 +32,7 @@ struct ApprovalBannerView: View {
                             .foregroundStyle(theme.chart3)
 
                         Text("\(approvals.count) pending approval\(approvals.count == 1 ? "" : "s")")
-                            .font(MakimaTypography.title(size: 15, relativeTo: .subheadline))
+                            .font(.subheadline.bold())
 
                         Spacer()
 

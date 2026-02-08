@@ -5,7 +5,6 @@
 
 import SwiftUI
 import SwiftData
-import UIKit
 
 @main
 struct makima_mobileApp: App {
@@ -45,7 +44,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = NotificationService.shared
-        configureNavigationTitleTypography()
         return true
     }
 
@@ -61,49 +59,5 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
         NotificationService.shared.handleRegistrationError(error)
-    }
-
-    private func configureNavigationTitleTypography() {
-        let titleFont = MakimaTypography.navigationTitleFont()
-        let largeTitleFont = MakimaTypography.navigationLargeTitleFont()
-        let navigationBar = UINavigationBar.appearance()
-        let horizontalTitleInset: CGFloat = 20
-
-        func styledAppearance(from base: UINavigationBarAppearance?) -> UINavigationBarAppearance {
-            let appearance = (base?.copy() as? UINavigationBarAppearance) ?? UINavigationBarAppearance()
-
-            var titleAttributes = appearance.titleTextAttributes
-            titleAttributes[.font] = titleFont
-            appearance.titleTextAttributes = titleAttributes
-
-            var largeTitleAttributes = appearance.largeTitleTextAttributes
-            largeTitleAttributes[.font] = largeTitleFont
-            appearance.largeTitleTextAttributes = largeTitleAttributes
-
-            return appearance
-        }
-
-        let standardAppearance = styledAppearance(from: navigationBar.standardAppearance)
-        navigationBar.standardAppearance = standardAppearance
-        navigationBar.scrollEdgeAppearance = styledAppearance(
-            from: navigationBar.scrollEdgeAppearance ?? standardAppearance
-        )
-        navigationBar.compactAppearance = styledAppearance(
-            from: navigationBar.compactAppearance ?? standardAppearance
-        )
-
-        navigationBar.directionalLayoutMargins = NSDirectionalEdgeInsets(
-            top: navigationBar.directionalLayoutMargins.top,
-            leading: horizontalTitleInset,
-            bottom: navigationBar.directionalLayoutMargins.bottom,
-            trailing: horizontalTitleInset
-        )
-
-        navigationBar.layoutMargins = UIEdgeInsets(
-            top: navigationBar.layoutMargins.top,
-            left: horizontalTitleInset,
-            bottom: navigationBar.layoutMargins.bottom,
-            right: horizontalTitleInset
-        )
     }
 }
