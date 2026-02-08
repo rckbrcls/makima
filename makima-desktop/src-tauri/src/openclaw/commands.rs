@@ -84,8 +84,39 @@ fn extract_agent_items(value: &Value) -> Vec<Value> {
         Value::Array(items) => items.clone(),
         Value::Object(object) => {
             for key in ["agents", "items", "list", "data"] {
-                if let Some(Value::Array(items)) = object.get(key) {
-                    return items.clone();
+                if let Some(candidate) = object.get(key) {
+                    match candidate {
+                        Value::Array(items) => return items.clone(),
+                        Value::Object(entries) => {
+                            let mut items = Vec::new();
+                            for (entry_id, entry_value) in entries {
+                                match entry_value {
+                                    Value::Object(entry_object) => {
+                                        let mut normalized = entry_object.clone();
+                                        if !normalized.contains_key("id") {
+                                            normalized.insert(
+                                                "id".to_string(),
+                                                Value::String(entry_id.clone()),
+                                            );
+                                        }
+                                        items.push(Value::Object(normalized));
+                                    }
+                                    Value::String(name) => {
+                                        items.push(serde_json::json!({
+                                            "id": entry_id,
+                                            "name": name
+                                        }));
+                                    }
+                                    _ => {}
+                                }
+                            }
+
+                            if !items.is_empty() {
+                                return items;
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
 
@@ -219,37 +250,61 @@ fn includes_param_validation(error: &str) -> bool {
     .any(|pattern| normalized.contains(pattern))
 }
 
-fn build_send_payload_variants(
-    agent_id: &str,
+fn build_chat_send_payload_variants(
     session_key: &str,
     message: &str,
     idempotency_key: &str,
 ) -> Vec<Value> {
     vec![
         serde_json::json!({
-            "to": { "sessionKey": session_key },
+            "sessionKey": session_key,
             "idempotencyKey": idempotency_key,
             "message": message,
         }),
         serde_json::json!({
-            "to": { "sessionKey": session_key, "agentId": agent_id },
+            "sessionKey": session_key,
             "idempotencyKey": idempotency_key,
-            "message": message,
+            "text": message,
         }),
+        serde_json::json!({
+            "sessionKey": session_key,
+            "idempotencyKey": idempotency_key,
+            "input": message,
+        }),
+        serde_json::json!({
+            "sessionKey": session_key,
+            "idempotencyKey": idempotency_key,
+            "input": { "text": message },
+        }),
+    ]
+}
+
+fn build_send_payload_variants(session_key: &str, message: &str, idempotency_key: &str) -> Vec<Value> {
+    vec![
         serde_json::json!({
             "to": session_key,
             "idempotencyKey": idempotency_key,
             "message": message,
         }),
         serde_json::json!({
-            "to": { "sessionKey": session_key },
+            "to": session_key,
             "idempotencyKey": idempotency_key,
-            "content": message,
+            "text": message,
         }),
         serde_json::json!({
-            "to": { "sessionKey": session_key },
+            "to": session_key,
             "idempotencyKey": idempotency_key,
-            "input": { "type": "text", "text": message },
+            "input": message,
+        }),
+        serde_json::json!({
+            "to": session_key,
+            "idempotencyKey": idempotency_key,
+            "input": { "text": message },
+        }),
+        serde_json::json!({
+            "to": session_key,
+            "idempotencyKey": idempotency_key,
+            "content": message,
         }),
     ]
 }
@@ -541,16 +596,36 @@ pub async fn openclaw_send_message(
     message: String,
 ) -> Result<Value, String> {
     let idempotency_key = uuid::Uuid::new_v4().to_string();
-    let variants =
-        build_send_payload_variants(&agent_id, &session_key, &message, &idempotency_key);
+    let send_variants = build_send_payload_variants(&session_key, &message, &idempotency_key);
+    let chat_send_variants =
+        build_chat_send_payload_variants(&session_key, &message, &idempotency_key);
     let mut send_errors: Vec<String> = Vec::new();
     let mut should_try_legacy = true;
 
-    for params in variants {
+    for params in send_variants {
         match send_rpc(&state, "send", Some(params)).await {
             Ok(response) => return Ok(response),
             Err(error) => {
                 send_errors.push(format!("send -> {}", error));
+
+                if includes_method_not_found(&error) {
+                    break;
+                }
+
+                if includes_param_validation(&error) {
+                    continue;
+                }
+
+                break;
+            }
+        }
+    }
+
+    for params in chat_send_variants {
+        match send_rpc(&state, "chat.send", Some(params)).await {
+            Ok(response) => return Ok(response),
+            Err(error) => {
+                send_errors.push(format!("chat.send -> {}", error));
 
                 if includes_method_not_found(&error) {
                     break;
@@ -791,10 +866,26 @@ mod tests {
     }
 
     #[test]
-    fn build_send_payload_variants_include_v3_fields() {
-        let payloads = build_send_payload_variants(
-            "agent-a",
+    fn build_chat_send_payload_variants_include_v3_fields() {
+        let payloads = build_chat_send_payload_variants(
             "session-a",
+            "hello",
+            "00000000-0000-4000-8000-000000000000",
+        );
+
+        assert!(!payloads.is_empty());
+        assert!(payloads
+            .iter()
+            .all(|payload| payload.get("sessionKey").is_some()));
+        assert!(payloads
+            .iter()
+            .all(|payload| payload.get("idempotencyKey").is_some()));
+    }
+
+    #[test]
+    fn build_send_payload_variants_include_to_and_idempotency() {
+        let payloads = build_send_payload_variants(
+            "agent:writer:main",
             "hello",
             "00000000-0000-4000-8000-000000000000",
         );

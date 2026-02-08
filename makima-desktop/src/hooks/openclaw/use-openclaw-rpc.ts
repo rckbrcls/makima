@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core"
 import type {
   OpenClawConfigApplyResult,
   OpenClawConfigSchema,
+  OpenClawConfigSchemaNode,
   OpenClawHealthStatus,
   OpenClawToolDescriptor,
 } from "@/lib/openclaw-types"
@@ -139,7 +140,15 @@ export function useOpenClawRpc() {
   const getConfigSchema = useCallback(async (): Promise<OpenClawConfigSchema | null> => {
     try {
       const raw = await invoke<Record<string, unknown>>("openclaw_get_config_schema")
-      return { raw }
+      const fromSchema = asObject(raw.schema)
+      const fromRoot = asObject(raw)
+      const normalized =
+        Object.keys(fromSchema).length > 0
+          ? (fromSchema as OpenClawConfigSchemaNode)
+          : Object.keys(fromRoot).length > 0
+            ? (fromRoot as OpenClawConfigSchemaNode)
+            : undefined
+      return { raw, normalized }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message)

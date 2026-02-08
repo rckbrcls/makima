@@ -9,6 +9,35 @@ import type {
 } from "@/lib/openclaw-types"
 import { useWorkDomainActions } from "@/stores"
 
+const INVALID_SESSION_KEYS = new Set([
+  "whatsapp",
+  "telegram",
+  "discord",
+  "slack",
+  "teams",
+  "line",
+  "email",
+  "sms",
+])
+
+function isInvalidSessionKey(sessionKey: string): boolean {
+  const normalized = sessionKey.trim().toLowerCase()
+  if (!normalized) return true
+  const channelSegment = normalized.split(":")[0]
+  return (
+    INVALID_SESSION_KEYS.has(normalized) || INVALID_SESSION_KEYS.has(channelSegment)
+  )
+}
+
+function normalizeSessionKeyForAgent(agentId: string, sessionKey: string): string {
+  if (sessionKey.startsWith("agent:")) return sessionKey
+  if (sessionKey.includes(":")) return sessionKey
+  if (sessionKey === "main" || sessionKey === "global") {
+    return `agent:${agentId}:${sessionKey}`
+  }
+  return sessionKey
+}
+
 export function useOpenClawAgent() {
   const {
     addChatMessage,
@@ -134,6 +163,17 @@ export function useOpenClawAgent() {
   const sendMessage = useCallback(
     async (agentId: string, sessionKey: string, message: string) => {
       try {
+        const normalizedSessionKey = normalizeSessionKeyForAgent(
+          agentId,
+          sessionKey,
+        )
+
+        if (isInvalidSessionKey(normalizedSessionKey)) {
+          throw new Error(
+            `Invalid session key "${normalizedSessionKey}". Create a new Work session and try again.`,
+          )
+        }
+
         // Add user message to chat
         addChatMessage({
           id: `user-${Date.now()}`,
@@ -144,7 +184,7 @@ export function useOpenClawAgent() {
 
         await invoke("openclaw_send_message", {
           agentId,
-          sessionKey,
+          sessionKey: normalizedSessionKey,
           message,
         })
       } catch (err) {

@@ -81,10 +81,8 @@ export function useOpenClawCapabilities() {
         sessionResume: await probe(["session.resume", "session.get"], {
           sessionKey: "__capability_probe__",
         }),
-        send: await probe(["send"], {
-          to: {
-            sessionKey: "__capability_probe__",
-          },
+        send: await probe(["send", "chat.send"], {
+          to: "agent:__capability_probe__:main",
           idempotencyKey: "00000000-0000-4000-8000-000000000000",
           message: "capability probe",
         }),

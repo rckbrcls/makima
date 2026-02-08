@@ -194,6 +194,39 @@ impl OpenClawClient {
 
     /// Handle incoming events from the gateway
     fn handle_event(event: &str, payload: serde_json::Value, seq: u64, app_handle: &AppHandle) {
+        fn extract_session_key(payload: &serde_json::Value) -> String {
+            payload
+                .get("sessionKey")
+                .and_then(|v| v.as_str())
+                .or_else(|| payload.get("sessionId").and_then(|v| v.as_str()))
+                .or_else(|| {
+                    payload
+                        .get("session")
+                        .and_then(|v| v.get("key"))
+                        .and_then(|v| v.as_str())
+                })
+                .unwrap_or("")
+                .to_string()
+        }
+
+        fn normalize_agent_event_type(payload: &serde_json::Value) -> String {
+            let raw_type = payload
+                .get("type")
+                .and_then(|v| v.as_str())
+                .or_else(|| payload.get("kind").and_then(|v| v.as_str()))
+                .or_else(|| payload.get("event").and_then(|v| v.as_str()))
+                .unwrap_or("message")
+                .to_lowercase();
+
+            match raw_type.as_str() {
+                "chunk" | "delta" | "stream" => "agent.chunk".to_string(),
+                "tool" | "tool_call" | "tool-call" => "agent.tool_call".to_string(),
+                "done" | "complete" | "completed" | "end" => "agent.done".to_string(),
+                "error" | "failed" => "agent.error".to_string(),
+                _ => "agent.message".to_string(),
+            }
+        }
+
         let raw_event = GatewayEventEnvelope {
             event: event.to_string(),
             payload: payload.clone(),
@@ -205,12 +238,7 @@ impl OpenClawClient {
 
         match event {
             "agent.message" | "agent.chunk" | "agent.tool_call" | "agent.done" | "agent.error" => {
-                let session_key = payload
-                    .get("sessionKey")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-
+                let session_key = extract_session_key(&payload);
                 let agent_event = OpenClawAgentEvent {
                     event_type: event.to_string(),
                     session_key,
@@ -219,6 +247,45 @@ impl OpenClawClient {
 
                 if let Err(e) = app_handle.emit("openclaw:agent-event", &agent_event) {
                     log::error!("Failed to emit agent event: {}", e);
+                }
+            }
+            "agent" => {
+                let session_key = extract_session_key(&payload);
+                let agent_event = OpenClawAgentEvent {
+                    event_type: normalize_agent_event_type(&payload),
+                    session_key,
+                    data: payload,
+                };
+
+                if let Err(e) = app_handle.emit("openclaw:agent-event", &agent_event) {
+                    log::error!("Failed to emit normalized agent event: {}", e);
+                }
+            }
+            "chat" => {
+                let session_key = extract_session_key(&payload);
+                let content = payload
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| payload.get("text").and_then(|v| v.as_str()))
+                    .or_else(|| payload.get("message").and_then(|v| v.as_str()));
+
+                if let Some(content) = content {
+                    if !content.trim().is_empty() {
+                        let mut data = payload.clone();
+                        if data.get("content").is_none() {
+                            data["content"] = serde_json::Value::String(content.to_string());
+                        }
+
+                        let agent_event = OpenClawAgentEvent {
+                            event_type: "agent.message".to_string(),
+                            session_key,
+                            data,
+                        };
+
+                        if let Err(e) = app_handle.emit("openclaw:agent-event", &agent_event) {
+                            log::error!("Failed to emit normalized chat event: {}", e);
+                        }
+                    }
                 }
             }
             "approval.requested" => {

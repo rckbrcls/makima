@@ -130,9 +130,46 @@ export interface OpenClawWizardState {
   raw: Record<string, unknown>
 }
 
+export interface OpenClawConfigSchemaNode {
+  type?: string | Array<string>
+  title?: string
+  description?: string
+  format?: string
+  required?: Array<string>
+  enum?: Array<string | number | boolean>
+  default?: unknown
+  properties?: Record<string, OpenClawConfigSchemaNode>
+  items?: OpenClawConfigSchemaNode | Array<OpenClawConfigSchemaNode>
+  oneOf?: Array<OpenClawConfigSchemaNode>
+  anyOf?: Array<OpenClawConfigSchemaNode>
+  allOf?: Array<OpenClawConfigSchemaNode>
+  const?: string | number | boolean
+  examples?: Array<unknown>
+  [key: string]: unknown
+}
+
+export interface OpenClawConfigSection {
+  id: string
+  title: string
+  description?: string
+  keys: Array<string>
+}
+
+export interface OpenClawModelOption {
+  value: string
+  label: string
+  provider?: string
+}
+
+export interface OpenClawProviderOption {
+  value: string
+  label: string
+}
+
 /** Generic schema from config.schema */
 export interface OpenClawConfigSchema {
   raw: Record<string, unknown>
+  normalized?: OpenClawConfigSchemaNode
 }
 
 /** Response metadata from config.apply/config.patch */

@@ -3,11 +3,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react"
 import { Bot, Loader2, Play, Plus, Shield, Trash2, X, Zap } from "lucide-react"
+import { WorkModelField } from "./work-model-field"
 import { WorkWorkspace as WorkWorkspaceContent } from "./work-workspace"
 import type { Agent, Session } from "@/lib/work-types"
+import type { OpenClawModelOption } from "@/lib/openclaw-types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -75,6 +78,83 @@ function useWorkDomainContext() {
 
 interface WorkDomainProviderProps {
   children: React.ReactNode
+}
+
+const INVALID_SESSION_KEYS = new Set([
+  "whatsapp",
+  "telegram",
+  "discord",
+  "slack",
+  "teams",
+  "line",
+  "email",
+  "sms",
+])
+
+function isInvalidSessionKeyCandidate(value: string): boolean {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return true
+  const channelSegment = normalized.split(":")[0]
+  return (
+    INVALID_SESSION_KEYS.has(normalized) || INVALID_SESSION_KEYS.has(channelSegment)
+  )
+}
+
+function readNestedString(
+  source: Record<string, unknown>,
+  path: Array<string>,
+): string | undefined {
+  let current: unknown = source
+
+  for (const segment of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return undefined
+    }
+    current = (current as Record<string, unknown>)[segment]
+  }
+
+  return typeof current === "string" && current.trim() ? current : undefined
+}
+
+function extractRemoteSessionKey(
+  remote: Record<string, unknown> | null,
+): string | undefined {
+  if (!remote) return undefined
+
+  const candidates = [
+    ["sessionKey"],
+    ["session", "sessionKey"],
+    ["payload", "sessionKey"],
+    ["result", "sessionKey"],
+    ["sessionId"],
+    ["session", "id"],
+    ["payload", "sessionId"],
+    ["result", "sessionId"],
+    ["key"],
+    ["session", "key"],
+  ]
+
+  for (const path of candidates) {
+    const found = readNestedString(remote, path)
+    if (!found) continue
+
+    if (isInvalidSessionKeyCandidate(found)) {
+      continue
+    }
+
+    return found
+  }
+
+  return undefined
+}
+
+function normalizeSessionKeyForAgent(agentId: string, sessionKey: string): string {
+  if (sessionKey.startsWith("agent:")) return sessionKey
+  if (sessionKey.includes(":")) return sessionKey
+  if (sessionKey === "main" || sessionKey === "global") {
+    return `agent:${agentId}:${sessionKey}`
+  }
+  return sessionKey
 }
 
 export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
@@ -257,14 +337,23 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
 
         if (isConnected) {
           const remote = await createSession(agentId, requestedTitle)
-          const remoteSessionId =
-            (remote?.sessionKey as string | undefined) ??
-            (remote?.sessionId as string | undefined) ??
-            (remote?.id as string | undefined)
+          const remoteSessionId = extractRemoteSessionKey(remote)
 
           if (remoteSessionId) {
-            sessionId = remoteSessionId
+            sessionId = normalizeSessionKeyForAgent(agentId, remoteSessionId)
+          } else {
+            // Compatible fallback used by OpenClaw webchat when no explicit session key is returned.
+            sessionId = `agent:${agentId}:main`
           }
+        }
+
+        const existing = useWorkDomainStore
+          .getState()
+          .sessions.find((session) => session.id === sessionId && session.agentId === agentId)
+
+        if (existing) {
+          clearChatMessages()
+          return existing
         }
 
         const newSession: Session = {
@@ -384,6 +473,24 @@ export function WorkSidebar() {
   const [newAgentName, setNewAgentName] = useState("")
   const [newAgentModel, setNewAgentModel] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+
+  const existingModelOptions = useMemo<Array<OpenClawModelOption>>(
+    () =>
+      Array.from(
+        new Set(
+          agents
+            .map((agent) => agent.config.model)
+            .filter((model): model is string => typeof model === "string" && !!model.trim()),
+        ),
+      )
+        .sort((a, b) => a.localeCompare(b))
+        .map((model) => ({
+          value: model,
+          label: model,
+          provider: model.includes("/") ? model.split("/")[0] : undefined,
+        })),
+    [agents],
+  )
 
   const handleSelectAgent = useCallback(
     (agentId: string) => {
@@ -612,11 +719,12 @@ export function WorkSidebar() {
             onChange={(e) => setNewAgentName(e.target.value)}
             className="h-7 text-xs"
           />
-          <Input
-            placeholder="anthropic/claude-sonnet-4-5 (optional)"
+          <WorkModelField
+            id="new-agent-model"
             value={newAgentModel}
-            onChange={(e) => setNewAgentModel(e.target.value)}
-            className="h-7 text-xs"
+            onChange={setNewAgentModel}
+            options={existingModelOptions}
+            placeholder="provider/model (optional)"
           />
           <div className="flex gap-2">
             <Button
