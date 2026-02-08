@@ -161,7 +161,7 @@ export {
 } from "./code-domain-store";
 export type { CodeDomainStore } from "./code-domain-store";
 
-// CLI Session Store (AI CLI sessions - ephemeral)
+// CLI Session Store (AI CLI sessions - persisted to SQLite)
 export {
   useCliSessionStore,
   // Atomic selectors
@@ -219,6 +219,13 @@ export {
   useOpenClawConnected,
   useOpenClawInstallation,
   useOpenClawGatewayStatus,
+  useOpenClawCapabilities,
+  useOpenClawWizardState,
+  useOpenClawSetupComplete,
+  useOpenClawHealth,
+  useOpenClawApprovalQueue,
+  useOpenClawToolsCatalog,
+  useOpenClawGatewayEvents,
   // Chat selectors
   useWorkChatMessages,
   useWorkIsAgentStreaming,

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef } from "react"
 import { invoke } from "@tauri-apps/api/core"
-import { listen, type UnlistenFn } from "@tauri-apps/api/event"
+import { listen } from "@tauri-apps/api/event"
+import type { UnlistenFn } from "@tauri-apps/api/event"
 import type {
   OpenClawAgentConfig,
   OpenClawAgentEvent,
+  OpenClawFileConfig,
 } from "@/lib/openclaw-types"
 import { useWorkDomainActions } from "@/stores"
 
@@ -31,7 +33,9 @@ export function useOpenClawAgent() {
           switch (eventType) {
             case "agent.chunk": {
               const content =
-                (data.content as string) ?? (data.delta as string) ?? ""
+                (data.content as string | undefined) ??
+                (data.delta as string | undefined) ??
+                ""
               if (!content) break
 
               if (streamingMessageRef.current) {
@@ -58,7 +62,7 @@ export function useOpenClawAgent() {
             }
 
             case "agent.message": {
-              const content = (data.content as string) ?? ""
+              const content = (data.content as string | undefined) ?? ""
               const msgId = `msg-${Date.now()}`
               addChatMessage({
                 id: msgId,
@@ -70,9 +74,9 @@ export function useOpenClawAgent() {
             }
 
             case "agent.tool_call": {
-              const toolName = (data.toolName as string) ?? "unknown"
+              const toolName = (data.toolName as string | undefined) ?? "unknown"
               const description =
-                (data.description as string) ?? `Calling ${toolName}`
+                (data.description as string | undefined) ?? `Calling ${toolName}`
               const msgId = `tool-${Date.now()}`
               addChatMessage({
                 id: msgId,
@@ -105,7 +109,9 @@ export function useOpenClawAgent() {
               setIsAgentStreaming(false)
 
               const errorMsg =
-                (data.error as string) ?? (data.message as string) ?? "Unknown error"
+                (data.error as string | undefined) ??
+                (data.message as string | undefined) ??
+                "Unknown error"
               addChatMessage({
                 id: `err-${Date.now()}`,
                 role: "system",
@@ -157,9 +163,29 @@ export function useOpenClawAgent() {
   const loadAgents = useCallback(async () => {
     try {
       setIsLoadingAgents(true)
-      const agents = await invoke<Array<OpenClawAgentConfig>>(
-        "openclaw_list_agents",
-      )
+      let agents: Array<OpenClawAgentConfig> = []
+      let rpcError: string | null = null
+
+      try {
+        agents = await invoke<Array<OpenClawAgentConfig>>("openclaw_list_agents")
+      } catch (err) {
+        rpcError = err instanceof Error ? err.message : String(err)
+      }
+
+      if (agents.length === 0) {
+        const fileConfig = await invoke<OpenClawFileConfig | null>(
+          "openclaw_read_file_config",
+        ).catch(() => null)
+        const fileAgents = fileConfig?.agents?.list ?? []
+        if (fileAgents.length > 0) {
+          agents = fileAgents.map((agent) => ({
+            id: agent.id,
+            name: agent.name ?? agent.id,
+            model: agent.model,
+            tools: [],
+          }))
+        }
+      }
 
       // Convert OpenClaw agent configs to Work domain agents
       setAgents(
@@ -176,6 +202,12 @@ export function useOpenClawAgent() {
           updatedAt: Date.now(),
         })),
       )
+
+      if (agents.length > 0) {
+        setError(null)
+      } else if (rpcError) {
+        setError(rpcError)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

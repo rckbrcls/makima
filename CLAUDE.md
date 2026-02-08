@@ -163,6 +163,51 @@ Chat-first interface (ChatGPT/Cursor style):
 - Each conversation generates trackable Runs
 - History lives in app (not in agent)
 
+### CLI Session Architecture
+
+The Code tab manages AI CLI sessions (Claude Code, Codex, etc.) via a terminal pool pattern.
+
+#### Session Lifecycle
+
+```
+idle → running → exited
+  │                 │
+  └── (Start) ──────┘── (Start with --resume) → running
+```
+
+- **idle** — Session created but not yet spawned. CLI selector is unlocked.
+- **running** — PTY process active. CLI selector is locked.
+- **exited** — Process terminated. Resume ID may be available for reattach.
+
+#### Terminal Pool
+
+Sessions use stacked invisible `<CliTerminalCard>` components — one per session, only the active session is visible. All PTY processes remain alive regardless of which is visible, enabling true parallel sessions.
+
+#### Graceful Shutdown Flow
+
+When user clicks Stop or Restart:
+1. Send `Ctrl+C` (\x03) to PTY
+2. Wait 150ms, send second `Ctrl+C`
+3. Wait 500ms for CLI to print resume instructions
+4. Extract resume ID from output buffer via `extractResumeId()`
+5. Call `pty_kill` to terminate the PTY process
+6. Update session status to `exited`
+
+On restart, after shutdown completes: `resetSession()` → `addSpawning()` triggers re-spawn.
+
+#### Session Store (`CliSessionStore`)
+
+- `sessions: Map<string, CliSession>` — All sessions keyed by ID
+- `spawningSessions: Set<string>` — Sessions currently being spawned
+- `useCliShouldSpawnSession(id)` — Returns `true` when a session is in the spawning set (triggers spawn effect)
+- `addSpawning(id)` / `removeSpawning(id)` — Control spawn triggers
+
+#### Resume Support
+
+- `extractResumeId(output)` — Parses CLI output for session resume IDs
+- `buildResumeArgs(command, resumeId)` — Builds `--resume <id>` args for CLI spawn
+- Resume ID is captured both during graceful shutdown and via continuous output monitoring
+
 ## Adding New Features
 
 ### New Page

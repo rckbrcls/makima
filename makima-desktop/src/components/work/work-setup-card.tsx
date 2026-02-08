@@ -3,16 +3,16 @@ import { Download, Play, Plug, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  useOpenClawConnectionStatus,
-  useOpenClawInstallation,
-  useOpenClawGatewayStatus,
   useOpenClawConfig,
+  useOpenClawConnectionStatus,
+  useOpenClawGatewayStatus,
+  useOpenClawInstallation,
   useSettingsActions,
   useWorkError,
 } from "@/stores"
 import {
-  useOpenClawGateway,
   useOpenClawConnection,
+  useOpenClawGateway,
 } from "@/hooks/openclaw"
 
 type SetupStep =
@@ -180,7 +180,9 @@ export function WorkSetupCard() {
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  onClick={startGateway}
+                  onClick={() => {
+                    void startGateway()
+                  }}
                 >
                   <Play className="size-3" />
                   Start

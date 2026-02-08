@@ -11,8 +11,13 @@ import type {
   SessionStatus,
 } from "@/lib/work-types"
 import type {
-  OpenClawInstallation,
+  GatewayEventEnvelope,
   GatewayProcessStatus,
+  OpenClawCapabilities,
+  OpenClawHealthStatus,
+  OpenClawInstallation,
+  OpenClawToolDescriptor,
+  OpenClawWizardState,
   WorkChatMessage,
 } from "@/lib/openclaw-types"
 
@@ -49,6 +54,13 @@ interface WorkDomainState {
   }
   openclawInstallation: OpenClawInstallation | null
   openclawGatewayStatus: GatewayProcessStatus | null
+  capabilities: OpenClawCapabilities | null
+  wizardState: OpenClawWizardState | null
+  setupComplete: boolean
+  gatewayHealth: OpenClawHealthStatus | null
+  approvalQueue: Array<Approval>
+  toolsCatalog: Array<OpenClawToolDescriptor>
+  gatewayEvents: Array<GatewayEventEnvelope>
 
   // Chat
   chatMessages: Array<WorkChatMessage>
@@ -101,6 +113,15 @@ interface WorkDomainActions {
   ) => void
   setOpenClawInstallation: (installation: OpenClawInstallation | null) => void
   setOpenClawGatewayStatus: (status: GatewayProcessStatus | null) => void
+  setCapabilities: (capabilities: OpenClawCapabilities | null) => void
+  setWizardState: (wizardState: OpenClawWizardState | null) => void
+  setSetupComplete: (setupComplete: boolean) => void
+  setGatewayHealth: (health: OpenClawHealthStatus | null) => void
+  setApprovalQueue: (queue: Array<Approval>) => void
+  setToolsCatalog: (tools: Array<OpenClawToolDescriptor>) => void
+  setGatewayEvents: (events: Array<GatewayEventEnvelope>) => void
+  addGatewayEvent: (event: GatewayEventEnvelope) => void
+  clearGatewayEvents: () => void
 
   // Chat messages
   addChatMessage: (message: WorkChatMessage) => void
@@ -133,6 +154,13 @@ const initialState: WorkDomainState = {
   openclawConnection: { status: "disconnected" },
   openclawInstallation: null,
   openclawGatewayStatus: null,
+  capabilities: null,
+  wizardState: null,
+  setupComplete: false,
+  gatewayHealth: null,
+  approvalQueue: [],
+  toolsCatalog: [],
+  gatewayEvents: [],
   chatMessages: [],
   isAgentStreaming: false,
   error: null,
@@ -190,14 +218,18 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
     })),
 
   removeSession: (id) =>
-    set((state) => ({
-      sessions: state.sessions.filter((s) => s.id !== id),
-      activeSessionId:
-        state.activeSessionId === id ? null : state.activeSessionId,
-      // Also clear runs and approvals for this session
-      runs: state.runs.filter((r) => r.sessionId !== id),
-      approvals: state.approvals.filter((a) => a.sessionId !== id),
-    })),
+    set((state) => {
+      const approvals = state.approvals.filter((a) => a.sessionId !== id)
+      return {
+        sessions: state.sessions.filter((s) => s.id !== id),
+        activeSessionId:
+          state.activeSessionId === id ? null : state.activeSessionId,
+        // Also clear runs and approvals for this session
+        runs: state.runs.filter((r) => r.sessionId !== id),
+        approvals,
+        approvalQueue: approvals.filter((a) => a.status === "pending"),
+      }
+    }),
 
   setActiveSessionId: (activeSessionId) => set({ activeSessionId }),
 
@@ -227,12 +259,16 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
     })),
 
   removeRun: (id) =>
-    set((state) => ({
-      runs: state.runs.filter((r) => r.id !== id),
-      activeRunId: state.activeRunId === id ? null : state.activeRunId,
-      // Also clear approvals for this run
-      approvals: state.approvals.filter((a) => a.runId !== id),
-    })),
+    set((state) => {
+      const approvals = state.approvals.filter((a) => a.runId !== id)
+      return {
+        runs: state.runs.filter((r) => r.id !== id),
+        activeRunId: state.activeRunId === id ? null : state.activeRunId,
+        // Also clear approvals for this run
+        approvals,
+        approvalQueue: approvals.filter((a) => a.status === "pending"),
+      }
+    }),
 
   setActiveRunId: (activeRunId) => set({ activeRunId }),
 
@@ -256,28 +292,44 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
   // Approvals
   // ============================================================================
 
-  setApprovals: (approvals) => set({ approvals }),
+  setApprovals: (approvals) =>
+    set({
+      approvals,
+      approvalQueue: approvals.filter((a) => a.status === "pending"),
+    }),
 
   addApproval: (approval) =>
     set((state) => ({
       approvals: [approval, ...state.approvals],
+      approvalQueue:
+        approval.status === "pending"
+          ? [approval, ...state.approvalQueue]
+          : state.approvalQueue,
     })),
 
   updateApproval: (id, updates) =>
-    set((state) => ({
-      approvals: state.approvals.map((a) =>
+    set((state) => {
+      const approvals = state.approvals.map((a) =>
         a.id === id ? { ...a, ...updates } : a,
-      ),
-    })),
+      )
+      return {
+        approvals,
+        approvalQueue: approvals.filter((a) => a.status === "pending"),
+      }
+    }),
 
   removeApproval: (id) =>
-    set((state) => ({
-      approvals: state.approvals.filter((a) => a.id !== id),
-    })),
+    set((state) => {
+      const approvals = state.approvals.filter((a) => a.id !== id)
+      return {
+        approvals,
+        approvalQueue: approvals.filter((a) => a.status === "pending"),
+      }
+    }),
 
   resolveApproval: (id, status) =>
-    set((state) => ({
-      approvals: state.approvals.map((a) =>
+    set((state) => {
+      const approvals = state.approvals.map((a) =>
         a.id === id
           ? {
               ...a,
@@ -286,8 +338,12 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
               resolvedBy: "user" as const,
             }
           : a,
-      ),
-    })),
+      )
+      return {
+        approvals,
+        approvalQueue: approvals.filter((a) => a.status === "pending"),
+      }
+    }),
 
   // ============================================================================
   // Mode
@@ -312,6 +368,27 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
 
   setOpenClawGatewayStatus: (openclawGatewayStatus) =>
     set({ openclawGatewayStatus }),
+
+  setCapabilities: (capabilities) => set({ capabilities }),
+
+  setWizardState: (wizardState) => set({ wizardState }),
+
+  setSetupComplete: (setupComplete) => set({ setupComplete }),
+
+  setGatewayHealth: (gatewayHealth) => set({ gatewayHealth }),
+
+  setApprovalQueue: (approvalQueue) => set({ approvalQueue }),
+
+  setToolsCatalog: (toolsCatalog) => set({ toolsCatalog }),
+
+  setGatewayEvents: (gatewayEvents) => set({ gatewayEvents }),
+
+  addGatewayEvent: (event) =>
+    set((state) => ({
+      gatewayEvents: [...state.gatewayEvents.slice(-199), event],
+    })),
+
+  clearGatewayEvents: () => set({ gatewayEvents: [] }),
 
   // ============================================================================
   // Chat messages
@@ -354,8 +431,10 @@ export const useWorkDomainStore = create<WorkDomainStore>((set, get) => ({
       runs: [],
       activeRunId: null,
       approvals: [],
+      approvalQueue: [],
       chatMessages: [],
       isAgentStreaming: false,
+      gatewayEvents: [],
     }),
 }))
 
@@ -473,6 +552,27 @@ export const useOpenClawInstallation = () =>
 export const useOpenClawGatewayStatus = () =>
   useWorkDomainStore((s) => s.openclawGatewayStatus)
 
+export const useOpenClawCapabilities = () =>
+  useWorkDomainStore((s) => s.capabilities)
+
+export const useOpenClawWizardState = () =>
+  useWorkDomainStore((s) => s.wizardState)
+
+export const useOpenClawSetupComplete = () =>
+  useWorkDomainStore((s) => s.setupComplete)
+
+export const useOpenClawHealth = () =>
+  useWorkDomainStore((s) => s.gatewayHealth)
+
+export const useOpenClawApprovalQueue = () =>
+  useWorkDomainStore((s) => s.approvalQueue)
+
+export const useOpenClawToolsCatalog = () =>
+  useWorkDomainStore((s) => s.toolsCatalog)
+
+export const useOpenClawGatewayEvents = () =>
+  useWorkDomainStore((s) => s.gatewayEvents)
+
 // Chat selectors
 export const useWorkChatMessages = () =>
   useWorkDomainStore((s) => s.chatMessages)
@@ -522,6 +622,15 @@ export const useWorkDomainActions = () =>
       setOpenClawConnectionStatus: s.setOpenClawConnectionStatus,
       setOpenClawInstallation: s.setOpenClawInstallation,
       setOpenClawGatewayStatus: s.setOpenClawGatewayStatus,
+      setCapabilities: s.setCapabilities,
+      setWizardState: s.setWizardState,
+      setSetupComplete: s.setSetupComplete,
+      setGatewayHealth: s.setGatewayHealth,
+      setApprovalQueue: s.setApprovalQueue,
+      setToolsCatalog: s.setToolsCatalog,
+      setGatewayEvents: s.setGatewayEvents,
+      addGatewayEvent: s.addGatewayEvent,
+      clearGatewayEvents: s.clearGatewayEvents,
       // Chat
       addChatMessage: s.addChatMessage,
       updateChatMessage: s.updateChatMessage,

@@ -8,6 +8,7 @@ import {
   useState,
 } from "react"
 import { invoke } from "@tauri-apps/api/core"
+import { Play } from "lucide-react"
 import { AddRepositoryDialog } from "./add-repository-dialog"
 import { CliEmptyState, CliTerminalCard } from "./cli-terminal-card"
 import { CliToolbar } from "./cli-toolbar"
@@ -16,12 +17,14 @@ import { RepositorySidebar } from "./repository-sidebar"
 import type { PanelImperativeHandle } from "react-resizable-panels"
 import type { Repository } from "@/lib/code-types"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { useAiCliDetection } from "@/hooks/use-ai-cli-detection"
+import { useCliSessionsDb } from "@/hooks/use-cli-sessions"
 import { useRepositories } from "@/hooks/use-repositories"
 import {
   useAgentPanelCollapsed,
@@ -219,6 +222,8 @@ export function CodeTabSidebar() {
     addSpawning,
     removeSpawning,
   } = useCliSessionActions()
+  const { createSessionDb, updateSessionDb, deleteSessionDb } =
+    useCliSessionsDb()
 
   const handleStopSession = useCallback(
     (sessionId: string) => {
@@ -229,8 +234,9 @@ export function CodeTabSidebar() {
         invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
       }
       updateSessionStatus(sessionId, "exited")
+      updateSessionDb(sessionId, { status: "exited" })
     },
-    [sessions, updateSessionStatus, removeSpawning],
+    [sessions, updateSessionStatus, removeSpawning, updateSessionDb],
   )
 
   const handleRestartSession = useCallback(
@@ -244,6 +250,7 @@ export function CodeTabSidebar() {
         invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
       }
       updateSessionStatus(sessionId, "exited")
+      updateSessionDb(sessionId, { status: "exited" })
 
       // Reset SAME session and trigger spawn after brief delay
       setTimeout(() => {
@@ -252,7 +259,7 @@ export function CodeTabSidebar() {
         addSpawning(sessionId)
       }, 200)
     },
-    [sessions, updateSessionStatus, resetSession, setActiveSessionId, addSpawning, removeSpawning],
+    [sessions, updateSessionStatus, resetSession, setActiveSessionId, addSpawning, removeSpawning, updateSessionDb],
   )
 
   const handleRemoveSession = useCallback(
@@ -262,8 +269,9 @@ export function CodeTabSidebar() {
         invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
       }
       removeSession(sessionId)
+      deleteSessionDb(sessionId)
     },
-    [sessions, removeSession],
+    [sessions, removeSession, deleteSessionDb],
   )
 
   const handleNewSession = useCallback(
@@ -280,9 +288,10 @@ export function CodeTabSidebar() {
         status: "idle",
         startedAt: Date.now(),
       })
+      createSessionDb(sessionId, repoId, cli.name, selectedCommand)
       setActiveSessionId(sessionId)
     },
-    [selectedCommand, installedClis, createSession, setActiveSessionId],
+    [selectedCommand, installedClis, createSession, setActiveSessionId, createSessionDb],
   )
 
   return (
@@ -316,11 +325,22 @@ export function CodeTabWorkspace() {
     createSession,
     setActiveSessionId,
     addSpawning,
+    updateSessionCli,
   } = useCliSessionActions()
   const selectedCommand = useSelectedCliCommand()
   const activeSessionId = useCliActiveSessionId()
   const sessions = useCliSessions()
   const pollInterval = useCliGitPollInterval()
+  const { loadSessions, createSessionDb, updateSessionDb, deleteSessionDb } =
+    useCliSessionsDb()
+
+  // Hydrate sessions from DB on mount
+  const hasHydrated = useRef(false)
+  useEffect(() => {
+    if (hasHydrated.current) return
+    hasHydrated.current = true
+    loadSessions()
+  }, [loadSessions])
 
   // Sync all detected CLIs to store
   useEffect(() => {
@@ -361,6 +381,13 @@ export function CodeTabWorkspace() {
       (current.status === "exited" || current.status === "error")
     ) {
       const { resetSession } = useCliSessionStore.getState()
+      // Sync CLI selector to session before starting
+      updateSessionCli(current.id, selectedCommand, selectedCli.name)
+      updateSessionDb(current.id, {
+        status: "idle",
+        cliCommand: selectedCommand,
+        cliName: selectedCli.name,
+      })
       resetSession(current.id)
       addSpawning(current.id)
       return
@@ -377,9 +404,10 @@ export function CodeTabWorkspace() {
       status: "idle",
       startedAt: Date.now(),
     })
+    createSessionDb(sessionId, repoId, selectedCli.name, selectedCommand)
     setActiveSessionId(sessionId)
     addSpawning(sessionId)
-  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning])
+  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning, createSessionDb, updateSessionDb, updateSessionCli])
 
   const handleNewSession = useCallback(
     (forRepoId?: string) => {
@@ -396,10 +424,11 @@ export function CodeTabWorkspace() {
         status: "idle",
         startedAt: Date.now(),
       })
+      createSessionDb(sessionId, targetRepoId, selectedCli.name, selectedCommand)
       setActiveSessionId(sessionId)
       addSpawning(sessionId)
     },
-    [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning],
+    [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning, createSessionDb],
   )
 
   // Persisted layout state
@@ -544,14 +573,41 @@ export function CodeTabWorkspace() {
                 <div className="min-h-0 flex-1">
                   <CliEmptyState />
                 </div>
-                <div className="border-border flex items-center justify-center border-t px-3 py-1.5">
-                  <button
+                <div className="border-border flex items-center gap-2 border-t px-3 py-1.5">
+                  {/* Connection indicator (disconnected) */}
+                  <span className="bg-muted-foreground size-1.5 shrink-0 rounded-full" />
+
+                  {/* CLI Selector */}
+                  <select
+                    value={selectedCommand ?? ""}
+                    onChange={(e) => {
+                      const store = useCliSessionStore.getState()
+                      store.setSelectedCliCommand(e.target.value || null)
+                    }}
+                    className="bg-input text-foreground border-border h-6 rounded-md border px-2 text-xs focus:outline-none"
+                  >
+                    {installedClis.length === 0 && (
+                      <option value="">No CLIs detected</option>
+                    )}
+                    {installedClis.map((cli) => (
+                      <option key={cli.command} value={cli.command}>
+                        {cli.name}
+                        {cli.version ? ` (${cli.version})` : ""}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex-1" />
+
+                  <Button
+                    variant="default"
+                    size="xs"
                     onClick={handleStart}
                     disabled={!selectedCommand}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-6 items-center gap-1 rounded-md px-3 text-xs font-medium disabled:opacity-50"
                   >
+                    <Play className="mr-1 size-3" />
                     Start
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

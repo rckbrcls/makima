@@ -1,6 +1,6 @@
 use crate::openclaw::types::{
-    ApprovalRequestPayload, IncomingFrame, OpenClawAgentEvent, OpenClawConnectionStatus,
-    OutgoingFrame, ResError,
+    ApprovalRequestPayload, GatewayEventEnvelope, IncomingFrame, OpenClawAgentEvent,
+    OpenClawConnectionStatus, OutgoingFrame,
 };
 use dashmap::DashMap;
 use futures::stream::SplitSink;
@@ -185,15 +185,24 @@ impl OpenClawClient {
             IncomingFrame::Event {
                 event,
                 payload,
-                ..
+                seq,
             } => {
-                Self::handle_event(&event, payload, app_handle);
+                Self::handle_event(&event, payload, seq, app_handle);
             }
         }
     }
 
     /// Handle incoming events from the gateway
-    fn handle_event(event: &str, payload: serde_json::Value, app_handle: &AppHandle) {
+    fn handle_event(event: &str, payload: serde_json::Value, seq: u64, app_handle: &AppHandle) {
+        let raw_event = GatewayEventEnvelope {
+            event: event.to_string(),
+            payload: payload.clone(),
+            seq,
+        };
+        if let Err(e) = app_handle.emit("openclaw:gateway-event", &raw_event) {
+            log::error!("Failed to emit raw gateway event: {}", e);
+        }
+
         match event {
             "agent.message" | "agent.chunk" | "agent.tool_call" | "agent.done" | "agent.error" => {
                 let session_key = payload
@@ -298,6 +307,32 @@ impl OpenClawClient {
                 Err("Request timed out".to_string())
             }
         }
+    }
+
+    /// Send a request trying multiple methods in order until one succeeds.
+    /// Useful for protocol compatibility across gateway versions.
+    pub async fn send_request_with_fallback(
+        &self,
+        methods: &[&str],
+        params: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, String> {
+        if methods.is_empty() {
+            return Err("No fallback methods provided".to_string());
+        }
+
+        let mut errors: Vec<String> = Vec::new();
+
+        for method in methods {
+            match self.send_request(method, params.clone()).await {
+                Ok(result) => return Ok(result),
+                Err(err) => errors.push(format!("{} -> {}", method, err)),
+            }
+        }
+
+        Err(format!(
+            "All fallback methods failed: {}",
+            errors.join(" | ")
+        ))
     }
 
     /// Check if the client is connected

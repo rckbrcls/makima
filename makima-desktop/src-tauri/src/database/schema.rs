@@ -2,7 +2,7 @@ use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-const SCHEMA_VERSION: i32 = 5;
+const SCHEMA_VERSION: i32 = 6;
 
 pub fn get_database_path(app: &AppHandle) -> PathBuf {
     let app_data_dir = app
@@ -70,6 +70,9 @@ fn run_migrations(conn: &Connection, from_version: i32) -> Result<()> {
     }
     if from_version < 5 {
         migration_v5(conn)?;
+    }
+    if from_version < 6 {
+        migration_v6(conn)?;
     }
     Ok(())
 }
@@ -258,5 +261,30 @@ fn migration_v5(conn: &Connection) -> Result<()> {
     )?;
 
     log::info!("Database migration v5 completed (pinned column added)");
+    Ok(())
+}
+
+fn migration_v6(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        r#"
+        CREATE TABLE IF NOT EXISTS cli_sessions (
+            id TEXT PRIMARY KEY,
+            repository_id TEXT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+            cli_name TEXT NOT NULL,
+            cli_command TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'idle',
+            exit_code INTEGER,
+            resume_session_id TEXT,
+            started_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_cli_sessions_repository
+            ON cli_sessions(repository_id);
+        "#,
+    )?;
+
+    log::info!("Database migration v6 completed (cli_sessions table added)");
     Ok(())
 }

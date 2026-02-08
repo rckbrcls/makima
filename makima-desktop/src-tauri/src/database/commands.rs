@@ -1,7 +1,8 @@
-use crate::database::repository;
+use crate::database::{cli_session, repository};
 use crate::database::types::{
-    AddMessageInput, Conversation, ConversationSummary, CreateRepositoryInput, Message,
-    Repository, UpdateConversationInput, UpdateMessageInput, UpdateRepositoryInput,
+    AddMessageInput, CliSessionRow, Conversation, ConversationSummary, CreateCliSessionInput,
+    CreateRepositoryInput, Message, Repository, UpdateCliSessionInput, UpdateConversationInput,
+    UpdateMessageInput, UpdateRepositoryInput,
 };
 use rusqlite::Connection;
 use std::sync::Mutex;
@@ -228,4 +229,71 @@ pub fn db_list_conversations_by_repo(
 ) -> Result<Vec<ConversationSummary>, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     repository::list_conversations_by_repo(&conn, &repository_id).map_err(|e| e.to_string())
+}
+
+// CLI Session commands
+
+#[tauri::command]
+pub fn db_list_cli_sessions(
+    state: State<'_, DatabaseState>,
+) -> Result<Vec<CliSessionRow>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    cli_session::list_cli_sessions(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn db_list_cli_sessions_by_repo(
+    state: State<'_, DatabaseState>,
+    repository_id: String,
+) -> Result<Vec<CliSessionRow>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    cli_session::list_cli_sessions_by_repo(&conn, &repository_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn db_create_cli_session(
+    state: State<'_, DatabaseState>,
+    id: String,
+    repository_id: String,
+    cli_name: String,
+    cli_command: String,
+) -> Result<CliSessionRow, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let input = CreateCliSessionInput {
+        id,
+        repository_id,
+        cli_name,
+        cli_command,
+    };
+    cli_session::create_cli_session(&conn, &input).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn db_update_cli_session(
+    state: State<'_, DatabaseState>,
+    id: String,
+    status: Option<String>,
+    exit_code: Option<i32>,
+    resume_session_id: Option<String>,
+    cli_name: Option<String>,
+    cli_command: Option<String>,
+) -> Result<bool, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let input = UpdateCliSessionInput {
+        status,
+        exit_code,
+        resume_session_id,
+        cli_name,
+        cli_command,
+    };
+    cli_session::update_cli_session(&conn, &id, &input).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn db_delete_cli_session(
+    state: State<'_, DatabaseState>,
+    id: String,
+) -> Result<bool, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    cli_session::delete_cli_session(&conn, &id).map_err(|e| e.to_string())
 }

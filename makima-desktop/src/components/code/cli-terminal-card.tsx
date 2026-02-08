@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { invoke } from "@tauri-apps/api/core"
 import { Play, Plus, RotateCcw, Square } from "lucide-react"
 import type { FitAddon } from "@xterm/addon-fit"
 import type { Terminal } from "@xterm/xterm"
@@ -12,6 +13,7 @@ import { Typewriter } from "@/components/ui/typewriter"
 import {
   useCliSession,
   useCliSessionActions,
+  useCliSessionStore,
   useCliShouldSpawnSession,
   useInstalledClis,
   useSelectedCliCommand,
@@ -68,12 +70,16 @@ export function CliEmptyState() {
 interface CliBottomBarProps {
   sessionId: string
   isConnected: boolean
+  onStop?: () => void
+  onRestart?: () => void
   onNewSession?: () => void
 }
 
 function CliBottomBar({
   sessionId,
   isConnected,
+  onStop,
+  onRestart,
   onNewSession,
 }: CliBottomBarProps) {
   const installedClis = useInstalledClis()
@@ -83,32 +89,35 @@ function CliBottomBar({
     setSelectedCliCommand,
     resetSession,
     addSpawning,
-    removeSpawning,
-    updateSessionStatus,
+    updateSessionCli,
   } = useCliSessionActions()
 
   const isRunning = session?.status === "running"
   const isExited = session?.status === "exited"
   const hasError = session?.status === "error"
 
+  // CLI selector is only locked when session is actively running or exited
+  // Idle sessions (created but not yet started) allow changing CLI
+  const isCliLocked =
+    session?.status === "running" || session?.status === "exited"
+
   const handleStart = useCallback(() => {
+    // Sync the session's CLI with the current selector before starting
+    if (selectedCommand) {
+      const cli = installedClis.find((c) => c.command === selectedCommand)
+      if (cli) {
+        updateSessionCli(sessionId, selectedCommand, cli.name)
+        // Persist CLI change to DB
+        invoke("db_update_cli_session", {
+          id: sessionId,
+          cliCommand: selectedCommand,
+          cliName: cli.name,
+        }).catch(() => {})
+      }
+    }
     resetSession(sessionId)
     addSpawning(sessionId)
-  }, [sessionId, resetSession, addSpawning])
-
-  const handleStop = useCallback(() => {
-    removeSpawning(sessionId)
-    updateSessionStatus(sessionId, "exited")
-  }, [sessionId, removeSpawning, updateSessionStatus])
-
-  const handleRestart = useCallback(() => {
-    removeSpawning(sessionId)
-    updateSessionStatus(sessionId, "exited")
-    setTimeout(() => {
-      resetSession(sessionId)
-      addSpawning(sessionId)
-    }, 200)
-  }, [sessionId, removeSpawning, updateSessionStatus, resetSession, addSpawning])
+  }, [sessionId, selectedCommand, installedClis, resetSession, addSpawning, updateSessionCli])
 
   return (
     <div className="border-border flex items-center gap-2 border-t px-3 py-1.5">
@@ -124,7 +133,7 @@ function CliBottomBar({
       <select
         value={selectedCommand ?? ""}
         onChange={(e) => setSelectedCliCommand(e.target.value || null)}
-        disabled={!!session}
+        disabled={isCliLocked}
         className="bg-input text-foreground border-border h-6 rounded-md border px-2 text-xs focus:outline-none"
       >
         {installedClis.length === 0 && (
@@ -183,11 +192,11 @@ function CliBottomBar({
                 New
               </Button>
             )}
-            <Button variant="outline" size="xs" onClick={handleStop}>
+            <Button variant="outline" size="xs" onClick={onStop}>
               <Square className="mr-1 size-3" />
               Stop
             </Button>
-            <Button variant="outline" size="xs" onClick={handleRestart}>
+            <Button variant="outline" size="xs" onClick={onRestart}>
               <RotateCcw className="mr-1 size-3" />
               Restart
             </Button>
@@ -303,6 +312,13 @@ export const CliTerminalCard = memo(function CliTerminalCard({
       }
       removeSpawningRef.current(sessionIdRef.current)
       updateSessionStatusRef.current(sessionIdRef.current, "exited", exitCode)
+      // Persist to DB
+      invoke("db_update_cli_session", {
+        id: sessionIdRef.current,
+        status: "exited",
+        exitCode: exitCode ?? null,
+        resumeSessionId: resumeId ?? null,
+      }).catch((err) => console.error("[cli-terminal] db_update on exit:", err))
     }, []),
   })
 
@@ -316,6 +332,48 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     writeRef.current = write
     killRef.current = kill
   }, [spawn, write, kill])
+
+  // Graceful shutdown: send Ctrl+C twice, poll for resume ID, then kill PTY
+  const gracefulShutdown = useCallback(async () => {
+    // Send first Ctrl+C
+    await writeRef.current("\x03")
+    // Wait 150ms then send second Ctrl+C
+    await new Promise((r) => setTimeout(r, 150))
+    await writeRef.current("\x03")
+    // Wait for CLI to print resume instructions
+    await new Promise((r) => setTimeout(r, 500))
+    // Check output buffer for resume ID
+    const resumeId = extractResumeId(outputBufferRef.current)
+    if (resumeId) {
+      console.log("[cli-resume] graceful shutdown captured:", resumeId)
+      updateSessionResumeIdRef.current(sessionIdRef.current, resumeId)
+    }
+    // Kill the PTY process
+    await killRef.current()
+    removeSpawningRef.current(sessionIdRef.current)
+    updateSessionStatusRef.current(sessionIdRef.current, "exited")
+    // Persist to DB
+    invoke("db_update_cli_session", {
+      id: sessionIdRef.current,
+      status: "exited",
+      resumeSessionId: resumeId ?? null,
+    }).catch((err) => console.error("[cli-terminal] db_update on shutdown:", err))
+  }, [])
+
+  const handleGracefulStop = useCallback(() => {
+    gracefulShutdown()
+  }, [gracefulShutdown])
+
+  const handleGracefulRestart = useCallback(() => {
+    gracefulShutdown().then(() => {
+      setTimeout(() => {
+        const sid = sessionIdRef.current
+        const store = useCliSessionStore.getState()
+        store.resetSession(sid)
+        store.addSpawning(sid)
+      }, 200)
+    })
+  }, [gracefulShutdown])
 
   // Initialize xterm (just the terminal UI, no spawning)
   useEffect(() => {
@@ -525,6 +583,8 @@ export const CliTerminalCard = memo(function CliTerminalCard({
       <CliBottomBar
         sessionId={sessionId}
         isConnected={isConnected}
+        onStop={handleGracefulStop}
+        onRestart={handleGracefulRestart}
         onNewSession={onNewSession}
       />
     </div>

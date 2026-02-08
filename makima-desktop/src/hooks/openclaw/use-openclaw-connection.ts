@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useRef } from "react"
 import { invoke } from "@tauri-apps/api/core"
-import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import type { OpenClawConnectionStatus } from "@/lib/openclaw-types"
+import { listen } from "@tauri-apps/api/event"
+import type { UnlistenFn } from "@tauri-apps/api/event"
+import type {
+  GatewayEventEnvelope,
+  OpenClawConnectionStatus,
+} from "@/lib/openclaw-types"
 import { useWorkDomainActions } from "@/stores"
 
 export function useOpenClawConnection() {
-  const { setOpenClawConnectionStatus } = useWorkDomainActions()
-  const unlistenRef = useRef<UnlistenFn | null>(null)
+  const { setOpenClawConnectionStatus, addGatewayEvent } = useWorkDomainActions()
+  const statusUnlistenRef = useRef<UnlistenFn | null>(null)
+  const gatewayUnlistenRef = useRef<UnlistenFn | null>(null)
 
   // Listen for connection status events from Rust
   useEffect(() => {
     const setup = async () => {
-      unlistenRef.current = await listen<OpenClawConnectionStatus>(
+      statusUnlistenRef.current = await listen<OpenClawConnectionStatus>(
         "openclaw:connection-status",
         (event) => {
           const { connected, gatewayVersion, error } = event.payload
@@ -20,19 +25,27 @@ export function useOpenClawConnection() {
               ? "connected"
               : error
                 ? "error"
-                : "disconnected",
+              : "disconnected",
             gatewayVersion,
             error,
           })
+        },
+      )
+
+      gatewayUnlistenRef.current = await listen<GatewayEventEnvelope>(
+        "openclaw:gateway-event",
+        (event) => {
+          addGatewayEvent(event.payload)
         },
       )
     }
     setup()
 
     return () => {
-      unlistenRef.current?.()
+      statusUnlistenRef.current?.()
+      gatewayUnlistenRef.current?.()
     }
-  }, [setOpenClawConnectionStatus])
+  }, [addGatewayEvent, setOpenClawConnectionStatus])
 
   const connect = useCallback(
     async (password?: string, token?: string) => {

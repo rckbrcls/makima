@@ -37,6 +37,17 @@ pub enum IncomingFrame {
     },
 }
 
+/// Raw gateway event envelope emitted as `openclaw:gateway-event`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GatewayEventEnvelope {
+    pub event: String,
+    #[serde(default)]
+    pub payload: serde_json::Value,
+    #[serde(default)]
+    pub seq: u64,
+}
+
 /// Error payload in a Res frame — can be a string or an object { code, message }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]

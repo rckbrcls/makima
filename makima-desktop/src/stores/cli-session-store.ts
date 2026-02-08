@@ -30,6 +30,12 @@ interface CliSessionActions {
   removeSession: (sessionId: string) => void
   resetSession: (sessionId: string) => void
   updateSessionResumeId: (sessionId: string, resumeSessionId: string) => void
+  updateSessionCli: (
+    sessionId: string,
+    cliCommand: string,
+    cliName: string,
+  ) => void
+  hydrateFromDb: (sessions: Array<CliSession>) => void
   addSpawning: (sessionId: string) => void
   removeSpawning: (sessionId: string) => void
 }
@@ -127,6 +133,27 @@ export const useCliSessionStore = create<CliSessionStore>((set) => ({
       return { sessions: next }
     }),
 
+  updateSessionCli: (sessionId, cliCommand, cliName) =>
+    set((state) => {
+      const existing = state.sessions.get(sessionId)
+      if (!existing) return state
+      const next = new Map(state.sessions)
+      next.set(sessionId, { ...existing, cliCommand, cliName })
+      return { sessions: next }
+    }),
+
+  hydrateFromDb: (sessions) =>
+    set((state) => {
+      const next = new Map(state.sessions)
+      for (const session of sessions) {
+        // Only add sessions not already in the store (don't overwrite running sessions)
+        if (!next.has(session.id)) {
+          next.set(session.id, session)
+        }
+      }
+      return { sessions: next }
+    }),
+
   addSpawning: (sessionId) =>
     set((state) => {
       const next = new Set(state.spawningSessions)
@@ -212,6 +239,8 @@ export const useCliSessionActions = () =>
       removeSession: s.removeSession,
       resetSession: s.resetSession,
       updateSessionResumeId: s.updateSessionResumeId,
+      updateSessionCli: s.updateSessionCli,
+      hydrateFromDb: s.hydrateFromDb,
       addSpawning: s.addSpawning,
       removeSpawning: s.removeSpawning,
     })),

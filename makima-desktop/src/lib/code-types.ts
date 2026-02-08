@@ -73,6 +73,34 @@ export interface CliSession {
   resumeSessionId?: string
 }
 
+// CLI Session database types (snake_case from Rust)
+export interface CliSessionDb {
+  id: string
+  repository_id: string
+  cli_name: string
+  cli_command: string
+  status: string
+  exit_code: number | null
+  resume_session_id: string | null
+  started_at: number
+  created_at: number
+  updated_at: number
+}
+
+export function mapCliSessionFromDb(db: CliSessionDb): CliSession {
+  return {
+    id: db.id,
+    repositoryId: db.repository_id,
+    cliName: db.cli_name,
+    cliCommand: db.cli_command,
+    ptySessionId: null,
+    status: db.status as CliSession["status"],
+    startedAt: db.started_at,
+    exitCode: db.exit_code ?? undefined,
+    resumeSessionId: db.resume_session_id ?? undefined,
+  }
+}
+
 // Database response types (snake_case from Rust)
 export interface RepositoryDb {
   id: string;

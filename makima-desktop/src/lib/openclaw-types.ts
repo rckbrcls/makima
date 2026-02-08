@@ -74,6 +74,92 @@ export interface OpenClawFileConfig {
   }
 }
 
+/** Raw gateway event emitted from Tauri */
+export interface GatewayEventEnvelope {
+  event: string
+  payload: Record<string, unknown>
+  seq: number
+}
+
+/** Discovered capabilities for the connected gateway */
+export interface OpenClawCapabilities {
+  rpc: boolean
+  wizard: boolean
+  status: boolean
+  health: boolean
+  ping: boolean
+  configSchema: boolean
+  configApply: boolean
+  configPatch: boolean
+  approvalsList: boolean
+  toolsList: boolean
+  toolsInvoke: boolean
+  sessionNew: boolean
+  sessionResume: boolean
+  send: boolean
+  agentSend: boolean
+}
+
+export type OpenClawWizardInputType =
+  | "text"
+  | "password"
+  | "number"
+  | "boolean"
+  | "select"
+  | "multiselect"
+
+/** Normalized prompt shape for a wizard step */
+export interface OpenClawWizardPrompt {
+  id: string
+  label: string
+  type: OpenClawWizardInputType
+  description?: string
+  required?: boolean
+  options?: Array<{ label: string; value: string }>
+  defaultValue?: unknown
+}
+
+/** Normalized wizard state tracked by the app */
+export interface OpenClawWizardState {
+  sessionId?: string
+  stepId?: string
+  title?: string
+  description?: string
+  prompts: Array<OpenClawWizardPrompt>
+  completed: boolean
+  raw: Record<string, unknown>
+}
+
+/** Generic schema from config.schema */
+export interface OpenClawConfigSchema {
+  raw: Record<string, unknown>
+}
+
+/** Response metadata from config.apply/config.patch */
+export interface OpenClawConfigApplyResult {
+  ok: boolean
+  warnings?: Array<string>
+  restarted?: boolean
+  raw?: Record<string, unknown>
+}
+
+/** Descriptor for a callable tool */
+export interface OpenClawToolDescriptor {
+  name: string
+  description?: string
+  risk?: "low" | "medium" | "high" | string
+  inputSchema?: Record<string, unknown>
+  raw?: Record<string, unknown>
+}
+
+/** Health response (normalized) */
+export interface OpenClawHealthStatus {
+  ok: boolean
+  status?: string
+  latencyMs?: number
+  details?: Record<string, unknown>
+}
+
 /** A chat message in the work domain */
 export interface WorkChatMessage {
   id: string

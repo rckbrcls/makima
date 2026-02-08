@@ -108,3 +108,35 @@ pub struct UpdateRepositoryInput {
     pub tech: Option<Vec<String>>,
     pub status: Option<String>,
 }
+
+// CLI Session types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CliSessionRow {
+    pub id: String,
+    pub repository_id: String,
+    pub cli_name: String,
+    pub cli_command: String,
+    pub status: String,
+    pub exit_code: Option<i32>,
+    pub resume_session_id: Option<String>,
+    pub started_at: i64,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateCliSessionInput {
+    pub id: String,
+    pub repository_id: String,
+    pub cli_name: String,
+    pub cli_command: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateCliSessionInput {
+    pub status: Option<String>,
+    pub exit_code: Option<i32>,
+    pub resume_session_id: Option<String>,
+    pub cli_name: Option<String>,
+    pub cli_command: Option<String>,
+}
