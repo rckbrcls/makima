@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -11,7 +18,10 @@ import {
   RefreshCw,
   Rows2,
 } from "lucide-react"
-import type { DiffLine, FileDiff, GitFileChange } from "@/lib/code-types"
+import type { FileDiff, GitFileChange } from "@/lib/code-types"
+import type { IntralineSpan, RowModel } from "@/lib/diff-engine"
+import { buildRowModels } from "@/lib/diff-engine"
+import { ScrollSyncController } from "@/lib/scroll-sync"
 import { useGitStatus } from "@/hooks/use-git-status"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -93,81 +103,166 @@ function DiffViewer({ diff }: { diff: FileDiff }) {
 
 // --- Side-by-side diff ---
 
-interface SideBySideRow {
-  type: "pair" | "separator"
-  left?: DiffLine
-  right?: DiffLine
-}
+const ROW_HEIGHT = 24
+const OVERSCAN = 20
 
-function buildSideBySideRows(lines: Array<DiffLine>): Array<SideBySideRow> {
-  const rows: Array<SideBySideRow> = []
-  let i = 0
+function renderLineContent(
+  text: string,
+  spans: Array<IntralineSpan>,
+  cssClass: string,
+) {
+  if (!spans.length) return text
 
-  while (i < lines.length) {
-    const line = lines[i]
+  const parts: Array<React.ReactNode> = []
+  let cursor = 0
 
-    if (line.kind === "hunk") {
-      rows.push({ type: "separator" })
-      i++
-      continue
+  for (let i = 0; i < spans.length; i++) {
+    const { start, length } = spans[i]
+    if (start > cursor) {
+      parts.push(text.slice(cursor, start))
     }
-
-    if (line.kind === "context") {
-      rows.push({ type: "pair", left: line, right: line })
-      i++
-      continue
-    }
-
-    // Collect consecutive del then add blocks for pairing
-    const dels: Array<DiffLine> = []
-    const adds: Array<DiffLine> = []
-
-    while (i < lines.length && lines[i].kind === "del") {
-      dels.push(lines[i])
-      i++
-    }
-    while (i < lines.length && lines[i].kind === "add") {
-      adds.push(lines[i])
-      i++
-    }
-
-    const maxLen = Math.max(dels.length, adds.length)
-    for (let j = 0; j < maxLen; j++) {
-      rows.push({
-        type: "pair",
-        left: j < dels.length ? dels[j] : undefined,
-        right: j < adds.length ? adds[j] : undefined,
-      })
-    }
+    parts.push(
+      <mark key={i} className={cn("rounded-sm", cssClass)}>
+        {text.slice(start, start + length)}
+      </mark>,
+    )
+    cursor = start + length
   }
 
-  return rows
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor))
+  }
+
+  return <>{parts}</>
 }
 
-function DiffRow({ line, side }: { line?: DiffLine; side: "left" | "right" }) {
-  const lineNo = side === "left" ? line?.oldLineno : line?.newLineno
+interface DiffRowSideProps {
+  side: RowModel["left"]
+  inlineClass: string
+}
 
+const DiffRowSide = React.memo(function DiffRowSide({
+  side,
+  inlineClass,
+}: DiffRowSideProps) {
   return (
     <div
       className={cn(
         "flex min-w-max whitespace-pre leading-6",
-        !line && "diff-filler-hatched",
-        line?.kind === "del" && "bg-diff-del-bg text-diff-del-fg",
-        line?.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
-        line?.kind === "context" && "text-muted-foreground",
+        side.kind === "placeholder" && "diff-filler-hatched",
+        side.kind === "del" && "bg-diff-del-bg text-diff-del-fg",
+        side.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
+        side.kind === "context" && "text-muted-foreground",
       )}
     >
       <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
-        {lineNo ?? ""}
+        {side.kind === "placeholder"
+          ? "\u2014"
+          : (side.lineNumber ?? "")}
       </span>
       <span className="border-border shrink-0 border-r" />
-      <span className="px-3">{line?.content ?? ""}</span>
+      <span className="px-3">
+        {side.spans.length > 0
+          ? renderLineContent(side.content, side.spans, inlineClass)
+          : side.content}
+      </span>
     </div>
   )
-}
+})
 
 function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
-  const rows = useMemo(() => buildSideBySideRows(diff.lines), [diff.lines])
+  const rows = useMemo(() => buildRowModels(diff.lines), [diff.lines])
+  const [split, setSplit] = useState(50)
+  const [range, setRange] = useState({ start: 0, end: 50 })
+
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const leftRef = useRef<HTMLDivElement>(null)
+  const rightRef = useRef<HTMLDivElement>(null)
+  const vRaf = useRef(0)
+  const syncRef = useRef<ScrollSyncController | null>(null)
+
+  // Attach scroll sync controller
+  useEffect(() => {
+    const left = leftRef.current
+    const right = rightRef.current
+    if (!left || !right) return
+
+    const ctrl = new ScrollSyncController()
+    ctrl.attach(left, right)
+    syncRef.current = ctrl
+
+    return () => {
+      ctrl.dispose()
+      syncRef.current = null
+    }
+  }, [])
+
+  // Cleanup vRaf on unmount
+  useEffect(() => {
+    return () => {
+      if (vRaf.current) cancelAnimationFrame(vRaf.current)
+    }
+  }, [])
+
+  // Initialize visible range on mount / diff change
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const end = Math.min(
+      rows.length,
+      Math.ceil(el.clientHeight / ROW_HEIGHT) + OVERSCAN,
+    )
+    setRange({ start: 0, end })
+  }, [rows.length])
+
+  // Restore horizontal scroll after visible range changes
+  useLayoutEffect(() => {
+    if (syncRef.current) {
+      syncRef.current.restoreScrollLeft(syncRef.current.getScrollLeft())
+    }
+  }, [range])
+
+  // Resize handle
+  const handleResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const onMove = (ev: MouseEvent) => {
+      if (!wrapperRef.current) return
+      const rect = wrapperRef.current.getBoundingClientRect()
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100
+      setSplit(Math.max(25, Math.min(75, pct)))
+    }
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("mouseup", onUp)
+    }
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("mouseup", onUp)
+  }, [])
+
+  // Vertical scroll -> update visible range, rAF batched
+  const handleVScroll = useCallback(() => {
+    if (!vRaf.current) {
+      vRaf.current = requestAnimationFrame(() => {
+        vRaf.current = 0
+        const el = scrollRef.current
+        if (!el) return
+        const start = Math.max(
+          0,
+          Math.floor(el.scrollTop / ROW_HEIGHT) - OVERSCAN,
+        )
+        const end = Math.min(
+          rows.length,
+          Math.ceil((el.scrollTop + el.clientHeight) / ROW_HEIGHT) + OVERSCAN,
+        )
+        setRange((prev) =>
+          prev.start === start && prev.end === end
+            ? prev
+            : { start, end },
+        )
+      })
+    }
+  }, [rows.length])
 
   if (!diff.lines.length) {
     return (
@@ -177,25 +272,92 @@ function SideBySideDiffViewer({ diff }: { diff: FileDiff }) {
     )
   }
 
+  const totalHeight = rows.length * ROW_HEIGHT
+  const visibleRows = rows.slice(range.start, range.end)
+  const offsetY = range.start * ROW_HEIGHT
+
   return (
-    <div className="h-full overflow-auto font-mono text-xs">
-      {rows.map((row, idx) =>
-        row.type === "separator" ? (
-          <div key={idx} className="flex">
-            <div className="bg-accent h-6 flex-1 border-y border-accent" />
-            <div className="border-border bg-accent h-6 flex-1 border-y border-accent border-l" />
-          </div>
-        ) : (
-          <div key={idx} className="flex">
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <DiffRow line={row.left} side="left" />
+    <div ref={wrapperRef} className="relative h-full font-mono text-xs">
+      {/* Drag handle */}
+      <div
+        className="absolute top-0 bottom-0 z-10 w-1 cursor-col-resize hover:bg-ring active:bg-ring"
+        style={{ left: `${split}%`, transform: "translateX(-50%)" }}
+        onMouseDown={handleResize}
+      />
+
+      {/* Vertical scroll container */}
+      <div
+        ref={scrollRef}
+        className="h-full overflow-y-auto"
+        style={{ overscrollBehavior: "contain" }}
+        onScroll={handleVScroll}
+      >
+        <div className="relative" style={{ height: totalHeight }}>
+          <div
+            className="absolute left-0 right-0 flex"
+            style={{ top: offsetY }}
+          >
+            {/* Left column */}
+            <div
+              ref={leftRef}
+              className="shrink-0 overflow-x-auto overflow-y-hidden"
+              style={{
+                width: `${split}%`,
+                contain: "layout style",
+              }}
+            >
+              <div className="w-max min-w-full">
+                {visibleRows.map((row, i) =>
+                  row.isSeparator ? (
+                    <div
+                      key={range.start + i}
+                      className="bg-accent flex h-6 items-center border-y border-accent px-2"
+                    >
+                      <span className="text-muted-foreground truncate text-[10px]">
+                        {row.hunkHeader}
+                      </span>
+                    </div>
+                  ) : (
+                    <DiffRowSide
+                      key={range.start + i}
+                      side={row.left}
+                      inlineClass="bg-diff-del-inline-bg"
+                    />
+                  ),
+                )}
+              </div>
             </div>
-            <div className="border-border min-w-0 flex-1 overflow-hidden border-l">
-              <DiffRow line={row.right} side="right" />
+
+            {/* Right column */}
+            <div
+              ref={rightRef}
+              className="border-border min-w-0 flex-1 overflow-x-auto overflow-y-hidden border-l"
+              style={{ contain: "layout style" }}
+            >
+              <div className="w-max min-w-full">
+                {visibleRows.map((row, i) =>
+                  row.isSeparator ? (
+                    <div
+                      key={range.start + i}
+                      className="bg-accent flex h-6 items-center border-y border-accent px-2"
+                    >
+                      <span className="text-muted-foreground truncate text-[10px]">
+                        {row.hunkHeader}
+                      </span>
+                    </div>
+                  ) : (
+                    <DiffRowSide
+                      key={range.start + i}
+                      side={row.right}
+                      inlineClass="bg-diff-add-inline-bg"
+                    />
+                  ),
+                )}
+              </div>
             </div>
           </div>
-        ),
-      )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -228,7 +390,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
   }, [])
 
   const handleFileClick = useCallback(
-    async (filePath: string) => {
+    async (filePath: string, staged?: boolean) => {
       if (selectedFile === filePath) {
         setSelectedFile(null)
         setSelectedDiff(null)
@@ -237,7 +399,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
 
       setSelectedFile(filePath)
       setIsLoadingDiff(true)
-      const diff = await fetchDiff(filePath)
+      const diff = await fetchDiff(filePath, { staged })
       setSelectedDiff(diff)
       setIsLoadingDiff(false)
     },
@@ -340,7 +502,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                         "glass-hover flex w-full items-center gap-2 px-4 py-1 text-xs",
                         selectedFile === file.path && "glass-selected",
                       )}
-                      onClick={() => handleFileClick(file.path)}
+                      onClick={() => handleFileClick(file.path, true)}
                     >
                       <FileIcon status={file.status} />
                       <span className="text-foreground truncate">

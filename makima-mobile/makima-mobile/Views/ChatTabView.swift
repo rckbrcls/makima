@@ -26,17 +26,14 @@ struct ChatTabView: View {
 
     var body: some View {
         let theme = appState.resolvedTheme
+        let messages = chatVM?.messages ?? []
 
         NavigationStack {
             ZStack(alignment: .top) {
                 theme.background
                     .ignoresSafeArea()
 
-                if let chatVM {
-                    ChatThreadView(messages: chatVM.messages)
-                } else {
-                    ChatThreadView(messages: [])
-                }
+                ChatThreadView(messages: messages)
 
                 if let approvalVM, !approvalVM.pendingApprovals.isEmpty {
                     ApprovalBannerView(

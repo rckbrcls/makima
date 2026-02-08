@@ -74,16 +74,23 @@ pub fn git_status(path: String) -> Result<GitStatus, String> {
 }
 
 #[tauri::command]
-pub fn git_diff(repo_path: String, file_path: String) -> Result<FileDiff, String> {
+pub fn git_diff(repo_path: String, file_path: String, staged: Option<bool>) -> Result<FileDiff, String> {
     let repo = Repository::open(&repo_path).map_err(|e| e.to_string())?;
 
     let mut diff_opts = DiffOptions::new();
     diff_opts.pathspec(&file_path);
 
-    // Get diff between HEAD and working directory
-    let diff = repo
-        .diff_index_to_workdir(None, Some(&mut diff_opts))
-        .map_err(|e| e.to_string())?;
+    let diff = if staged.unwrap_or(false) {
+        // Staged: compare HEAD tree to index
+        let head = repo.head().map_err(|e| e.to_string())?;
+        let tree = head.peel_to_tree().map_err(|e| e.to_string())?;
+        repo.diff_tree_to_index(Some(&tree), None, Some(&mut diff_opts))
+            .map_err(|e| e.to_string())?
+    } else {
+        // Unstaged: compare index to working directory
+        repo.diff_index_to_workdir(None, Some(&mut diff_opts))
+            .map_err(|e| e.to_string())?
+    };
 
     let mut lines = Vec::new();
 

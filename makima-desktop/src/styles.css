@@ -46,6 +46,8 @@
   --diff-add-fg: oklch(0.30 0.10 145);
   --diff-del-bg: oklch(0.94 0.06 25);
   --diff-del-fg: oklch(0.35 0.12 25);
+  --diff-add-inline-bg: oklch(0.88 0.08 145);
+  --diff-del-inline-bg: oklch(0.88 0.09 25);
   --diff-filler: var(--muted);
 }
 
@@ -90,7 +92,9 @@
   --diff-add-fg: oklch(0.78 0.12 150);
   --diff-del-bg: oklch(0.22 0.07 25);
   --diff-del-fg: oklch(0.78 0.12 25);
-  --diff-filler: var(--muted);
+  --diff-add-inline-bg: oklch(0.30 0.10 150);
+  --diff-del-inline-bg: oklch(0.30 0.11 25);
+  --diff-filler: oklch(0.22 0 0);
 }
 
 @theme inline {
@@ -132,6 +136,8 @@
   --color-diff-add-fg: var(--diff-add-fg);
   --color-diff-del-bg: var(--diff-del-bg);
   --color-diff-del-fg: var(--diff-del-fg);
+  --color-diff-add-inline-bg: var(--diff-add-inline-bg);
+  --color-diff-del-inline-bg: var(--diff-del-inline-bg);
   --color-diff-filler: var(--diff-filler);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

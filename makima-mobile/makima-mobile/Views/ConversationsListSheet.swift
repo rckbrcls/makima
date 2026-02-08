@@ -9,7 +9,6 @@ struct ConversationsTabView: View {
     @Environment(AppState.self) private var appState
 
     @Bindable var viewModel: ConversationsViewModel
-    @State private var isSearchPresented = false
     let onSelect: (Conversation) -> Void
     let onNew: () -> Void
     var onOpenSettings: (() -> Void)?
@@ -65,7 +64,6 @@ struct ConversationsTabView: View {
             .background(theme.background)
             .searchable(
                 text: $viewModel.searchQuery,
-                isPresented: $isSearchPresented,
                 placement: .navigationBarDrawer(displayMode: .automatic),
                 prompt: "Search conversations"
             )
@@ -87,13 +85,6 @@ struct ConversationsTabView: View {
                 }
 
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        isSearchPresented = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .accessibilityIdentifier("conversations.search.button")
-
                     Button {
                         onNew()
                     } label: {

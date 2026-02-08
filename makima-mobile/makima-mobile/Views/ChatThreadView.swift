@@ -12,12 +12,8 @@ struct ChatThreadView: View {
 
     var body: some View {
         if messages.isEmpty {
-            ContentUnavailableView(
-                "Start a Conversation",
-                systemImage: "bubble.left.and.bubble.right",
-                description: Text("Select a conversation or send a message to begin.")
-            )
-            .accessibilityIdentifier("chat.empty.state")
+            TypewriterEmptyStateView()
+                .accessibilityIdentifier("chat.empty.state")
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
