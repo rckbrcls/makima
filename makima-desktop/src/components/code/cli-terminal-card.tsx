@@ -123,11 +123,11 @@ function CliBottomBar({
           className={cn(
             "text-[10px]",
             isRunning &&
-              "border-emerald-500 bg-emerald-600 text-emerald-950",
+            "border-emerald-500 bg-emerald-600 text-emerald-950",
             isExited &&
-              "border-secondary bg-secondary text-secondary-foreground",
+            "border-secondary bg-secondary text-secondary-foreground",
             hasError &&
-              "border-destructive bg-destructive text-destructive-foreground",
+            "border-destructive bg-destructive text-destructive-foreground",
           )}
         >
           {activeSession.status}
@@ -264,6 +264,7 @@ export const CliTerminalCard = memo(function CliTerminalCard({
       if (outputBufferRef.current.includes('resume')) {
         const resumeId = extractResumeId(outputBufferRef.current)
         if (resumeId) {
+          console.log('[cli-resume] onOutput captured:', resumeId)
           onResumeIdCapturedRef.current?.(resumeId)
         }
       }
@@ -272,6 +273,7 @@ export const CliTerminalCard = memo(function CliTerminalCard({
       terminalRef.current?.writeln("\r\n[Process exited]")
       const resumeId = extractResumeId(outputBufferRef.current)
       if (resumeId) {
+        console.log('[cli-resume] onExit captured:', resumeId)
         onResumeIdCapturedRef.current?.(resumeId)
       }
       onSessionExitRef.current?.(exitCode)
@@ -302,29 +304,36 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     (onDone: () => void) => {
       clearGracefulTimers()
 
-      // 1st Ctrl+C — interrupts current operation
-      writeRef.current('\x03')
-
-      // 2nd Ctrl+C after 150ms — triggers graceful exit
-      gracefulTimersRef.current.push(
-        setTimeout(() => writeRef.current('\x03'), 150),
-      )
-
-      // Poll buffer for resume ID every 100ms; proceed once found or timeout
-      let elapsed = 0
-      const pollId = setInterval(() => {
-        elapsed += 100
-        const resumeId = extractResumeId(outputBufferRef.current)
-        if (resumeId) {
-          onResumeIdCapturedRef.current?.(resumeId)
-          clearGracefulTimers()
+      // Try sending Ctrl+C. If write fails, session is already gone — skip to done.
+      writeRef.current('\x03').then((ok) => {
+        if (!ok) {
           onDone()
-        } else if (elapsed >= 2000) {
-          clearGracefulTimers()
-          onDone()
+          return
         }
-      }, 100)
-      gracefulTimersRef.current.push(pollId as unknown as ReturnType<typeof setTimeout>)
+
+        // 2nd Ctrl+C after 150ms — triggers graceful exit (some CLIs need 2)
+        gracefulTimersRef.current.push(
+          setTimeout(() => writeRef.current('\x03'), 150),
+        )
+
+        // Poll buffer for resume ID every 100ms; proceed once found or timeout
+        let elapsed = 0
+        const pollId = setInterval(() => {
+          elapsed += 100
+          const resumeId = extractResumeId(outputBufferRef.current)
+          if (resumeId) {
+            console.log('[cli-resume] captured resume ID:', resumeId)
+            onResumeIdCapturedRef.current?.(resumeId)
+            clearGracefulTimers()
+            onDone()
+          } else if (elapsed >= 2000) {
+            console.log('[cli-resume] timeout, no resume ID found')
+            clearGracefulTimers()
+            onDone()
+          }
+        }, 100)
+        gracefulTimersRef.current.push(pollId as unknown as ReturnType<typeof setTimeout>)
+      })
     },
     [clearGracefulTimers],
   )
@@ -500,7 +509,7 @@ export const CliTerminalCard = memo(function CliTerminalCard({
   return (
     <div
       className={cn(
-        "glass flex min-h-0 flex-col overflow-hidden rounded-xl",
+        "bg-background border-border border flex min-h-0 flex-col overflow-hidden rounded-xl",
         className,
       )}
     >

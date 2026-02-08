@@ -112,14 +112,16 @@ void main() {
 const fragmentShader = `
 uniform float u_intensity;
 uniform float u_time;
-uniform vec3 u_color;
+uniform vec3 u_color_a;
+uniform vec3 u_color_b;
 
 varying vec2 vUv;
 varying float vDisplacement;
 
 void main() {
     float distort = 2.0 * vDisplacement * u_intensity * sin(vUv.y * 10.0 + u_time);
-    vec3 color = mix(u_color, vec3(1.0, 1.0, 1.0), distort);
+    float blend = smoothstep(-1.0, 1.0, distort);
+    vec3 color = mix(u_color_a, u_color_b, blend);
     gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -132,7 +134,8 @@ function BlobMesh() {
     () => ({
       u_time: { value: 0 },
       u_intensity: { value: 0.3 },
-      u_color: { value: new Color(0x0b0b0b) },
+      u_color_a: { value: new Color("#C65C4B") },
+      u_color_b: { value: new Color("#EDBD74") },
     }),
     [],
   );

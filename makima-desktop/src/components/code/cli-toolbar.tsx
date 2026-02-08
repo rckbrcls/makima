@@ -27,7 +27,7 @@ export function CliToolbar({
   onToggleGitPanel,
 }: CliToolbarProps) {
   return (
-    <div className="glass glass-solid flex items-center gap-3 rounded-xl px-4 py-2">
+    <div className="bg-background border-border border flex items-center gap-3 rounded-xl px-4 py-2">
       {/* Repository name */}
       {repositoryName && (
         <span className="text-foreground truncate text-xs font-medium">

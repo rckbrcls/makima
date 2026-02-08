@@ -139,7 +139,7 @@ function FileTreeView({
           <button
             key={child.fullPath}
             className={cn(
-              "glass-hover flex w-full items-center gap-2 py-1 text-xs",
+              "bg-background border-border border flex w-full items-center gap-2 py-1 text-xs",
               selectedFile === child.fullPath && "glass-selected",
             )}
             style={{ paddingLeft: depth * 12 + 16 }}
@@ -966,7 +966,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
     return (
       <div
         className={cn(
-          "border-border bg-card flex flex-col items-center justify-center rounded-lg border p-8",
+          "border-border bg-background flex flex-col items-center justify-center rounded-lg border p-8",
           className,
         )}
       >
@@ -986,7 +986,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
   return (
     <div
       className={cn(
-        "border-border bg-card flex flex-col overflow-hidden rounded-lg border",
+        "border-border bg-background flex flex-col overflow-hidden rounded-lg border",
         className,
       )}
     >
@@ -1152,7 +1152,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
           {/* Diff content */}
           <div
             className={cn(
-              "bg-secondary min-h-0 flex-1",
+              "bg-card min-h-0 flex-1",
               diffView === "split" && selectedDiff && !isLoadingDiff
                 ? "overflow-hidden"
                 : "overflow-auto",

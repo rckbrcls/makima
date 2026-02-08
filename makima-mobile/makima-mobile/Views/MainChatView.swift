@@ -15,67 +15,65 @@ struct MainChatView: View {
     var body: some View {
         let theme = appState.resolvedTheme
 
-        NavigationStack {
-            TabView(selection: $shell.currentPage) {
-                ConversationsTabView(
-                    viewModel: shell.conversationsVM,
-                    onSelect: { conversation in
-                        shell.conversationsVM.setActive(conversation)
-                        shell.chatVM?.loadConversation(conversation, context: modelContext)
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            shell.currentPage = .chat
-                        }
-                    },
-                    onNew: {
-                        let conversation = shell.conversationsVM.createConversation(
-                            sessionId: appState.relay.currentSessionId
-                        )
-                        shell.chatVM?.loadConversation(conversation, context: modelContext)
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            shell.currentPage = .chat
-                        }
-                    },
-                    onOpenSettings: {
-                        shell.showSettings = true
-                    },
-                    onOpenAuth: {
-                        shell.showAuth = true
+        TabView(selection: $shell.currentPage) {
+            ConversationsTabView(
+                viewModel: shell.conversationsVM,
+                onSelect: { conversation in
+                    shell.conversationsVM.setActive(conversation)
+                    shell.chatVM?.loadConversation(conversation, context: modelContext)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .chat
                     }
-                )
-                .tag(MobilePage.conversations)
+                },
+                onNew: {
+                    let conversation = shell.conversationsVM.createConversation(
+                        sessionId: appState.relay.currentSessionId
+                    )
+                    shell.chatVM?.loadConversation(conversation, context: modelContext)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .chat
+                    }
+                },
+                onOpenSettings: {
+                    shell.showSettings = true
+                },
+                onOpenAuth: {
+                    shell.showAuth = true
+                }
+            )
+            .tag(MobilePage.conversations)
 
-                ChatTabView(
-                    chatVM: shell.chatVM,
-                    approvalVM: shell.approvalVM,
-                    conversationsVM: shell.conversationsVM,
-                    isActive: shell.currentPage == .chat,
-                    showAuth: $shell.showAuth,
-                    showPair: $shell.showPair,
-                    onOpenConversations: {
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            shell.currentPage = .conversations
-                        }
-                    },
-                    onOpenCodes: {
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            shell.currentPage = .codes
-                        }
+            ChatTabView(
+                chatVM: shell.chatVM,
+                approvalVM: shell.approvalVM,
+                conversationsVM: shell.conversationsVM,
+                isActive: shell.currentPage == .chat,
+                showAuth: $shell.showAuth,
+                showPair: $shell.showPair,
+                onOpenConversations: {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .conversations
                     }
-                )
-                .tag(MobilePage.chat)
+                },
+                onOpenCodes: {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .codes
+                    }
+                }
+            )
+            .tag(MobilePage.chat)
 
-                CodesTabView(
-                    onBackToChat: {
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            shell.currentPage = .chat
-                        }
+            CodesTabView(
+                onBackToChat: {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        shell.currentPage = .chat
                     }
-                )
-                .tag(MobilePage.codes)
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .indexViewStyle(.page(backgroundDisplayMode: .never))
+                }
+            )
+            .tag(MobilePage.codes)
         }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .indexViewStyle(.page(backgroundDisplayMode: .never))
         .background(theme.background.ignoresSafeArea())
         .onAppear {
             bootstrapIfNeeded()

@@ -419,6 +419,7 @@ export function CodeTabWorkspace() {
   const handleResumeIdCaptured = useCallback(
     (resumeId: string) => {
       if (activeSessionId) {
+        console.log('[cli-resume] storing resumeSessionId:', resumeId, 'for session:', activeSessionId)
         updateSessionResumeId(activeSessionId, resumeId)
       }
     },

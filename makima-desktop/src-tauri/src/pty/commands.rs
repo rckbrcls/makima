@@ -286,10 +286,10 @@ pub async fn pty_kill(state: State<'_, PtyState>, session_id: String) -> Result<
         instance.backpressure.alive.store(false, Ordering::Release);
         instance.backpressure.ack_condvar.notify_one();
         log::info!("PTY session {} killed", session_id);
-        Ok(())
     } else {
-        Err("Session not found".to_string())
+        log::info!("PTY session {} already gone, nothing to kill", session_id);
     }
+    Ok(())
 }
 
 #[tauri::command]
