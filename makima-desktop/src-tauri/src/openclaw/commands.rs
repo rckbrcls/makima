@@ -1,4 +1,5 @@
 use crate::openclaw::client::OpenClawClient;
+use crate::openclaw::config::{self, OpenClawFileConfig};
 use crate::openclaw::process::{self, GatewayProcessManager};
 use crate::openclaw::types::{
     GatewayProcessStatus, OpenClawAgentConfig, OpenClawConnectionStatus, OpenClawInstallation,
@@ -38,6 +39,9 @@ pub async fn openclaw_install() -> Result<OpenClawInstallation, String> {
 #[tauri::command]
 pub async fn openclaw_start_gateway(
     state: State<'_, OpenClawState>,
+    port: Option<u16>,
+    workspace: Option<String>,
+    password: Option<String>,
 ) -> Result<u32, String> {
     let installation = process::detect_installation();
 
@@ -47,15 +51,21 @@ pub async fn openclaw_start_gateway(
         );
     }
 
-    let port = {
-        let manager = state
+    let effective_port = port.unwrap_or(18789);
+
+    // Ensure config exists before starting
+    config::ensure_config(effective_port, workspace, password, None)?;
+
+    // Update manager port
+    {
+        let mut manager = state
             .process_manager
             .lock()
             .map_err(|e| format!("Lock error: {}", e))?;
-        manager.port
-    };
+        manager.port = effective_port;
+    }
 
-    process::start_gateway(&installation, &state.process_manager, port).await
+    process::start_gateway(&installation, &state.process_manager, effective_port).await
 }
 
 #[tauri::command]
@@ -70,6 +80,20 @@ pub async fn openclaw_get_gateway_status(
     state: State<'_, OpenClawState>,
 ) -> Result<GatewayProcessStatus, String> {
     Ok(process::get_gateway_status(&state.process_manager))
+}
+
+// ============================================================================
+// Config File Commands
+// ============================================================================
+
+#[tauri::command]
+pub async fn openclaw_read_file_config() -> Result<Option<OpenClawFileConfig>, String> {
+    config::read_config()
+}
+
+#[tauri::command]
+pub async fn openclaw_write_file_config(config: OpenClawFileConfig) -> Result<(), String> {
+    config::write_config(&config)
 }
 
 // ============================================================================

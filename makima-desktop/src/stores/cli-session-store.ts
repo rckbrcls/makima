@@ -12,6 +12,7 @@ interface CliSessionState {
   sessions: Map<string, CliSession>
   activeRepositoryId: string | null
   activeSessionId: string | null
+  spawningSessions: Set<string>
 }
 
 interface CliSessionActions {
@@ -27,6 +28,10 @@ interface CliSessionActions {
   ) => void
   updateSessionPty: (sessionId: string, ptySessionId: string) => void
   removeSession: (sessionId: string) => void
+  resetSession: (sessionId: string) => void
+  updateSessionResumeId: (sessionId: string, resumeSessionId: string) => void
+  addSpawning: (sessionId: string) => void
+  removeSpawning: (sessionId: string) => void
 }
 
 export type CliSessionStore = CliSessionState & CliSessionActions
@@ -37,6 +42,7 @@ const initialState: CliSessionState = {
   sessions: new Map(),
   activeRepositoryId: null,
   activeSessionId: null,
+  spawningSessions: new Set(),
 }
 
 export const useCliSessionStore = create<CliSessionStore>((set) => ({
@@ -93,6 +99,47 @@ export const useCliSessionStore = create<CliSessionStore>((set) => ({
           : {}
       return { sessions: next, ...resetActive }
     }),
+
+  resetSession: (sessionId) =>
+    set((state) => {
+      const existing = state.sessions.get(sessionId)
+      if (!existing) return state
+      // No-op if already idle or running
+      if (existing.status === "idle" || existing.status === "running")
+        return state
+      const next = new Map(state.sessions)
+      next.set(sessionId, {
+        ...existing,
+        status: "idle",
+        ptySessionId: null,
+        exitCode: undefined,
+        startedAt: Date.now(),
+      })
+      return { sessions: next }
+    }),
+
+  updateSessionResumeId: (sessionId, resumeSessionId) =>
+    set((state) => {
+      const existing = state.sessions.get(sessionId)
+      if (!existing) return state
+      const next = new Map(state.sessions)
+      next.set(sessionId, { ...existing, resumeSessionId })
+      return { sessions: next }
+    }),
+
+  addSpawning: (sessionId) =>
+    set((state) => {
+      const next = new Set(state.spawningSessions)
+      next.add(sessionId)
+      return { spawningSessions: next }
+    }),
+
+  removeSpawning: (sessionId) =>
+    set((state) => {
+      const next = new Set(state.spawningSessions)
+      next.delete(sessionId)
+      return { spawningSessions: next }
+    }),
 }))
 
 // ============================================================================
@@ -138,6 +185,12 @@ export const useCliGitPollInterval = () =>
     return 5000
   })
 
+export const useCliShouldSpawn = () =>
+  useCliSessionStore((s) => {
+    if (!s.activeSessionId) return false
+    return s.spawningSessions.has(s.activeSessionId)
+  })
+
 // Actions selector (stable reference)
 export const useCliSessionActions = () =>
   useCliSessionStore(
@@ -150,5 +203,9 @@ export const useCliSessionActions = () =>
       updateSessionStatus: s.updateSessionStatus,
       updateSessionPty: s.updateSessionPty,
       removeSession: s.removeSession,
+      resetSession: s.resetSession,
+      updateSessionResumeId: s.updateSessionResumeId,
+      addSpawning: s.addSpawning,
+      removeSpawning: s.removeSpawning,
     })),
   )

@@ -38,8 +38,9 @@ use ollama::{
 use openclaw::{
     openclaw_connect, openclaw_detect_installation, openclaw_disconnect,
     openclaw_get_config, openclaw_get_connection_status, openclaw_get_gateway_status,
-    openclaw_install, openclaw_list_agents, openclaw_resolve_approval, openclaw_send_message,
-    openclaw_start_gateway, openclaw_stop_gateway, OpenClawState,
+    openclaw_install, openclaw_list_agents, openclaw_read_file_config, openclaw_resolve_approval,
+    openclaw_send_message, openclaw_start_gateway, openclaw_stop_gateway,
+    openclaw_write_file_config, OpenClawState,
 };
 use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
 use filesystem::reveal_in_finder;
@@ -103,6 +104,8 @@ pub fn run() {
             openclaw_start_gateway,
             openclaw_stop_gateway,
             openclaw_get_gateway_status,
+            openclaw_read_file_config,
+            openclaw_write_file_config,
             openclaw_connect,
             openclaw_disconnect,
             openclaw_get_connection_status,

@@ -19,6 +19,56 @@ final class DrawerNavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testComposerShowsLiquidGlassControls() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["composer.add.button"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["composer.mic.button"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["composer.primary.button"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testPrimaryComposerActionSwitchesToSendWhenTyping() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let primaryButton = app.buttons["composer.primary.button"]
+        XCTAssertTrue(primaryButton.waitForExistence(timeout: 5))
+        XCTAssertEqual(primaryButton.value as? String, "dictation")
+
+        let input = composerInput(in: app)
+        XCTAssertTrue(input.waitForExistence(timeout: 2))
+        input.tap()
+        input.typeText("hello")
+
+        XCTAssertEqual(primaryButton.value as? String, "send")
+    }
+
+    @MainActor
+    func testCanRemoveSeededComposerAttachmentChip() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("-uiTestComposerSeedAttachment")
+        app.launch()
+
+        let attachmentChipQuery = app.otherElements.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH 'composer.attachment.' AND NOT identifier BEGINSWITH 'composer.attachment.remove.'"
+            )
+        )
+        let attachmentChip = attachmentChipQuery.firstMatch
+        XCTAssertTrue(attachmentChip.waitForExistence(timeout: 5))
+
+        let removeButton = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'composer.attachment.remove.'")
+        ).firstMatch
+        XCTAssertTrue(removeButton.waitForExistence(timeout: 2))
+        removeButton.tap()
+
+        XCTAssertFalse(attachmentChip.exists)
+    }
+
+    @MainActor
     func testSelectingConversationReturnsToChatPage() throws {
         let app = XCUIApplication()
         app.launch()
@@ -192,5 +242,14 @@ final class DrawerNavigationUITests: XCTestCase {
         let secondThemePicker = secondLaunch.segmentedControls["settings.theme.picker"]
         XCTAssertTrue(secondThemePicker.waitForExistence(timeout: 2))
         XCTAssertTrue(secondThemePicker.buttons["Dark"].isSelected)
+    }
+
+    private func composerInput(in app: XCUIApplication) -> XCUIElement {
+        let textView = app.textViews["composer.text.field"].firstMatch
+        if textView.waitForExistence(timeout: 1) {
+            return textView
+        }
+
+        return app.textFields["composer.text.field"].firstMatch
     }
 }

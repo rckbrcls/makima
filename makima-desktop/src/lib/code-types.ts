@@ -70,6 +70,7 @@ export interface CliSession {
   status: "idle" | "running" | "exited" | "error"
   startedAt: number
   exitCode?: number
+  resumeSessionId?: string
 }
 
 // Database response types (snake_case from Rust)

@@ -1,6 +1,6 @@
 use crate::openclaw::types::{
     ApprovalRequestPayload, IncomingFrame, OpenClawAgentEvent, OpenClawConnectionStatus,
-    OutgoingFrame,
+    OutgoingFrame, ResError,
 };
 use dashmap::DashMap;
 use futures::stream::SplitSink;
@@ -68,11 +68,28 @@ impl OpenClawClient {
             reader_handle,
         };
 
-        // Send connect handshake
+        // Send connect handshake (protocol v3)
+        let auth = if token.is_some() || password.is_some() {
+            Some(serde_json::json!({
+                "token": token,
+                "password": password,
+            }))
+        } else {
+            None
+        };
+
         let connect_params = serde_json::json!({
+            "minProtocol": 3,
+            "maxProtocol": 3,
+            "client": {
+                "id": "openclaw-macos",
+                "version": env!("CARGO_PKG_VERSION"),
+                "platform": "darwin",
+                "mode": "ui",
+            },
+            "auth": auth,
             "role": "operator",
-            "password": password,
-            "token": token,
+            "scopes": ["operator.admin"],
         });
 
         let response = client.send_request("connect", Some(connect_params)).await?;
@@ -158,9 +175,10 @@ impl OpenClawClient {
                     if ok {
                         let _ = sender.send(Ok(payload.unwrap_or(serde_json::Value::Null)));
                     } else {
-                        let _ = sender.send(Err(
-                            error.unwrap_or_else(|| "Unknown error".to_string())
-                        ));
+                        let msg = error
+                            .map(|e| e.to_message())
+                            .unwrap_or_else(|| "Unknown error".to_string());
+                        let _ = sender.send(Err(msg));
                     }
                 }
             }

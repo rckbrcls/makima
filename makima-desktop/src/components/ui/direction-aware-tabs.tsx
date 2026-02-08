@@ -168,7 +168,7 @@ function DirectionAwareTabs({
             {activeTab === tab.id && (
               <motion.span
                 layoutId="bubble"
-                className="bg-primary shadow-inner-shadow dark:border-border absolute inset-0 z-10 mix-blend-difference dark:border"
+                className="bg-white shadow-inner-shadow dark:border-border absolute inset-0 z-10 mix-blend-difference dark:border"
                 style={rounded ? { borderRadius: 9 } : { borderRadius: 10 }}
                 transition={{ type: "spring", bounce: 0.19, duration: 0.4 }}
               />

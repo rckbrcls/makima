@@ -12,7 +12,7 @@ struct RootView: View {
     var body: some View {
         MainChatView()
             .preferredColorScheme(appState.preferredColorScheme)
-            .tint(appState.resolvedTheme.ring)
+            .tint(appState.resolvedTheme.primary)
             .task {
                 appState.ensureThemePreferenceIfNeeded(systemScheme: systemColorScheme)
                 await appState.setup()

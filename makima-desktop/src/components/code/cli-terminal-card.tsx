@@ -3,6 +3,7 @@ import { Play, Plus, RotateCcw, Square } from "lucide-react"
 import type { FitAddon } from "@xterm/addon-fit"
 import type { Terminal } from "@xterm/xterm"
 import { useTerminal } from "@/hooks/use-terminal"
+import { extractResumeId, stripAnsi } from "@/lib/cli-resume"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -66,6 +67,7 @@ function CliEmptyState() {
 interface CliBottomBarProps {
   isConnected: boolean
   onStart: () => void
+  onNewSession: () => void
   onStop: () => void
   onRestart: () => void
 }
@@ -73,6 +75,7 @@ interface CliBottomBarProps {
 function CliBottomBar({
   isConnected,
   onStart,
+  onNewSession,
   onStop,
   onRestart,
 }: CliBottomBarProps) {
@@ -150,7 +153,7 @@ function CliBottomBar({
             <Button
               variant="outline"
               size="xs"
-              onClick={onStart}
+              onClick={onNewSession}
               disabled={!selectedCommand}
             >
               <Plus className="mr-1 size-3" />
@@ -182,10 +185,12 @@ interface CliTerminalCardProps {
   shouldSpawn: boolean
   className?: string
   onStart: () => void
+  onNewSession: () => void
   onStop: () => void
   onRestart: () => void
   onSessionStart?: (ptySessionId: string) => void
   onSessionExit?: (exitCode?: number) => void
+  onResumeIdCaptured?: (resumeId: string) => void
 }
 
 export const CliTerminalCard = memo(function CliTerminalCard({
@@ -195,10 +200,12 @@ export const CliTerminalCard = memo(function CliTerminalCard({
   shouldSpawn,
   className,
   onStart,
+  onNewSession,
   onStop,
   onRestart,
   onSessionStart,
   onSessionExit,
+  onResumeIdCaptured,
 }: CliTerminalCardProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -206,12 +213,19 @@ export const CliTerminalCard = memo(function CliTerminalCard({
   const isInitializedRef = useRef(false)
   const [isLoaded, setIsLoaded] = useState(false)
 
+  // Output buffer for resume ID detection (ref, no re-renders)
+  const outputBufferRef = useRef('')
+  const MAX_BUFFER_SIZE = 2048
+
   // Store all props in refs so the spawn effect doesn't depend on them
   const cwdRef = useRef(cwd)
   const commandRef = useRef(command)
   const argsRef = useRef(args)
   const onSessionStartRef = useRef(onSessionStart)
   const onSessionExitRef = useRef(onSessionExit)
+  const onResumeIdCapturedRef = useRef(onResumeIdCaptured)
+  const onStopRef = useRef(onStop)
+  const onRestartRef = useRef(onRestart)
 
   useEffect(() => {
     cwdRef.current = cwd
@@ -228,13 +242,38 @@ export const CliTerminalCard = memo(function CliTerminalCard({
   useEffect(() => {
     onSessionExitRef.current = onSessionExit
   }, [onSessionExit])
+  useEffect(() => {
+    onResumeIdCapturedRef.current = onResumeIdCaptured
+  }, [onResumeIdCaptured])
+  useEffect(() => {
+    onStopRef.current = onStop
+  }, [onStop])
+  useEffect(() => {
+    onRestartRef.current = onRestart
+  }, [onRestart])
 
   const { spawn, write, resize, kill, isConnected, error } = useTerminal({
     onOutput: useCallback((data: string) => {
       terminalRef.current?.write(data)
+      const clean = stripAnsi(data)
+      outputBufferRef.current += clean
+      if (outputBufferRef.current.length > MAX_BUFFER_SIZE) {
+        outputBufferRef.current = outputBufferRef.current.slice(-MAX_BUFFER_SIZE)
+      }
+      // Continuous detection: capture resume ID as soon as it appears in output
+      if (outputBufferRef.current.includes('resume')) {
+        const resumeId = extractResumeId(outputBufferRef.current)
+        if (resumeId) {
+          onResumeIdCapturedRef.current?.(resumeId)
+        }
+      }
     }, []),
     onExit: useCallback((exitCode?: number) => {
       terminalRef.current?.writeln("\r\n[Process exited]")
+      const resumeId = extractResumeId(outputBufferRef.current)
+      if (resumeId) {
+        onResumeIdCapturedRef.current?.(resumeId)
+      }
       onSessionExitRef.current?.(exitCode)
     }, []),
   })
@@ -249,6 +288,59 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     writeRef.current = write
     killRef.current = kill
   }, [spawn, write, kill])
+
+  // Graceful stop: send Ctrl+C (twice for CLIs that need it), wait for resume
+  // ID capture, then proceed with stop/restart. Timeout ensures we never hang.
+  const gracefulTimersRef = useRef<Array<ReturnType<typeof setTimeout | typeof setInterval>>>([])
+
+  const clearGracefulTimers = useCallback(() => {
+    for (const id of gracefulTimersRef.current) clearTimeout(id)
+    gracefulTimersRef.current = []
+  }, [])
+
+  const gracefulShutdown = useCallback(
+    (onDone: () => void) => {
+      clearGracefulTimers()
+
+      // 1st Ctrl+C — interrupts current operation
+      writeRef.current('\x03')
+
+      // 2nd Ctrl+C after 150ms — triggers graceful exit
+      gracefulTimersRef.current.push(
+        setTimeout(() => writeRef.current('\x03'), 150),
+      )
+
+      // Poll buffer for resume ID every 100ms; proceed once found or timeout
+      let elapsed = 0
+      const pollId = setInterval(() => {
+        elapsed += 100
+        const resumeId = extractResumeId(outputBufferRef.current)
+        if (resumeId) {
+          onResumeIdCapturedRef.current?.(resumeId)
+          clearGracefulTimers()
+          onDone()
+        } else if (elapsed >= 2000) {
+          clearGracefulTimers()
+          onDone()
+        }
+      }, 100)
+      gracefulTimersRef.current.push(pollId as unknown as ReturnType<typeof setTimeout>)
+    },
+    [clearGracefulTimers],
+  )
+
+  const handleGracefulStop = useCallback(() => {
+    gracefulShutdown(() => onStopRef.current())
+  }, [gracefulShutdown])
+
+  const handleGracefulRestart = useCallback(() => {
+    gracefulShutdown(() => onRestartRef.current())
+  }, [gracefulShutdown])
+
+  // Clean up graceful timers on unmount
+  useEffect(() => {
+    return () => clearGracefulTimers()
+  }, [clearGracefulTimers])
 
   // Initialize xterm (just the terminal UI, no spawning)
   useEffect(() => {
@@ -352,6 +444,7 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     const currentCommand = commandRef.current
     if (!currentCwd || !currentCommand) return
 
+    outputBufferRef.current = ''
     terminalRef.current?.clear()
     const cols = terminalRef.current?.cols ?? 80
     const rows = terminalRef.current?.rows ?? 24
@@ -437,8 +530,9 @@ export const CliTerminalCard = memo(function CliTerminalCard({
       <CliBottomBar
         isConnected={isConnected}
         onStart={onStart}
-        onStop={onStop}
-        onRestart={onRestart}
+        onNewSession={onNewSession}
+        onStop={handleGracefulStop}
+        onRestart={handleGracefulRestart}
       />
     </div>
   )

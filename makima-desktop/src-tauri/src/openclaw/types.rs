@@ -26,7 +26,7 @@ pub enum IncomingFrame {
         #[serde(skip_serializing_if = "Option::is_none")]
         payload: Option<serde_json::Value>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        error: Option<String>,
+        error: Option<ResError>,
     },
     Event {
         event: String,
@@ -35,6 +35,32 @@ pub enum IncomingFrame {
         #[serde(default)]
         seq: u64,
     },
+}
+
+/// Error payload in a Res frame — can be a string or an object { code, message }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ResError {
+    Text(String),
+    Structured {
+        code: Option<String>,
+        message: Option<String>,
+    },
+}
+
+impl ResError {
+    pub fn to_message(&self) -> String {
+        match self {
+            ResError::Text(s) => s.clone(),
+            ResError::Structured { message, code } => {
+                match (message, code) {
+                    (Some(msg), _) => msg.clone(),
+                    (None, Some(c)) => c.clone(),
+                    _ => "Unknown error".to_string(),
+                }
+            }
+        }
+    }
 }
 
 // ============================================================================

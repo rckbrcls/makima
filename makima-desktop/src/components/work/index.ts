@@ -9,6 +9,6 @@ export {
   WorkTabWorkspace,
 } from "./work-tab"
 
-export { WorkSetupCard } from "./work-setup-card"
+export { WorkSetupWizard } from "./work-setup-wizard"
 export { WorkChat } from "./work-chat"
 export { WorkApprovalBanner } from "./work-approval-banner"

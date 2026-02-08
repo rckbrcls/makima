@@ -41,19 +41,26 @@ export function useOpenClawGateway() {
     }
   }, [setOpenClawInstallation, setError])
 
-  const startGateway = useCallback(async () => {
-    try {
-      const pid = await invoke<number>("openclaw_start_gateway")
-      // Refresh status after starting
-      const status =
-        await invoke<GatewayProcessStatus>("openclaw_get_gateway_status")
-      setOpenClawGatewayStatus(status)
-      return pid
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      return null
-    }
-  }, [setOpenClawGatewayStatus, setError])
+  const startGateway = useCallback(
+    async (port?: number, workspace?: string, password?: string) => {
+      try {
+        const pid = await invoke<number>("openclaw_start_gateway", {
+          port,
+          workspace,
+          password,
+        })
+        // Refresh status after starting
+        const status =
+          await invoke<GatewayProcessStatus>("openclaw_get_gateway_status")
+        setOpenClawGatewayStatus(status)
+        return pid
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+        return null
+      }
+    },
+    [setOpenClawGatewayStatus, setError],
+  )
 
   const stopGateway = useCallback(async () => {
     try {

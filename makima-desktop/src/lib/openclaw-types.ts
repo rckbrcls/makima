@@ -52,6 +52,17 @@ export interface OpenClawAgentConfig {
   tools: Array<string>
 }
 
+/** OpenClaw file config (~/.openclaw/openclaw.json) */
+export interface OpenClawFileConfig {
+  gateway: {
+    mode: string
+    port: number
+    auth: { token: string }
+    workspace?: string
+    password?: string
+  }
+}
+
 /** A chat message in the work domain */
 export interface WorkChatMessage {
   id: string

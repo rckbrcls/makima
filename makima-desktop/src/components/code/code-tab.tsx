@@ -7,15 +7,15 @@ import {
   useRef,
   useState,
 } from "react"
-
 import { invoke } from "@tauri-apps/api/core"
 import { AddRepositoryDialog } from "./add-repository-dialog"
 import { CliTerminalCard } from "./cli-terminal-card"
 import { CliToolbar } from "./cli-toolbar"
 import { GitChangesCard } from "./git-changes-card"
 import { RepositorySidebar } from "./repository-sidebar"
-import type { Repository } from "@/lib/code-types"
 import type { PanelImperativeHandle } from "react-resizable-panels"
+import type { Repository } from "@/lib/code-types"
+import { buildResumeArgs } from "@/lib/cli-resume"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -28,7 +28,9 @@ import {
   useCliActiveSessionId,
   useCliGitPollInterval,
   useCliSessionActions,
+  useCliSessionStore,
   useCliSessions,
+  useCliShouldSpawn,
   useSelectedCliCommand,
   useAgentPanelCollapsed,
   useGitPanelCollapsed,
@@ -207,19 +209,26 @@ export function CodeTabSidebar() {
   const ctx = useCodeTabContext()
   const sessions = useCliSessions()
   const activeSessionId = useCliActiveSessionId()
-  const { updateSessionStatus, removeSession, createSession, setActiveSessionId } =
-    useCliSessionActions()
+  const {
+    updateSessionStatus,
+    removeSession,
+    setActiveSessionId,
+    resetSession,
+    addSpawning,
+    removeSpawning,
+  } = useCliSessionActions()
 
   const handleStopSession = useCallback(
     (sessionId: string) => {
       const session = sessions.get(sessionId)
       if (!session) return
+      removeSpawning(sessionId)
       if (session.ptySessionId) {
         invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
       }
       updateSessionStatus(sessionId, "exited")
     },
-    [sessions, updateSessionStatus],
+    [sessions, updateSessionStatus, removeSpawning],
   )
 
   const handleRestartSession = useCallback(
@@ -228,27 +237,20 @@ export function CodeTabSidebar() {
       if (!session) return
 
       // Stop current
+      removeSpawning(sessionId)
       if (session.ptySessionId) {
         invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
       }
       updateSessionStatus(sessionId, "exited")
 
-      // Create new session with same CLI after brief delay
+      // Reset SAME session and trigger spawn after brief delay
       setTimeout(() => {
-        const newSessionId = `cli-${Date.now()}`
-        createSession({
-          id: newSessionId,
-          repositoryId: session.repositoryId,
-          cliName: session.cliName,
-          cliCommand: session.cliCommand,
-          ptySessionId: null,
-          status: "idle",
-          startedAt: Date.now(),
-        })
-        setActiveSessionId(newSessionId)
+        resetSession(sessionId)
+        setActiveSessionId(sessionId)
+        addSpawning(sessionId)
       }, 200)
     },
-    [sessions, updateSessionStatus, createSession, setActiveSessionId],
+    [sessions, updateSessionStatus, resetSession, setActiveSessionId, addSpawning, removeSpawning],
   )
 
   const handleRemoveSession = useCallback(
@@ -293,21 +295,16 @@ export function CodeTabWorkspace() {
     updateSessionStatus,
     updateSessionPty,
     setActiveSessionId,
+    resetSession,
+    updateSessionResumeId,
+    addSpawning,
+    removeSpawning,
   } = useCliSessionActions()
   const selectedCommand = useSelectedCliCommand()
   const activeSession = useCliActiveSession()
   const activeSessionId = useCliActiveSessionId()
   const pollInterval = useCliGitPollInterval()
-
-  // Track which sessions have been told to spawn (by session ID)
-  const [spawningSessions, setSpawningSessions] = useState<Set<string>>(
-    new Set(),
-  )
-  // Use ref to avoid stale closures in setTimeout
-  const spawningSessionsRef = useRef(spawningSessions)
-  useEffect(() => {
-    spawningSessionsRef.current = spawningSessions
-  }, [spawningSessions])
+  const shouldSpawn = useCliShouldSpawn()
 
   // Sync all detected CLIs to store
   useEffect(() => {
@@ -327,8 +324,23 @@ export function CodeTabWorkspace() {
   const handleStart = useCallback(() => {
     if (!repoId || !selectedCommand || !selectedCli) return
 
-    const sessionId = `cli-${Date.now()}`
+    // Read latest session directly from store to avoid stale closures
+    const { activeSessionId: currentId, sessions } =
+      useCliSessionStore.getState()
+    const current = currentId ? sessions.get(currentId) ?? null : null
 
+    // Reuse existing session if it's exited or errored
+    if (
+      current &&
+      (current.status === "exited" || current.status === "error")
+    ) {
+      resetSession(current.id)
+      addSpawning(current.id)
+      return
+    }
+
+    // First time — create a new session
+    const sessionId = `cli-${Date.now()}`
     createSession({
       id: sessionId,
       repositoryId: repoId,
@@ -338,58 +350,46 @@ export function CodeTabWorkspace() {
       status: "idle",
       startedAt: Date.now(),
     })
-
     setActiveSessionId(sessionId)
-    setSpawningSessions((prev) => new Set(prev).add(sessionId))
-  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId])
+    addSpawning(sessionId)
+  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, resetSession, addSpawning])
 
   const handleStop = useCallback(() => {
     if (!activeSessionId) return
-    setSpawningSessions((prev) => {
-      const next = new Set(prev)
-      next.delete(activeSessionId)
-      return next
-    })
+    removeSpawning(activeSessionId)
     updateSessionStatus(activeSessionId, "exited")
-  }, [activeSessionId, updateSessionStatus])
+  }, [activeSessionId, updateSessionStatus, removeSpawning])
 
   const handleRestart = useCallback(() => {
-    if (!activeSessionId || !repoId || !selectedCommand || !selectedCli) return
+    if (!activeSessionId) return
 
     // Stop current
-    setSpawningSessions((prev) => {
-      const next = new Set(prev)
-      next.delete(activeSessionId)
-      return next
-    })
+    removeSpawning(activeSessionId)
     updateSessionStatus(activeSessionId, "exited")
 
-    // Brief delay to allow cleanup before respawn
+    // Brief delay to allow cleanup, then reset SAME session
     setTimeout(() => {
-      const newSessionId = `cli-${Date.now()}`
-
-      createSession({
-        id: newSessionId,
-        repositoryId: repoId,
-        cliName: selectedCli.name,
-        cliCommand: selectedCommand,
-        ptySessionId: null,
-        status: "idle",
-        startedAt: Date.now(),
-      })
-
-      setActiveSessionId(newSessionId)
-      setSpawningSessions((prev) => new Set(prev).add(newSessionId))
+      resetSession(activeSessionId)
+      addSpawning(activeSessionId)
     }, 200)
-  }, [
-    activeSessionId,
-    repoId,
-    selectedCommand,
-    selectedCli,
-    createSession,
-    updateSessionStatus,
-    setActiveSessionId,
-  ])
+  }, [activeSessionId, updateSessionStatus, resetSession, addSpawning, removeSpawning])
+
+  const handleNewSession = useCallback(() => {
+    if (!repoId || !selectedCommand || !selectedCli) return
+
+    const sessionId = `cli-${Date.now()}`
+    createSession({
+      id: sessionId,
+      repositoryId: repoId,
+      cliName: selectedCli.name,
+      cliCommand: selectedCommand,
+      ptySessionId: null,
+      status: "idle",
+      startedAt: Date.now(),
+    })
+    setActiveSessionId(sessionId)
+    addSpawning(sessionId)
+  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning])
 
   const handleSessionStart = useCallback(
     (ptySessionId: string) => {
@@ -403,15 +403,26 @@ export function CodeTabWorkspace() {
   const handleSessionExit = useCallback(
     (exitCode?: number) => {
       if (activeSessionId) {
-        setSpawningSessions((prev) => {
-          const next = new Set(prev)
-          next.delete(activeSessionId)
-          return next
-        })
+        removeSpawning(activeSessionId)
         updateSessionStatus(activeSessionId, "exited", exitCode)
       }
     },
-    [activeSessionId, updateSessionStatus],
+    [activeSessionId, updateSessionStatus, removeSpawning],
+  )
+
+  // Resume args derived from active session
+  const resumeArgs = useMemo(() => {
+    if (!activeSession) return undefined
+    return buildResumeArgs(activeSession.cliCommand, activeSession.resumeSessionId)
+  }, [activeSession?.cliCommand, activeSession?.resumeSessionId])
+
+  const handleResumeIdCaptured = useCallback(
+    (resumeId: string) => {
+      if (activeSessionId) {
+        updateSessionResumeId(activeSessionId, resumeId)
+      }
+    },
+    [activeSessionId, updateSessionResumeId],
   )
 
   // Persisted layout state
@@ -510,11 +521,6 @@ export function CodeTabWorkspace() {
     return () => window.removeEventListener("keydown", handler)
   }, [toggleAgentPanel, toggleGitPanel])
 
-  // Derive shouldSpawn for the active session
-  const shouldSpawn = activeSessionId
-    ? spawningSessions.has(activeSessionId)
-    : false
-
   // Show empty state if no repository selected
   if (!ctx.activeRepositoryId) {
     return (
@@ -558,12 +564,15 @@ export function CodeTabWorkspace() {
             key={activeSessionId ?? "no-session"}
             cwd={repoPath}
             command={activeSession?.cliCommand ?? selectedCommand ?? undefined}
+            args={resumeArgs}
             shouldSpawn={shouldSpawn}
             onStart={handleStart}
+            onNewSession={handleNewSession}
             onStop={handleStop}
             onRestart={handleRestart}
             onSessionStart={handleSessionStart}
             onSessionExit={handleSessionExit}
+            onResumeIdCaptured={handleResumeIdCaptured}
             className="h-full"
           />
         </ResizablePanel>

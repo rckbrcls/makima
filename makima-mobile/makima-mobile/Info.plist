@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Makima uses your microphone to capture dictation for chat messages.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Makima uses speech recognition to convert your voice into chat text.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -26,7 +26,7 @@ import {
   useOpenClawAgent,
   useOpenClawApprovals,
 } from "@/hooks/openclaw"
-import { WorkSetupCard } from "./work-setup-card"
+import { WorkSetupWizard } from "./work-setup-wizard"
 import { WorkChat } from "./work-chat"
 import { WorkApprovalBanner } from "./work-approval-banner"
 
@@ -421,7 +421,7 @@ export function WorkWorkspace() {
 
   // Show setup card when not connected
   if (!isConnected) {
-    return <WorkSetupCard />
+    return <WorkSetupWizard />
   }
 
   // Empty state - no agent selected
