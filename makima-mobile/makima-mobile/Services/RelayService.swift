@@ -107,6 +107,15 @@ private struct RelaySessionCodeRecord: Decodable {
     let created_at: String
 }
 
+private struct RelaySessionDetailRecord: Decodable {
+    let id: String
+    let desktop_name: String?
+    let active_agent_id: String?
+    let active_agent_name: String?
+    let active_session_key: String?
+    let status: String
+}
+
 // MARK: - RelayService
 
 @Observable
@@ -155,9 +164,59 @@ final class RelayService {
             connectionStatus = .paired
 
             // Subscribe to Realtime
+            await stopRealtimeSubscription()
             await subscribeToSession(sessionId: response.sessionId, client: client)
 
             connectionStatus = .active
+        } catch {
+            connectionStatus = .error
+            self.error = error.localizedDescription
+            throw error
+        }
+    }
+
+    func attachToSession(sessionId: String) async throws {
+        guard let client = SupabaseService.shared.client else {
+            throw RelayServiceError.notConfigured
+        }
+
+        let sanitizedSessionId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !sanitizedSessionId.isEmpty else {
+            throw RelayServiceError.noActiveSession
+        }
+
+        do {
+            let rows: [RelaySessionDetailRecord] = try await client
+                .from("relay_sessions")
+                .select("id, desktop_name, active_agent_id, active_agent_name, active_session_key, status")
+                .eq("id", value: sanitizedSessionId)
+                .limit(1)
+                .execute()
+                .value
+
+            guard let row = rows.first else {
+                throw RelayServiceError.sessionNotFound
+            }
+
+            if row.status == "disconnected" {
+                throw RelayServiceError.sessionDisconnected
+            }
+
+            await stopRealtimeSubscription()
+
+            currentSessionId = row.id
+            desktopName = row.desktop_name
+            activeAgentId = row.active_agent_id
+            activeAgentName = row.active_agent_name
+            activeSessionKey = row.active_session_key
+            connectionStatus = Self.connectionStatus(forRelaySessionStatus: row.status)
+            error = nil
+
+            await subscribeToSession(sessionId: row.id, client: client)
+
+            if row.status == "paired" || row.status == "active" {
+                connectionStatus = .active
+            }
         } catch {
             connectionStatus = .error
             self.error = error.localizedDescription
@@ -203,16 +262,6 @@ final class RelayService {
     }
 
     func disconnect() async {
-        dbListenTask?.cancel()
-        dbListenTask = nil
-        broadcastListenTask?.cancel()
-        broadcastListenTask = nil
-
-        if let channel {
-            await SupabaseService.shared.client?.realtimeV2.removeChannel(channel)
-        }
-        channel = nil
-
         // Update session status if possible
         if let client = SupabaseService.shared.client,
            let sessionId = currentSessionId {
@@ -221,6 +270,8 @@ final class RelayService {
                 .eq("id", value: sessionId)
                 .execute()
         }
+
+        await stopRealtimeSubscription()
 
         connectionStatus = .disconnected
         currentSessionId = nil
@@ -282,6 +333,33 @@ final class RelayService {
             return date
         }
         return iso8601.date(from: value)
+    }
+
+    private static func connectionStatus(forRelaySessionStatus status: String) -> RelayConnectionStatus {
+        switch status {
+        case "waiting_pair":
+            return .pairing
+        case "paired":
+            return .paired
+        case "active":
+            return .active
+        case "disconnected":
+            return .disconnected
+        default:
+            return .error
+        }
+    }
+
+    private func stopRealtimeSubscription() async {
+        dbListenTask?.cancel()
+        dbListenTask = nil
+        broadcastListenTask?.cancel()
+        broadcastListenTask = nil
+
+        if let channel, let client = SupabaseService.shared.client {
+            await client.realtimeV2.removeChannel(channel)
+        }
+        channel = nil
     }
 
     private func subscribeToSession(sessionId: String, client: SupabaseClient) async {
@@ -369,6 +447,8 @@ final class RelayService {
 enum RelayServiceError: LocalizedError {
     case notConfigured
     case noActiveSession
+    case sessionNotFound
+    case sessionDisconnected
 
     var errorDescription: String? {
         switch self {
@@ -376,6 +456,10 @@ enum RelayServiceError: LocalizedError {
             return "Supabase is not configured"
         case .noActiveSession:
             return "No active relay session"
+        case .sessionNotFound:
+            return "Relay session not found"
+        case .sessionDisconnected:
+            return "This desktop session is disconnected"
         }
     }
 }

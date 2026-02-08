@@ -3,15 +3,16 @@ import { Play, Plus, RotateCcw, Square } from "lucide-react"
 import type { FitAddon } from "@xterm/addon-fit"
 import type { Terminal } from "@xterm/xterm"
 import { useTerminal } from "@/hooks/use-terminal"
-import { extractResumeId, stripAnsi } from "@/lib/cli-resume"
+import { buildResumeArgs, extractResumeId, stripAnsi } from "@/lib/cli-resume"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Blob3D } from "@/components/visuals/blob-3d"
 import { Typewriter } from "@/components/ui/typewriter"
 import {
-  useCliActiveSession,
+  useCliSession,
   useCliSessionActions,
+  useCliShouldSpawnSession,
   useInstalledClis,
   useSelectedCliCommand,
 } from "@/stores"
@@ -41,7 +42,7 @@ const CLI_SUGGESTIONS = [
 // Empty State
 // ============================================================================
 
-function CliEmptyState() {
+export function CliEmptyState() {
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="relative h-[280px] w-full max-w-2xl">
@@ -65,28 +66,49 @@ function CliEmptyState() {
 // ============================================================================
 
 interface CliBottomBarProps {
+  sessionId: string
   isConnected: boolean
-  onStart: () => void
-  onNewSession: () => void
-  onStop: () => void
-  onRestart: () => void
+  onNewSession?: () => void
 }
 
 function CliBottomBar({
+  sessionId,
   isConnected,
-  onStart,
   onNewSession,
-  onStop,
-  onRestart,
 }: CliBottomBarProps) {
   const installedClis = useInstalledClis()
   const selectedCommand = useSelectedCliCommand()
-  const activeSession = useCliActiveSession()
-  const { setSelectedCliCommand } = useCliSessionActions()
+  const session = useCliSession(sessionId)
+  const {
+    setSelectedCliCommand,
+    resetSession,
+    addSpawning,
+    removeSpawning,
+    updateSessionStatus,
+  } = useCliSessionActions()
 
-  const isRunning = activeSession?.status === "running"
-  const isExited = activeSession?.status === "exited"
-  const hasError = activeSession?.status === "error"
+  const isRunning = session?.status === "running"
+  const isExited = session?.status === "exited"
+  const hasError = session?.status === "error"
+
+  const handleStart = useCallback(() => {
+    resetSession(sessionId)
+    addSpawning(sessionId)
+  }, [sessionId, resetSession, addSpawning])
+
+  const handleStop = useCallback(() => {
+    removeSpawning(sessionId)
+    updateSessionStatus(sessionId, "exited")
+  }, [sessionId, removeSpawning, updateSessionStatus])
+
+  const handleRestart = useCallback(() => {
+    removeSpawning(sessionId)
+    updateSessionStatus(sessionId, "exited")
+    setTimeout(() => {
+      resetSession(sessionId)
+      addSpawning(sessionId)
+    }, 200)
+  }, [sessionId, removeSpawning, updateSessionStatus, resetSession, addSpawning])
 
   return (
     <div className="border-border flex items-center gap-2 border-t px-3 py-1.5">
@@ -102,7 +124,7 @@ function CliBottomBar({
       <select
         value={selectedCommand ?? ""}
         onChange={(e) => setSelectedCliCommand(e.target.value || null)}
-        disabled={!!activeSession}
+        disabled={!!session}
         className="bg-input text-foreground border-border h-6 rounded-md border px-2 text-xs focus:outline-none"
       >
         {installedClis.length === 0 && (
@@ -117,7 +139,7 @@ function CliBottomBar({
       </select>
 
       {/* Session status badge */}
-      {activeSession && (
+      {session && (
         <Badge
           variant="secondary"
           className={cn(
@@ -130,7 +152,7 @@ function CliBottomBar({
             "border-destructive bg-destructive text-destructive-foreground",
           )}
         >
-          {activeSession.status}
+          {session.status}
         </Badge>
       )}
 
@@ -142,7 +164,7 @@ function CliBottomBar({
           <Button
             variant="default"
             size="xs"
-            onClick={onStart}
+            onClick={handleStart}
             disabled={!selectedCommand}
           >
             <Play className="mr-1 size-3" />
@@ -150,20 +172,22 @@ function CliBottomBar({
           </Button>
         ) : (
           <>
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={onNewSession}
-              disabled={!selectedCommand}
-            >
-              <Plus className="mr-1 size-3" />
-              New
-            </Button>
-            <Button variant="outline" size="xs" onClick={onStop}>
+            {onNewSession && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={onNewSession}
+                disabled={!selectedCommand}
+              >
+                <Plus className="mr-1 size-3" />
+                New
+              </Button>
+            )}
+            <Button variant="outline" size="xs" onClick={handleStop}>
               <Square className="mr-1 size-3" />
               Stop
             </Button>
-            <Button variant="outline" size="xs" onClick={onRestart}>
+            <Button variant="outline" size="xs" onClick={handleRestart}>
               <RotateCcw className="mr-1 size-3" />
               Restart
             </Button>
@@ -179,33 +203,19 @@ function CliBottomBar({
 // ============================================================================
 
 interface CliTerminalCardProps {
+  sessionId: string
+  isVisible: boolean
   cwd?: string
-  command?: string
-  args?: Array<string>
-  shouldSpawn: boolean
+  onNewSession?: () => void
   className?: string
-  onStart: () => void
-  onNewSession: () => void
-  onStop: () => void
-  onRestart: () => void
-  onSessionStart?: (ptySessionId: string) => void
-  onSessionExit?: (exitCode?: number) => void
-  onResumeIdCaptured?: (resumeId: string) => void
 }
 
 export const CliTerminalCard = memo(function CliTerminalCard({
+  sessionId,
+  isVisible,
   cwd,
-  command,
-  args,
-  shouldSpawn,
-  className,
-  onStart,
   onNewSession,
-  onStop,
-  onRestart,
-  onSessionStart,
-  onSessionExit,
-  onResumeIdCaptured,
+  className,
 }: CliTerminalCardProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -213,44 +223,59 @@ export const CliTerminalCard = memo(function CliTerminalCard({
   const isInitializedRef = useRef(false)
   const [isLoaded, setIsLoaded] = useState(false)
 
+  // Per-session state from store
+  const session = useCliSession(sessionId)
+  const shouldSpawn = useCliShouldSpawnSession(sessionId)
+  const {
+    removeSpawning,
+    updateSessionPty,
+    updateSessionStatus,
+    updateSessionResumeId,
+  } = useCliSessionActions()
+
   // Output buffer for resume ID detection (ref, no re-renders)
   const outputBufferRef = useRef('')
   const MAX_BUFFER_SIZE = 2048
 
-  // Store all props in refs so the spawn effect doesn't depend on them
+  // Store cwd in ref so spawn effect doesn't depend on it
   const cwdRef = useRef(cwd)
-  const commandRef = useRef(command)
-  const argsRef = useRef(args)
-  const onSessionStartRef = useRef(onSessionStart)
-  const onSessionExitRef = useRef(onSessionExit)
-  const onResumeIdCapturedRef = useRef(onResumeIdCaptured)
-  const onStopRef = useRef(onStop)
-  const onRestartRef = useRef(onRestart)
-
   useEffect(() => {
     cwdRef.current = cwd
   }, [cwd])
+
+  // Store sessionId in ref for callbacks that need latest value
+  const sessionIdRef = useRef(sessionId)
   useEffect(() => {
-    commandRef.current = command
-  }, [command])
+    sessionIdRef.current = sessionId
+  }, [sessionId])
+
+  // Store session in ref so spawn effect reads latest without depending on it
+  const sessionRef = useRef(session)
   useEffect(() => {
-    argsRef.current = args
-  }, [args])
+    sessionRef.current = session
+  }, [session])
+
+  // Resume args derived from session
+  const resumeArgs = useMemo(() => {
+    if (!session) return undefined
+    return buildResumeArgs(session.cliCommand, session.resumeSessionId)
+  }, [session?.cliCommand, session?.resumeSessionId])
+  const resumeArgsRef = useRef(resumeArgs)
   useEffect(() => {
-    onSessionStartRef.current = onSessionStart
-  }, [onSessionStart])
+    resumeArgsRef.current = resumeArgs
+  }, [resumeArgs])
+
+  // Store actions in refs for stable callbacks
+  const removeSpawningRef = useRef(removeSpawning)
+  const updateSessionPtyRef = useRef(updateSessionPty)
+  const updateSessionStatusRef = useRef(updateSessionStatus)
+  const updateSessionResumeIdRef = useRef(updateSessionResumeId)
   useEffect(() => {
-    onSessionExitRef.current = onSessionExit
-  }, [onSessionExit])
-  useEffect(() => {
-    onResumeIdCapturedRef.current = onResumeIdCaptured
-  }, [onResumeIdCaptured])
-  useEffect(() => {
-    onStopRef.current = onStop
-  }, [onStop])
-  useEffect(() => {
-    onRestartRef.current = onRestart
-  }, [onRestart])
+    removeSpawningRef.current = removeSpawning
+    updateSessionPtyRef.current = updateSessionPty
+    updateSessionStatusRef.current = updateSessionStatus
+    updateSessionResumeIdRef.current = updateSessionResumeId
+  }, [removeSpawning, updateSessionPty, updateSessionStatus, updateSessionResumeId])
 
   const { spawn, write, resize, kill, isConnected, error } = useTerminal({
     onOutput: useCallback((data: string) => {
@@ -265,7 +290,7 @@ export const CliTerminalCard = memo(function CliTerminalCard({
         const resumeId = extractResumeId(outputBufferRef.current)
         if (resumeId) {
           console.log('[cli-resume] onOutput captured:', resumeId)
-          onResumeIdCapturedRef.current?.(resumeId)
+          updateSessionResumeIdRef.current(sessionIdRef.current, resumeId)
         }
       }
     }, []),
@@ -274,9 +299,10 @@ export const CliTerminalCard = memo(function CliTerminalCard({
       const resumeId = extractResumeId(outputBufferRef.current)
       if (resumeId) {
         console.log('[cli-resume] onExit captured:', resumeId)
-        onResumeIdCapturedRef.current?.(resumeId)
+        updateSessionResumeIdRef.current(sessionIdRef.current, resumeId)
       }
-      onSessionExitRef.current?.(exitCode)
+      removeSpawningRef.current(sessionIdRef.current)
+      updateSessionStatusRef.current(sessionIdRef.current, "exited", exitCode)
     }, []),
   })
 
@@ -290,66 +316,6 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     writeRef.current = write
     killRef.current = kill
   }, [spawn, write, kill])
-
-  // Graceful stop: send Ctrl+C (twice for CLIs that need it), wait for resume
-  // ID capture, then proceed with stop/restart. Timeout ensures we never hang.
-  const gracefulTimersRef = useRef<Array<ReturnType<typeof setTimeout | typeof setInterval>>>([])
-
-  const clearGracefulTimers = useCallback(() => {
-    for (const id of gracefulTimersRef.current) clearTimeout(id)
-    gracefulTimersRef.current = []
-  }, [])
-
-  const gracefulShutdown = useCallback(
-    (onDone: () => void) => {
-      clearGracefulTimers()
-
-      // Try sending Ctrl+C. If write fails, session is already gone — skip to done.
-      writeRef.current('\x03').then((ok) => {
-        if (!ok) {
-          onDone()
-          return
-        }
-
-        // 2nd Ctrl+C after 150ms — triggers graceful exit (some CLIs need 2)
-        gracefulTimersRef.current.push(
-          setTimeout(() => writeRef.current('\x03'), 150),
-        )
-
-        // Poll buffer for resume ID every 100ms; proceed once found or timeout
-        let elapsed = 0
-        const pollId = setInterval(() => {
-          elapsed += 100
-          const resumeId = extractResumeId(outputBufferRef.current)
-          if (resumeId) {
-            console.log('[cli-resume] captured resume ID:', resumeId)
-            onResumeIdCapturedRef.current?.(resumeId)
-            clearGracefulTimers()
-            onDone()
-          } else if (elapsed >= 2000) {
-            console.log('[cli-resume] timeout, no resume ID found')
-            clearGracefulTimers()
-            onDone()
-          }
-        }, 100)
-        gracefulTimersRef.current.push(pollId as unknown as ReturnType<typeof setTimeout>)
-      })
-    },
-    [clearGracefulTimers],
-  )
-
-  const handleGracefulStop = useCallback(() => {
-    gracefulShutdown(() => onStopRef.current())
-  }, [gracefulShutdown])
-
-  const handleGracefulRestart = useCallback(() => {
-    gracefulShutdown(() => onRestartRef.current())
-  }, [gracefulShutdown])
-
-  // Clean up graceful timers on unmount
-  useEffect(() => {
-    return () => clearGracefulTimers()
-  }, [clearGracefulTimers])
 
   // Initialize xterm (just the terminal UI, no spawning)
   useEffect(() => {
@@ -444,14 +410,13 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     }
   }, [])
 
-  // Handle spawn/kill based on shouldSpawn ONLY
-  // All other values are read from refs to avoid re-trigger loops
+  // Spawn on rising edge of shouldSpawn — NO cleanup kill
   useEffect(() => {
     if (!isLoaded || !shouldSpawn) return
 
     const currentCwd = cwdRef.current
-    const currentCommand = commandRef.current
-    if (!currentCwd || !currentCommand) return
+    const currentSession = sessionRef.current
+    if (!currentCwd || !currentSession) return
 
     outputBufferRef.current = ''
     terminalRef.current?.clear()
@@ -459,17 +424,38 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     const rows = terminalRef.current?.rows ?? 24
 
     spawnRef
-      .current(currentCwd, cols, rows, currentCommand, argsRef.current)
-      .then((session) => {
-        if (session) {
-          onSessionStartRef.current?.(session.sessionId)
+      .current(
+        currentCwd,
+        cols,
+        rows,
+        currentSession.cliCommand,
+        resumeArgsRef.current,
+      )
+      .then((ptySession) => {
+        if (ptySession) {
+          removeSpawningRef.current(sessionIdRef.current)
+          updateSessionPtyRef.current(sessionIdRef.current, ptySession.sessionId)
         }
       })
 
+    // No cleanup kill here — sessions survive switching
+  }, [shouldSpawn, isLoaded])
+
+  // Kill PTY only on unmount (session removed from DOM)
+  useEffect(() => {
     return () => {
       killRef.current()
     }
-  }, [shouldSpawn, isLoaded])
+  }, [])
+
+  // Fit terminal when becoming visible
+  useEffect(() => {
+    if (isVisible && isLoaded && fitAddonRef.current) {
+      requestAnimationFrame(() => {
+        fitAddonRef.current?.fit()
+      })
+    }
+  }, [isVisible, isLoaded])
 
   // Debounced resize handler
   const handleResizeDebounced = useMemo(
@@ -537,11 +523,9 @@ export const CliTerminalCard = memo(function CliTerminalCard({
 
       {/* Bottom action bar */}
       <CliBottomBar
+        sessionId={sessionId}
         isConnected={isConnected}
-        onStart={onStart}
         onNewSession={onNewSession}
-        onStop={handleGracefulStop}
-        onRestart={handleGracefulRestart}
       />
     </div>
   )

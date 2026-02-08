@@ -191,6 +191,13 @@ export const useCliShouldSpawn = () =>
     return s.spawningSessions.has(s.activeSessionId)
   })
 
+// Per-session selectors (parameterized — return primitives, no useShallow needed)
+export const useCliSession = (sessionId: string) =>
+  useCliSessionStore((s) => s.sessions.get(sessionId) ?? null)
+
+export const useCliShouldSpawnSession = (sessionId: string) =>
+  useCliSessionStore((s) => s.spawningSessions.has(sessionId))
+
 // Actions selector (stable reference)
 export const useCliSessionActions = () =>
   useCliSessionStore(

@@ -174,6 +174,8 @@ export {
   useCliSessions,
   useCliGitPollInterval,
   useCliShouldSpawn,
+  useCliSession,
+  useCliShouldSpawnSession,
   useCliSessionActions,
 } from "./cli-session-store"
 export type { CliSessionStore } from "./cli-session-store"

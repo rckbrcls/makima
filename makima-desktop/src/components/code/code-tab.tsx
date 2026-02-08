@@ -9,13 +9,13 @@ import {
 } from "react"
 import { invoke } from "@tauri-apps/api/core"
 import { AddRepositoryDialog } from "./add-repository-dialog"
-import { CliTerminalCard } from "./cli-terminal-card"
+import { CliEmptyState, CliTerminalCard } from "./cli-terminal-card"
 import { CliToolbar } from "./cli-toolbar"
 import { GitChangesCard } from "./git-changes-card"
 import { RepositorySidebar } from "./repository-sidebar"
 import type { PanelImperativeHandle } from "react-resizable-panels"
 import type { Repository } from "@/lib/code-types"
-import { buildResumeArgs } from "@/lib/cli-resume"
+import { cn } from "@/lib/utils"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -24,22 +24,20 @@ import {
 import { useAiCliDetection } from "@/hooks/use-ai-cli-detection"
 import { useRepositories } from "@/hooks/use-repositories"
 import {
-  useCliActiveSession,
+  useAgentPanelCollapsed,
   useCliActiveSessionId,
   useCliGitPollInterval,
   useCliSessionActions,
   useCliSessionStore,
   useCliSessions,
-  useCliShouldSpawn,
-  useInstalledClis,
-  useSelectedCliCommand,
-  useAgentPanelCollapsed,
-  useGitPanelCollapsed,
-  useCodePanelLayout,
-  useCodeLayoutHydrated,
-  useLastActiveRepositoryId,
   useCodeLayoutActions,
+  useCodeLayoutHydrated,
   useCodeLayoutStore,
+  useCodePanelLayout,
+  useGitPanelCollapsed,
+  useInstalledClis,
+  useLastActiveRepositoryId,
+  useSelectedCliCommand,
 } from "@/stores"
 
 // ============================================================================
@@ -316,19 +314,13 @@ export function CodeTabWorkspace() {
   const {
     setAvailableClis,
     createSession,
-    updateSessionStatus,
-    updateSessionPty,
     setActiveSessionId,
-    resetSession,
-    updateSessionResumeId,
     addSpawning,
-    removeSpawning,
   } = useCliSessionActions()
   const selectedCommand = useSelectedCliCommand()
-  const activeSession = useCliActiveSession()
   const activeSessionId = useCliActiveSessionId()
+  const sessions = useCliSessions()
   const pollInterval = useCliGitPollInterval()
-  const shouldSpawn = useCliShouldSpawn()
 
   // Sync all detected CLIs to store
   useEffect(() => {
@@ -345,19 +337,30 @@ export function CodeTabWorkspace() {
     [installedClis, selectedCommand],
   )
 
+  // All sessions as array for rendering the pool
+  const allSessions = useMemo(() => [...sessions.values()], [sessions])
+
+  // Check if current repo has any sessions
+  const repoHasNoSessions = useMemo(
+    () => !allSessions.some((s) => s.repositoryId === repoId),
+    [allSessions, repoId],
+  )
+
   const handleStart = useCallback(() => {
     if (!repoId || !selectedCommand || !selectedCli) return
 
     // Read latest session directly from store to avoid stale closures
-    const { activeSessionId: currentId, sessions } =
+    const { activeSessionId: currentId, sessions: storeSessions } =
       useCliSessionStore.getState()
-    const current = currentId ? sessions.get(currentId) ?? null : null
+    const current = currentId ? storeSessions.get(currentId) ?? null : null
 
     // Reuse existing session if it's exited or errored
     if (
       current &&
+      current.repositoryId === repoId &&
       (current.status === "exited" || current.status === "error")
     ) {
+      const { resetSession } = useCliSessionStore.getState()
       resetSession(current.id)
       addSpawning(current.id)
       return
@@ -376,78 +379,27 @@ export function CodeTabWorkspace() {
     })
     setActiveSessionId(sessionId)
     addSpawning(sessionId)
-  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, resetSession, addSpawning])
-
-  const handleStop = useCallback(() => {
-    if (!activeSessionId) return
-    removeSpawning(activeSessionId)
-    updateSessionStatus(activeSessionId, "exited")
-  }, [activeSessionId, updateSessionStatus, removeSpawning])
-
-  const handleRestart = useCallback(() => {
-    if (!activeSessionId) return
-
-    // Stop current
-    removeSpawning(activeSessionId)
-    updateSessionStatus(activeSessionId, "exited")
-
-    // Brief delay to allow cleanup, then reset SAME session
-    setTimeout(() => {
-      resetSession(activeSessionId)
-      addSpawning(activeSessionId)
-    }, 200)
-  }, [activeSessionId, updateSessionStatus, resetSession, addSpawning, removeSpawning])
-
-  const handleNewSession = useCallback(() => {
-    if (!repoId || !selectedCommand || !selectedCli) return
-
-    const sessionId = `cli-${Date.now()}`
-    createSession({
-      id: sessionId,
-      repositoryId: repoId,
-      cliName: selectedCli.name,
-      cliCommand: selectedCommand,
-      ptySessionId: null,
-      status: "idle",
-      startedAt: Date.now(),
-    })
-    setActiveSessionId(sessionId)
-    addSpawning(sessionId)
   }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning])
 
-  const handleSessionStart = useCallback(
-    (ptySessionId: string) => {
-      if (activeSessionId) {
-        updateSessionPty(activeSessionId, ptySessionId)
-      }
-    },
-    [activeSessionId, updateSessionPty],
-  )
+  const handleNewSession = useCallback(
+    (forRepoId?: string) => {
+      const targetRepoId = forRepoId ?? repoId
+      if (!targetRepoId || !selectedCommand || !selectedCli) return
 
-  const handleSessionExit = useCallback(
-    (exitCode?: number) => {
-      if (activeSessionId) {
-        removeSpawning(activeSessionId)
-        updateSessionStatus(activeSessionId, "exited", exitCode)
-      }
+      const sessionId = `cli-${Date.now()}`
+      createSession({
+        id: sessionId,
+        repositoryId: targetRepoId,
+        cliName: selectedCli.name,
+        cliCommand: selectedCommand,
+        ptySessionId: null,
+        status: "idle",
+        startedAt: Date.now(),
+      })
+      setActiveSessionId(sessionId)
+      addSpawning(sessionId)
     },
-    [activeSessionId, updateSessionStatus, removeSpawning],
-  )
-
-  // Resume args derived from active session
-  const resumeArgs = useMemo(() => {
-    if (!activeSession) return undefined
-    return buildResumeArgs(activeSession.cliCommand, activeSession.resumeSessionId)
-  }, [activeSession?.cliCommand, activeSession?.resumeSessionId])
-
-  const handleResumeIdCaptured = useCallback(
-    (resumeId: string) => {
-      if (activeSessionId) {
-        console.log('[cli-resume] storing resumeSessionId:', resumeId, 'for session:', activeSessionId)
-        updateSessionResumeId(activeSessionId, resumeId)
-      }
-    },
-    [activeSessionId, updateSessionResumeId],
+    [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning],
   )
 
   // Persisted layout state
@@ -575,7 +527,7 @@ export function CodeTabWorkspace() {
         className="h-full min-h-0 w-full"
         onLayoutChanged={handleLayoutChanged}
       >
-        {/* Terminal - collapsible agent panel */}
+        {/* Terminal pool - collapsible agent panel */}
         <ResizablePanel
           id="agent-panel"
           panelRef={agentPanelRef}
@@ -585,21 +537,44 @@ export function CodeTabWorkspace() {
           collapsedSize={0}
           onResize={handleAgentPanelResize}
         >
-          <CliTerminalCard
-            key={activeSessionId ?? "no-session"}
-            cwd={repoPath}
-            command={activeSession?.cliCommand ?? selectedCommand ?? undefined}
-            args={resumeArgs}
-            shouldSpawn={shouldSpawn}
-            onStart={handleStart}
-            onNewSession={handleNewSession}
-            onStop={handleStop}
-            onRestart={handleRestart}
-            onSessionStart={handleSessionStart}
-            onSessionExit={handleSessionExit}
-            onResumeIdCaptured={handleResumeIdCaptured}
-            className="h-full"
-          />
+          <div className="relative h-full min-h-0">
+            {/* Empty state when no sessions exist for current repo */}
+            {repoHasNoSessions && (
+              <div className="bg-background border-border flex h-full flex-col overflow-hidden rounded-xl border">
+                <div className="min-h-0 flex-1">
+                  <CliEmptyState />
+                </div>
+                <div className="border-border flex items-center justify-center border-t px-3 py-1.5">
+                  <button
+                    onClick={handleStart}
+                    disabled={!selectedCommand}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-6 items-center gap-1 rounded-md px-3 text-xs font-medium disabled:opacity-50"
+                  >
+                    Start
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Stacked terminals — one per session, only active is visible */}
+            {allSessions.map((session) => (
+              <div
+                key={session.id}
+                className={cn(
+                  "absolute inset-0",
+                  session.id !== activeSessionId && "invisible",
+                )}
+              >
+                <CliTerminalCard
+                  sessionId={session.id}
+                  isVisible={session.id === activeSessionId}
+                  cwd={ctx.repositories.find((r) => r.id === session.repositoryId)?.path}
+                  onNewSession={() => handleNewSession(session.repositoryId)}
+                  className="h-full"
+                />
+              </div>
+            ))}
+          </div>
         </ResizablePanel>
 
         <ResizableHandle className="mx-1.5" />

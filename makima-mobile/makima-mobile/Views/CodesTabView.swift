@@ -11,6 +11,8 @@ struct CodesTabView: View {
     @State private var sessions: [CodeSessionItem] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var openingSessionId: String?
+    @State private var actionErrorMessage: String?
 
     var onBackToChat: (() -> Void)?
 
@@ -83,6 +85,33 @@ struct CodesTabView: View {
                                         .font(.caption.monospaced())
                                         .foregroundStyle(theme.mutedForeground)
                                 }
+
+                                HStack {
+                                    Spacer()
+
+                                    Button {
+                                        openSession(session)
+                                    } label: {
+                                        if openingSessionId == session.sessionId {
+                                            Label {
+                                                Text("Opening...")
+                                            } icon: {
+                                                ProgressView()
+                                                    .controlSize(.mini)
+                                            }
+                                        } else if session.status == "disconnected" {
+                                            Text("Offline")
+                                        } else if appState.relay.currentSessionId == session.sessionId,
+                                                  appState.relay.connectionStatus == .active {
+                                            Text("In Chat")
+                                        } else {
+                                            Text("Open in Chat")
+                                        }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.small)
+                                    .disabled(openingSessionId != nil || session.status == "disconnected")
+                                }
                             }
                             .padding(.vertical, 4)
                             .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
@@ -124,6 +153,20 @@ struct CodesTabView: View {
         .background(theme.background.ignoresSafeArea())
         .toolbarBackground(theme.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .alert("Unable to Open Session", isPresented: Binding(
+            get: { actionErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    actionErrorMessage = nil
+                }
+            }
+        )) {
+            Button("OK", role: .cancel) {
+                actionErrorMessage = nil
+            }
+        } message: {
+            Text(actionErrorMessage ?? "Unknown error")
+        }
     }
 
     private func loadSessions() async {
@@ -142,6 +185,35 @@ struct CodesTabView: View {
         } catch {
             sessions = []
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func openSession(_ session: CodeSessionItem) {
+        guard openingSessionId == nil else { return }
+        guard session.status != "disconnected" else { return }
+
+        openingSessionId = session.sessionId
+        actionErrorMessage = nil
+
+        Task {
+            do {
+                if appState.relay.currentSessionId != session.sessionId ||
+                    appState.relay.connectionStatus != .active {
+                    try await appState.relay.attachToSession(sessionId: session.sessionId)
+                }
+
+                await MainActor.run {
+                    onBackToChat?()
+                }
+            } catch {
+                await MainActor.run {
+                    actionErrorMessage = error.localizedDescription
+                }
+            }
+
+            await MainActor.run {
+                openingSessionId = nil
+            }
         }
     }
 
