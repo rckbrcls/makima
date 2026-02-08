@@ -111,7 +111,8 @@ export function ConversationSidebar({
   // Use props if provided, otherwise fall back to store
   const visibleConversations =
     conversationsProp?.filter((c) => c.items.length > 0) ?? storeConversations;
-  const activeConversationId = activeConversationIdProp ?? storeActiveConversationId;
+  const activeConversationId =
+    activeConversationIdProp ?? storeActiveConversationId;
 
   // Default handlers using store actions
   const handleSelectConversation = useCallback(
@@ -204,10 +205,7 @@ export function ConversationSidebar({
 
   const getMenuItems = useCallback(
     (conversation: Conversation) => [
-      createMenuItem(
-        "pin",
-        conversation.isPinned ? "Unpin" : "Pin",
-      ),
+      createMenuItem("pin", conversation.isPinned ? "Unpin" : "Pin"),
       createSeparator(),
       createMenuItem("rename", "Rename"),
       createMenuItem("copy-title", "Copy Title"),

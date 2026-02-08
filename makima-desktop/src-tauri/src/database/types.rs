@@ -114,8 +114,8 @@ pub struct UpdateRepositoryInput {
 pub struct CliSessionRow {
     pub id: String,
     pub repository_id: String,
-    pub cli_name: String,
-    pub cli_command: String,
+    pub cli_name: Option<String>,
+    pub cli_command: Option<String>,
     pub status: String,
     pub exit_code: Option<i32>,
     pub resume_session_id: Option<String>,
@@ -128,8 +128,8 @@ pub struct CliSessionRow {
 pub struct CreateCliSessionInput {
     pub id: String,
     pub repository_id: String,
-    pub cli_name: String,
-    pub cli_command: String,
+    pub cli_name: Option<String>,
+    pub cli_command: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

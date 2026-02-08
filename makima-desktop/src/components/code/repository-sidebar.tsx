@@ -1,37 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  FolderGit2,
-  FolderPlus,
-  GitBranch,
-  Plus,
-  Search,
-} from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import { invoke } from "@tauri-apps/api/core"
-import type { CliSession, Repository } from "@/lib/code-types"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FolderGit2, FolderPlus, GitBranch, Plus, Search } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { invoke } from "@tauri-apps/api/core";
+import type { CliSession, Repository } from "@/lib/code-types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   NativeContextMenu,
   createMenuItem,
   createSeparator,
-} from "@/components/ui/native-context-menu"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/native-context-menu";
+import { cn } from "@/lib/utils";
 
 interface RepositorySidebarProps {
-  repositories: Array<Repository>
-  activeRepositoryId: string | null
-  activeSessionId: string | null
-  onSelectRepository: (repoId: string) => void
-  onSelectSession: (sessionId: string) => void
-  onAddRepository: () => void
-  onDeleteRepository: (repoId: string) => void
-  onRenameRepository: (repoId: string, newName: string) => void
-  onNewSession: (repoId: string) => void
-  onStopSession: (sessionId: string) => void
-  onRestartSession: (sessionId: string) => void
-  onRemoveSession: (sessionId: string) => void
-  sessions: Map<string, CliSession>
+  repositories: Array<Repository>;
+  activeRepositoryId: string | null;
+  activeSessionId: string | null;
+  onSelectRepository: (repoId: string) => void;
+  onSelectSession: (sessionId: string) => void;
+  onAddRepository: () => void;
+  onDeleteRepository: (repoId: string) => void;
+  onRenameRepository: (repoId: string, newName: string) => void;
+  onNewSession: (repoId: string) => void;
+  onStopSession: (sessionId: string) => void;
+  onRestartSession: (sessionId: string) => void;
+  onRemoveSession: (sessionId: string) => void;
+  sessions: Map<string, CliSession>;
 }
 
 export function RepositorySidebar({
@@ -49,57 +43,84 @@ export function RepositorySidebar({
   onRemoveSession,
   sessions,
 }: RepositorySidebarProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [editingRepoId, setEditingRepoId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState("")
-  const renameInputRef = useRef<HTMLInputElement>(null)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingRepoId, setEditingRepoId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  const [expandedRepoIds, setExpandedRepoIds] = useState<Set<string>>(
+    () => new Set(activeRepositoryId ? [activeRepositoryId] : []),
+  );
+
+  // Auto-expand when activeRepositoryId changes from outside
+  useEffect(() => {
+    if (activeRepositoryId) {
+      setExpandedRepoIds((prev) => {
+        if (prev.has(activeRepositoryId)) return prev;
+        const next = new Set(prev);
+        next.add(activeRepositoryId);
+        return next;
+      });
+    }
+  }, [activeRepositoryId]);
+
+  const toggleExpanded = useCallback((repoId: string) => {
+    setExpandedRepoIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(repoId)) {
+        next.delete(repoId);
+      } else {
+        next.add(repoId);
+      }
+      return next;
+    });
+  }, []);
 
   // Focus the rename input when editing starts
   useEffect(() => {
     if (editingRepoId && renameInputRef.current) {
-      renameInputRef.current.focus()
-      renameInputRef.current.select()
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
     }
-  }, [editingRepoId])
+  }, [editingRepoId]);
 
   const commitRename = useCallback(() => {
     if (editingRepoId && editingName.trim()) {
-      onRenameRepository(editingRepoId, editingName.trim())
+      onRenameRepository(editingRepoId, editingName.trim());
     }
-    setEditingRepoId(null)
-    setEditingName("")
-  }, [editingRepoId, editingName, onRenameRepository])
+    setEditingRepoId(null);
+    setEditingName("");
+  }, [editingRepoId, editingName, onRenameRepository]);
 
   const cancelRename = useCallback(() => {
-    setEditingRepoId(null)
-    setEditingName("")
-  }, [])
+    setEditingRepoId(null);
+    setEditingName("");
+  }, []);
 
   // Filter repositories by search
   const filteredRepos = useMemo(() => {
-    if (!searchQuery.trim()) return repositories
-    const query = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return repositories;
+    const query = searchQuery.toLowerCase();
     return repositories.filter(
       (repo) =>
         repo.name.toLowerCase().includes(query) ||
         repo.path.toLowerCase().includes(query),
-    )
-  }, [repositories, searchQuery])
+    );
+  }, [repositories, searchQuery]);
 
   // Group sessions by repositoryId
   const sessionsByRepo = useMemo(() => {
-    const map = new Map<string, Array<CliSession>>()
+    const map = new Map<string, Array<CliSession>>();
     for (const session of sessions.values()) {
-      const list = map.get(session.repositoryId) ?? []
-      list.push(session)
-      map.set(session.repositoryId, list)
+      const list = map.get(session.repositoryId) ?? [];
+      list.push(session);
+      map.set(session.repositoryId, list);
     }
     // Sort each group by startedAt descending (newest first)
     for (const list of map.values()) {
-      list.sort((a, b) => b.startedAt - a.startedAt)
+      list.sort((a, b) => b.startedAt - a.startedAt);
     }
-    return map
-  }, [sessions])
+    return map;
+  }, [sessions]);
 
   const repoMenuItems = [
     createMenuItem("rename", "Rename"),
@@ -107,7 +128,7 @@ export function RepositorySidebar({
     createMenuItem("copy-path", "Copy Path"),
     createSeparator(),
     createMenuItem("remove", "Remove"),
-  ]
+  ];
 
   return (
     <div className="relative flex h-full flex-col">
@@ -139,9 +160,10 @@ export function RepositorySidebar({
       <div className="mt-3 flex flex-1 flex-col gap-1 overflow-y-auto pb-4">
         <AnimatePresence initial={false}>
           {filteredRepos.map((repo) => {
-            const isActive = repo.id === activeRepositoryId
-            const repoSessions = sessionsByRepo.get(repo.id) ?? []
-            const isEditing = editingRepoId === repo.id
+            const isActive = repo.id === activeRepositoryId;
+            const isExpanded = expandedRepoIds.has(repo.id);
+            const repoSessions = sessionsByRepo.get(repo.id) ?? [];
+            const isEditing = editingRepoId === repo.id;
 
             return (
               <motion.div
@@ -157,17 +179,17 @@ export function RepositorySidebar({
                   items={repoMenuItems}
                   onSelect={(id) => {
                     if (id === "rename") {
-                      setEditingRepoId(repo.id)
-                      setEditingName(repo.name)
+                      setEditingRepoId(repo.id);
+                      setEditingName(repo.name);
                     }
                     if (id === "open-finder") {
-                      invoke("reveal_in_finder", { path: repo.path })
+                      invoke("reveal_in_finder", { path: repo.path });
                     }
                     if (id === "copy-path") {
-                      navigator.clipboard.writeText(repo.path)
+                      navigator.clipboard.writeText(repo.path);
                     }
                     if (id === "remove") {
-                      onDeleteRepository(repo.id)
+                      onDeleteRepository(repo.id);
                     }
                   }}
                 >
@@ -176,7 +198,10 @@ export function RepositorySidebar({
                       "flex w-full items-center gap-2 rounded-xl px-4 py-2 transition-colors",
                       isActive ? "glass-selected glass" : "glass-hover",
                     )}
-                    onClick={() => onSelectRepository(repo.id)}
+                    onClick={() => {
+                      toggleExpanded(repo.id);
+                      onSelectRepository(repo.id);
+                    }}
                   >
                     <div className="min-w-0 flex-1 text-left">
                       {isEditing ? (
@@ -185,9 +210,9 @@ export function RepositorySidebar({
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") commitRename()
-                            if (e.key === "Escape") cancelRename()
-                            e.stopPropagation()
+                            if (e.key === "Enter") commitRename();
+                            if (e.key === "Escape") cancelRename();
+                            e.stopPropagation();
                           }}
                           onBlur={commitRename}
                           onClick={(e) => e.stopPropagation()}
@@ -205,18 +230,19 @@ export function RepositorySidebar({
                         </p>
                         {repoSessions.length > 0 && (
                           <span className="text-muted-foreground text-[10px]">
-                            {repoSessions.filter((s) => s.status === "running").length > 0
+                            {repoSessions.filter((s) => s.status === "running")
+                              .length > 0
                               ? `${repoSessions.filter((s) => s.status === "running").length} running`
                               : `${repoSessions.length} session${repoSessions.length > 1 ? "s" : ""}`}
                           </span>
                         )}
                       </div>
                     </div>
-                    {isActive && (
+                    {isExpanded && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          onNewSession(repo.id)
+                          e.stopPropagation();
+                          onNewSession(repo.id);
                         }}
                         className="text-muted-foreground hover:text-foreground flex-none rounded-md p-0.5 transition-colors"
                       >
@@ -226,9 +252,9 @@ export function RepositorySidebar({
                   </button>
                 </NativeContextMenu>
 
-                {/* Session sub-items (expanded when repo is active) */}
+                {/* Session sub-items (expanded independently per repo) */}
                 <AnimatePresence initial={false}>
-                  {isActive && repoSessions.length > 0 && (
+                  {isExpanded && repoSessions.length > 0 && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
@@ -238,13 +264,13 @@ export function RepositorySidebar({
                     >
                       <div className="ml-4 flex flex-col gap-0.5 py-1">
                         {repoSessions.map((session) => {
-                          const isSelected = session.id === activeSessionId
-                          const isRunning = session.status === "running"
+                          const isSelected = session.id === activeSessionId;
+                          const isRunning = session.status === "running";
                           const statusColor = isRunning
                             ? "bg-emerald-400"
                             : session.status === "error"
                               ? "bg-red-400"
-                              : "bg-muted-foreground"
+                              : "bg-muted-foreground";
 
                           const sessionMenuItems = [
                             createMenuItem("stop", "Stop Session", {
@@ -253,16 +279,18 @@ export function RepositorySidebar({
                             createMenuItem("restart", "Restart Session"),
                             createSeparator(),
                             createMenuItem("remove", "Remove Session"),
-                          ]
+                          ];
 
                           return (
                             <NativeContextMenu
                               key={session.id}
                               items={sessionMenuItems}
                               onSelect={(id) => {
-                                if (id === "stop") onStopSession(session.id)
-                                if (id === "restart") onRestartSession(session.id)
-                                if (id === "remove") onRemoveSession(session.id)
+                                if (id === "stop") onStopSession(session.id);
+                                if (id === "restart")
+                                  onRestartSession(session.id);
+                                if (id === "remove")
+                                  onRemoveSession(session.id);
                               }}
                             >
                               <button
@@ -281,21 +309,21 @@ export function RepositorySidebar({
                                   )}
                                 />
                                 <span className="text-foreground min-w-0 truncate text-xs font-medium">
-                                  {session.cliName}
+                                  {session.cliName ?? "New Session"}
                                 </span>
                                 <span className="text-muted-foreground text-[10px]">
                                   {session.status}
                                 </span>
                               </button>
                             </NativeContextMenu>
-                          )
+                          );
                         })}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </motion.div>
-            )
+            );
           })}
         </AnimatePresence>
 
@@ -321,5 +349,5 @@ export function RepositorySidebar({
         )}
       </div>
     </div>
-  )
+  );
 }

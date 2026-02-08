@@ -20,8 +20,6 @@ export {
   useOllamaConfig,
   useOpenAIConfig,
   useAnthropicConfig,
-  useOpenClawConfig,
-  useSupabaseConfig,
   useOpenAIAuthPreference,
   useAnthropicAuthPreference,
   useProviders,
@@ -35,13 +33,8 @@ export {
   // Atomic selectors
   useApprovalDrawerOpen,
   useTerminalDrawerOpen,
-  useCreateAgentDialogOpen,
   useMobileSidebarOpen,
-  useSelectedAgent,
-  useSelectedSession,
   useSelectedRepo,
-  useHasSelectedAgent,
-  useHasSelectedSession,
   useHasSelectedRepo,
   useUIActions,
 } from "./ui-store";
@@ -75,8 +68,8 @@ export {
   useOpenAISource,
   useAnthropicSource,
   useProviderActions,
-} from "./provider-store"
-export type { ProviderStore } from "./provider-store"
+} from "./provider-store";
+export type { ProviderStore } from "./provider-store";
 
 // Chat Store
 export {
@@ -177,64 +170,8 @@ export {
   useCliSession,
   useCliShouldSpawnSession,
   useCliSessionActions,
-} from "./cli-session-store"
-export type { CliSessionStore } from "./cli-session-store"
-
-// Work Domain Store (agents, sessions, runs, approvals)
-export {
-  useWorkDomainStore,
-  // Agent selectors
-  useWorkAgents,
-  useWorkAgentsCount,
-  useWorkActiveAgentId,
-  useWorkActiveAgent,
-  useWorkIsLoadingAgents,
-  // Session selectors
-  useWorkSessions,
-  useWorkSessionsCount,
-  useWorkActiveSessionId,
-  useWorkActiveSession,
-  useWorkIsLoadingSessions,
-  useWorkAgentSessions,
-  // Run selectors
-  useWorkRuns,
-  useWorkRunsCount,
-  useWorkActiveRunId,
-  useWorkActiveRun,
-  useWorkSessionRuns,
-  useWorkRunningRuns,
-  useWorkHasRunningRuns,
-  // Approval selectors
-  useWorkApprovals,
-  useWorkApprovalsCount,
-  useWorkPendingApprovals,
-  useWorkPendingApprovalsCount,
-  useWorkHasPendingApprovals,
-  // Mode selectors
-  useWorkExecutionMode,
-  useWorkIsSafeMode,
-  useWorkIsAutoMode,
-  // OpenClaw selectors
-  useOpenClawConnectionStatus,
-  useOpenClawConnected,
-  useOpenClawInstallation,
-  useOpenClawGatewayStatus,
-  useOpenClawCapabilities,
-  useOpenClawWizardState,
-  useOpenClawSetupComplete,
-  useOpenClawHealth,
-  useOpenClawApprovalQueue,
-  useOpenClawToolsCatalog,
-  useOpenClawGatewayEvents,
-  // Chat selectors
-  useWorkChatMessages,
-  useWorkIsAgentStreaming,
-  // Error selectors
-  useWorkError,
-  // Actions
-  useWorkDomainActions,
-} from "./work-domain-store";
-export type { WorkDomainStore } from "./work-domain-store";
+} from "./cli-session-store";
+export type { CliSessionStore } from "./cli-session-store";
 
 // Code Layout Store (persisted Code Tab UI preferences)
 export {
@@ -250,5 +187,5 @@ export {
   useSplitPosition,
   useLastActiveRepositoryId,
   useCodeLayoutActions,
-} from "./code-layout-store"
-export type { CodeLayoutStore } from "./code-layout-store"
+} from "./code-layout-store";
+export type { CodeLayoutStore } from "./code-layout-store";

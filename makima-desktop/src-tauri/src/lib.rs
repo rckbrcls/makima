@@ -14,7 +14,6 @@ mod database;
 mod filesystem;
 mod git;
 mod ollama;
-mod openclaw;
 mod openai;
 mod providers;
 mod pty;
@@ -37,17 +36,6 @@ use ollama::{
     ollama_get_process_status, ollama_health_check, ollama_list_models, ollama_pull_model,
     ollama_start_process, ollama_stop_process, OllamaState,
 };
-use openclaw::{
-    openclaw_apply_config, openclaw_connect, openclaw_create_session, openclaw_detect_installation,
-    openclaw_disconnect, openclaw_get_config, openclaw_get_config_schema,
-    openclaw_get_connection_status, openclaw_get_gateway_status, openclaw_get_health,
-    openclaw_get_status, openclaw_install, openclaw_invoke_tool, openclaw_list_agents,
-    openclaw_list_approvals, openclaw_list_tools, openclaw_patch_config, openclaw_ping,
-    openclaw_read_file_config, openclaw_resolve_approval, openclaw_resume_session, openclaw_rpc,
-    openclaw_rpc_with_fallback, openclaw_send_message, openclaw_start_gateway,
-    openclaw_stop_gateway, openclaw_wizard_cancel, openclaw_wizard_next, openclaw_wizard_start,
-    openclaw_wizard_status, openclaw_write_file_config, OpenClawState,
-};
 use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
 use filesystem::reveal_in_finder;
 use pty::{detect_ai_clis, pty_ack, pty_kill, pty_resize, pty_spawn, pty_write, PtyState};
@@ -60,7 +48,6 @@ pub fn run() {
         .manage(OllamaState::default())
         .manage(OpenAIState::default())
         .manage(AnthropicState::default())
-        .manage(OpenClawState::default())
         .manage(PtyState::new())
         .invoke_handler(tauri::generate_handler![
             ollama_health_check,
@@ -110,37 +97,6 @@ pub fn run() {
             git_diff,
             git_diff_all,
             git_current_branch,
-            openclaw_detect_installation,
-            openclaw_install,
-            openclaw_start_gateway,
-            openclaw_stop_gateway,
-            openclaw_get_gateway_status,
-            openclaw_read_file_config,
-            openclaw_write_file_config,
-            openclaw_connect,
-            openclaw_disconnect,
-            openclaw_get_connection_status,
-            openclaw_send_message,
-            openclaw_list_agents,
-            openclaw_list_approvals,
-            openclaw_resolve_approval,
-            openclaw_list_tools,
-            openclaw_invoke_tool,
-            openclaw_get_config,
-            openclaw_get_config_schema,
-            openclaw_apply_config,
-            openclaw_patch_config,
-            openclaw_get_status,
-            openclaw_get_health,
-            openclaw_ping,
-            openclaw_wizard_start,
-            openclaw_wizard_next,
-            openclaw_wizard_status,
-            openclaw_wizard_cancel,
-            openclaw_create_session,
-            openclaw_resume_session,
-            openclaw_rpc,
-            openclaw_rpc_with_fallback,
             reveal_in_finder,
         ])
         .setup(|app| {

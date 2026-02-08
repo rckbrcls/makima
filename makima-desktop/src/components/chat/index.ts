@@ -7,4 +7,4 @@ export {
   ChatTabProvider,
   ChatTabSidebar,
   ChatTabWorkspace,
-} from "./chat-tab"
+} from "./chat-tab";

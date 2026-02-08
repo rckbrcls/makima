@@ -255,8 +255,8 @@ pub fn db_create_cli_session(
     state: State<'_, DatabaseState>,
     id: String,
     repository_id: String,
-    cli_name: String,
-    cli_command: String,
+    cli_name: Option<String>,
+    cli_command: Option<String>,
 ) -> Result<CliSessionRow, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let input = CreateCliSessionInput {

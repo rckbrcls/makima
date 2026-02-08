@@ -1,64 +1,64 @@
-import { create } from "zustand"
-import { useShallow } from "zustand/react/shallow"
+import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import type {
   ChatItem,
   Conversation,
   ConversationStatus,
   MessageState,
-} from "@/components/main/jarvis-types"
+} from "@/components/main/jarvis-types";
 
 // ============================================================================
 // Code Domain Store - Isolated conversations for code tab (with repository)
 // ============================================================================
 
 interface StreamingState {
-  messageId: string
-  accumulatedContent: string
-  sessionId: string
+  messageId: string;
+  accumulatedContent: string;
+  sessionId: string;
 }
 
 interface CodeDomainState {
   // Conversations (filtered: repository_id IS NOT NULL)
-  conversations: Array<Conversation>
-  activeConversationId: string | null
-  isLoading: boolean
-  error: string | null
+  conversations: Array<Conversation>;
+  activeConversationId: string | null;
+  isLoading: boolean;
+  error: string | null;
 
   // Loaded tracking
-  loadedConversationIds: Set<string>
+  loadedConversationIds: Set<string>;
 
   // Streaming state per conversation
-  streamingStates: Map<string, StreamingState>
+  streamingStates: Map<string, StreamingState>;
 }
 
 interface CodeDomainActions {
   // CRUD
-  setConversations: (conversations: Array<Conversation>) => void
-  addConversation: (conversation: Conversation) => void
+  setConversations: (conversations: Array<Conversation>) => void;
+  addConversation: (conversation: Conversation) => void;
   updateConversation: (
     id: string,
     updates: Partial<Omit<Conversation, "id">>,
-  ) => void
-  removeConversation: (id: string) => void
+  ) => void;
+  removeConversation: (id: string) => void;
   updateConversations: (
     updater: (prev: Array<Conversation>) => Array<Conversation>,
-  ) => void
+  ) => void;
 
   // Selection
-  setActiveConversationId: (id: string | null) => void
+  setActiveConversationId: (id: string | null) => void;
 
   // Loading state
-  setIsLoading: (loading: boolean) => void
-  setError: (error: string | null) => void
+  setIsLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
 
   // Loaded tracking
-  markConversationLoaded: (id: string) => void
-  isConversationLoaded: (id: string) => boolean
+  markConversationLoaded: (id: string) => void;
+  isConversationLoaded: (id: string) => boolean;
 
   // Streaming
-  setStreamingState: (conversationId: string, state: StreamingState) => void
-  clearStreamingState: (conversationId: string) => void
-  hasStreamingState: (conversationId: string) => boolean
+  setStreamingState: (conversationId: string, state: StreamingState) => void;
+  clearStreamingState: (conversationId: string) => void;
+  hasStreamingState: (conversationId: string) => boolean;
 
   // Message updates
   updateMessageContent: (
@@ -67,19 +67,19 @@ interface CodeDomainActions {
     content: string,
     state: MessageState,
     streamedChars?: number,
-  ) => void
+  ) => void;
 
   // Add items
   addItemsToConversation: (
     conversationId: string,
     items: Array<ChatItem>,
-  ) => void
+  ) => void;
 
   // Conversation status
-  updateConversationStatus: (id: string, status: ConversationStatus) => void
+  updateConversationStatus: (id: string, status: ConversationStatus) => void;
 }
 
-export type CodeDomainStore = CodeDomainState & CodeDomainActions
+export type CodeDomainStore = CodeDomainState & CodeDomainActions;
 
 const initialState: CodeDomainState = {
   conversations: [],
@@ -88,7 +88,7 @@ const initialState: CodeDomainState = {
   error: null,
   loadedConversationIds: new Set(),
   streamingStates: new Map(),
-}
+};
 
 export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
   ...initialState,
@@ -140,16 +140,16 @@ export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
   // Streaming
   setStreamingState: (conversationId, streamingState) =>
     set((state) => {
-      const newMap = new Map(state.streamingStates)
-      newMap.set(conversationId, streamingState)
-      return { streamingStates: newMap }
+      const newMap = new Map(state.streamingStates);
+      newMap.set(conversationId, streamingState);
+      return { streamingStates: newMap };
     }),
 
   clearStreamingState: (conversationId) =>
     set((state) => {
-      const newMap = new Map(state.streamingStates)
-      newMap.delete(conversationId)
-      return { streamingStates: newMap }
+      const newMap = new Map(state.streamingStates);
+      newMap.delete(conversationId);
+      return { streamingStates: newMap };
     }),
 
   hasStreamingState: (conversationId) =>
@@ -165,12 +165,12 @@ export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
   ) =>
     set((prev) => ({
       conversations: prev.conversations.map((conv) => {
-        if (conv.id !== conversationId) return conv
+        if (conv.id !== conversationId) return conv;
         return {
           ...conv,
           updatedAt: Date.now(),
           items: conv.items.map((item) => {
-            if (item.id !== messageId || item.kind !== "message") return item
+            if (item.id !== messageId || item.kind !== "message") return item;
             return {
               ...item,
               message: {
@@ -179,9 +179,9 @@ export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
                 state: messageState,
                 ...(streamedChars !== undefined && { streamedChars }),
               },
-            }
+            };
           }),
-        }
+        };
       }),
     })),
 
@@ -202,7 +202,7 @@ export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
         c.id === id ? { ...c, status, updatedAt: Date.now() } : c,
       ),
     })),
-}))
+}));
 
 // ============================================================================
 // Atomic Selectors - Fine-grained subscriptions for optimal re-renders
@@ -210,40 +210,40 @@ export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
 
 // List selectors
 export const useCodeDomainConversations = () =>
-  useCodeDomainStore((s) => s.conversations)
+  useCodeDomainStore((s) => s.conversations);
 
 export const useCodeDomainConversationsCount = () =>
-  useCodeDomainStore((s) => s.conversations.length)
+  useCodeDomainStore((s) => s.conversations.length);
 
 // Active conversation selectors
 export const useCodeDomainActiveId = () =>
-  useCodeDomainStore((s) => s.activeConversationId)
+  useCodeDomainStore((s) => s.activeConversationId);
 
 export const useCodeDomainActiveConversation = () =>
   useCodeDomainStore((s) =>
     s.conversations.find((c) => c.id === s.activeConversationId),
-  )
+  );
 
 // Loading selectors
 export const useCodeDomainLoading = () =>
-  useCodeDomainStore((s) => s.isLoading)
+  useCodeDomainStore((s) => s.isLoading);
 
-export const useCodeDomainError = () => useCodeDomainStore((s) => s.error)
+export const useCodeDomainError = () => useCodeDomainStore((s) => s.error);
 
 // Derived state selectors
 export const useCodeDomainHasRunningExecution = () =>
   useCodeDomainStore((s) => {
-    const active = s.conversations.find((c) => c.id === s.activeConversationId)
+    const active = s.conversations.find((c) => c.id === s.activeConversationId);
     return Boolean(
       active?.items.some(
         (item) => item.kind === "execution" && item.run.status === "running",
       ),
-    )
-  })
+    );
+  });
 
 export const useCodeDomainIsThinkingOrStreaming = () =>
   useCodeDomainStore((s) => {
-    const active = s.conversations.find((c) => c.id === s.activeConversationId)
+    const active = s.conversations.find((c) => c.id === s.activeConversationId);
     return Boolean(
       active?.items.some(
         (item) =>
@@ -251,8 +251,8 @@ export const useCodeDomainIsThinkingOrStreaming = () =>
           (item.message.state === "thinking" ||
             item.message.state === "streaming"),
       ),
-    )
-  })
+    );
+  });
 
 // Actions selector (stable reference with useShallow)
 export const useCodeDomainActions = () =>
@@ -275,4 +275,4 @@ export const useCodeDomainActions = () =>
       addItemsToConversation: s.addItemsToConversation,
       updateConversationStatus: s.updateConversationStatus,
     })),
-  )
+  );

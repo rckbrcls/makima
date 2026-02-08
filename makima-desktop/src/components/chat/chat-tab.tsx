@@ -4,8 +4,8 @@ import {
   useContext,
   useEffect,
   useRef,
-} from "react"
-import { invoke } from "@tauri-apps/api/core"
+} from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 import type {
   ChatItem,
@@ -13,14 +13,14 @@ import type {
   ConversationState,
   ConversationStatus,
   MessageState,
-} from "@/components/main/jarvis-types"
-import type { ChatMessage } from "@/lib/provider-types"
-import { useChatProvider } from "@/hooks/use-chat-provider"
-import { buildMessageId } from "@/components/main/jarvis-data"
-import { ConversationComposer } from "@/components/main/conversation-composer"
-import { ConversationSidebar } from "@/components/main/conversation-sidebar"
-import { ConversationThread } from "@/components/main/conversation-thread"
-import { ModelSelector } from "@/components/main/model-selector"
+} from "@/components/main/jarvis-types";
+import type { ChatMessage } from "@/lib/provider-types";
+import { useChatProvider } from "@/hooks/use-chat-provider";
+import { buildMessageId } from "@/components/main/jarvis-data";
+import { ConversationComposer } from "@/components/main/conversation-composer";
+import { ConversationSidebar } from "@/components/main/conversation-sidebar";
+import { ConversationThread } from "@/components/main/conversation-thread";
+import { ModelSelector } from "@/components/main/model-selector";
 
 // Store imports
 import {
@@ -31,64 +31,64 @@ import {
   useChatDomainHasRunningExecution,
   useChatDomainLoading,
   useChatDomainStore,
-} from "@/stores/chat-domain-store"
+} from "@/stores/chat-domain-store";
 import {
   useChatActions,
   useComposerValue,
   useSelectedModel,
   useSelectedProvider,
   useTone,
-} from "@/stores/chat-store"
+} from "@/stores/chat-store";
 import {
   useAuthStatus,
   useOllamaConnected,
   useOllamaModels,
-} from "@/stores/provider-store"
+} from "@/stores/provider-store";
 
 // ============================================================================
 // Types for database communication
 // ============================================================================
 
 interface DbConversationSummary {
-  id: string
-  title: string
-  summary: string
-  status: string
-  state: string
-  pinned: boolean
-  created_at: number
-  updated_at: number
-  repository_id: string | null
+  id: string;
+  title: string;
+  summary: string;
+  status: string;
+  state: string;
+  pinned: boolean;
+  created_at: number;
+  updated_at: number;
+  repository_id: string | null;
 }
 
 interface DbMessageMeta {
-  provider: string
-  model: string
-  tone: string
+  provider: string;
+  model: string;
+  tone: string;
 }
 
 interface DbMessage {
-  id: string
-  conversation_id: string
-  role: string
-  state: string
-  content: string
-  created_at: number
-  meta: DbMessageMeta
-  sort_order: number
+  id: string;
+  conversation_id: string;
+  role: string;
+  state: string;
+  content: string;
+  created_at: number;
+  meta: DbMessageMeta;
+  sort_order: number;
 }
 
 interface DbConversation {
-  id: string
-  title: string
-  summary: string
-  status: string
-  state: string
-  pinned: boolean
-  created_at: number
-  updated_at: number
-  repository_id: string | null
-  messages: Array<DbMessage>
+  id: string;
+  title: string;
+  summary: string;
+  status: string;
+  state: string;
+  pinned: boolean;
+  created_at: number;
+  updated_at: number;
+  repository_id: string | null;
+  messages: Array<DbMessage>;
 }
 
 function dbMessageToChatItem(msg: DbMessage): ChatItem {
@@ -107,7 +107,7 @@ function dbMessageToChatItem(msg: DbMessage): ChatItem {
         tone: msg.meta.tone,
       },
     },
-  }
+  };
 }
 
 function dbConversationToConversation(dbConv: DbConversation): Conversation {
@@ -122,7 +122,7 @@ function dbConversationToConversation(dbConv: DbConversation): Conversation {
     updatedAt: dbConv.updated_at,
     repositoryId: dbConv.repository_id ?? undefined,
     items: dbConv.messages.map(dbMessageToChatItem),
-  }
+  };
 }
 
 function dbSummaryToConversation(summary: DbConversationSummary): Conversation {
@@ -137,7 +137,7 @@ function dbSummaryToConversation(summary: DbConversationSummary): Conversation {
     updatedAt: summary.updated_at,
     repositoryId: summary.repository_id ?? undefined,
     items: [],
-  }
+  };
 }
 
 // ============================================================================
@@ -145,32 +145,35 @@ function dbSummaryToConversation(summary: DbConversationSummary): Conversation {
 // ============================================================================
 
 interface ChatDomainContextValue {
-  loadConversation: (id: string) => Promise<Conversation | null>
-  createConversation: (title: string) => Promise<Conversation | null>
-  deleteConversation: (id: string) => Promise<boolean>
-  addMessage: (conversationId: string, message: MessageInput) => Promise<boolean>
+  loadConversation: (id: string) => Promise<Conversation | null>;
+  createConversation: (title: string) => Promise<Conversation | null>;
+  deleteConversation: (id: string) => Promise<boolean>;
+  addMessage: (
+    conversationId: string,
+    message: MessageInput,
+  ) => Promise<boolean>;
 }
 
 interface MessageInput {
-  id: string
-  role: string
-  state: string
-  content: string
-  createdAt: number
-  provider: string
-  model: string
-  tone: string
+  id: string;
+  role: string;
+  state: string;
+  content: string;
+  createdAt: number;
+  provider: string;
+  model: string;
+  tone: string;
 }
 
-const ChatDomainContext = createContext<ChatDomainContextValue | null>(null)
+const ChatDomainContext = createContext<ChatDomainContextValue | null>(null);
 
 function useChatDomainContext() {
-  const ctx = useContext(ChatDomainContext)
+  const ctx = useContext(ChatDomainContext);
   if (!ctx)
     throw new Error(
       "useChatDomainContext must be used within ChatDomainProvider",
-    )
-  return ctx
+    );
+  return ctx;
 }
 
 // ============================================================================
@@ -178,7 +181,7 @@ function useChatDomainContext() {
 // ============================================================================
 
 interface ChatDomainProviderProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function ChatDomainProvider({ children }: ChatDomainProviderProps) {
@@ -190,7 +193,7 @@ export function ChatDomainProvider({ children }: ChatDomainProviderProps) {
     removeConversation,
     markConversationLoaded,
     isConversationLoaded,
-  } = useChatDomainActions()
+  } = useChatDomainActions();
 
   // Load conversations on mount (only those without repository_id)
   useEffect(() => {
@@ -198,59 +201,61 @@ export function ChatDomainProvider({ children }: ChatDomainProviderProps) {
       try {
         const summaries = await invoke<Array<DbConversationSummary>>(
           "db_list_conversations",
-        )
+        );
         // Filter to only include conversations without repository_id
         const chatOnlyConversations = summaries
           .filter((s) => s.repository_id === null)
-          .map(dbSummaryToConversation)
-        setConversations(chatOnlyConversations)
-        setError(null)
+          .map(dbSummaryToConversation);
+        setConversations(chatOnlyConversations);
+        setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    loadConversations()
-  }, [setConversations, setIsLoading, setError])
+    loadConversations();
+  }, [setConversations, setIsLoading, setError]);
 
   const loadConversation = useCallback(
     async (id: string): Promise<Conversation | null> => {
       if (isConversationLoaded(id)) {
-        return useChatDomainStore
-          .getState()
-          .conversations.find((c) => c.id === id) ?? null
+        return (
+          useChatDomainStore
+            .getState()
+            .conversations.find((c) => c.id === id) ?? null
+        );
       }
 
       try {
         const dbConv = await invoke<DbConversation | null>(
           "db_get_conversation",
           { id },
-        )
-        if (!dbConv) return null
+        );
+        if (!dbConv) return null;
 
-        const conversation = dbConversationToConversation(dbConv)
-        markConversationLoaded(id)
+        const conversation = dbConversationToConversation(dbConv);
+        markConversationLoaded(id);
 
         // Update in store
         const { conversations, setConversations: setConvs } =
-          useChatDomainStore.getState()
-        const index = conversations.findIndex((c) => c.id === id)
+          useChatDomainStore.getState();
+        const index = conversations.findIndex((c) => c.id === id);
         if (index !== -1) {
-          const next = [...conversations]
-          next[index] = conversation
-          setConvs(next)
+          const next = [...conversations];
+          next[index] = conversation;
+          setConvs(next);
         }
 
-        return conversation
+        return conversation;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return null
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
       }
     },
     [isConversationLoaded, markConversationLoaded, setError],
-  )
+  );
 
   const createConversation = useCallback(
     async (title: string): Promise<Conversation | null> => {
@@ -259,32 +264,32 @@ export function ChatDomainProvider({ children }: ChatDomainProviderProps) {
         const dbConv = await invoke<DbConversation>("db_create_conversation", {
           title,
           repositoryId: null,
-        })
-        const conversation = dbConversationToConversation(dbConv)
-        markConversationLoaded(conversation.id)
-        addConversation(conversation)
-        return conversation
+        });
+        const conversation = dbConversationToConversation(dbConv);
+        markConversationLoaded(conversation.id);
+        addConversation(conversation);
+        return conversation;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return null
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
       }
     },
     [addConversation, markConversationLoaded, setError],
-  )
+  );
 
   const deleteConversation = useCallback(
     async (id: string): Promise<boolean> => {
       try {
-        await invoke<boolean>("db_delete_conversation", { id })
-        removeConversation(id)
-        return true
+        await invoke<boolean>("db_delete_conversation", { id });
+        removeConversation(id);
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
       }
     },
     [removeConversation, setError],
-  )
+  );
 
   const addMessage = useCallback(
     async (conversationId: string, message: MessageInput): Promise<boolean> => {
@@ -299,28 +304,28 @@ export function ChatDomainProvider({ children }: ChatDomainProviderProps) {
           provider: message.provider,
           model: message.model,
           tone: message.tone,
-        })
-        return true
+        });
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-        return false
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
       }
     },
     [setError],
-  )
+  );
 
   const value: ChatDomainContextValue = {
     loadConversation,
     createConversation,
     deleteConversation,
     addMessage,
-  }
+  };
 
   return (
     <ChatDomainContext.Provider value={value}>
       {children}
     </ChatDomainContext.Provider>
-  )
+  );
 }
 
 // ============================================================================
@@ -328,42 +333,42 @@ export function ChatDomainProvider({ children }: ChatDomainProviderProps) {
 // ============================================================================
 
 export function ChatSidebar() {
-  const conversations = useChatDomainConversations()
-  const activeConversationId = useChatDomainActiveId()
-  const { setActiveConversationId } = useChatDomainActions()
+  const conversations = useChatDomainConversations();
+  const activeConversationId = useChatDomainActiveId();
+  const { setActiveConversationId } = useChatDomainActions();
   const { loadConversation, createConversation, deleteConversation } =
-    useChatDomainContext()
+    useChatDomainContext();
 
   const handleSelectConversation = useCallback(
     async (id: string) => {
-      setActiveConversationId(id)
-      const conv = conversations.find((c) => c.id === id)
+      setActiveConversationId(id);
+      const conv = conversations.find((c) => c.id === id);
       if (conv && conv.items.length === 0) {
-        await loadConversation(id)
+        await loadConversation(id);
       }
     },
     [conversations, loadConversation, setActiveConversationId],
-  )
+  );
 
   const handleNewConversation = useCallback(async () => {
-    const existingEmpty = conversations.find((c) => c.items.length === 0)
+    const existingEmpty = conversations.find((c) => c.items.length === 0);
     if (existingEmpty) {
-      setActiveConversationId(existingEmpty.id)
-      return
+      setActiveConversationId(existingEmpty.id);
+      return;
     }
 
-    const newConv = await createConversation("New conversation")
+    const newConv = await createConversation("New conversation");
     if (newConv) {
-      setActiveConversationId(newConv.id)
+      setActiveConversationId(newConv.id);
     }
-  }, [conversations, createConversation, setActiveConversationId])
+  }, [conversations, createConversation, setActiveConversationId]);
 
   const handleDeleteConversation = useCallback(
     async (id: string) => {
-      await deleteConversation(id)
+      await deleteConversation(id);
       if (activeConversationId === id && conversations.length > 1) {
-        const remaining = conversations.filter((c) => c.id !== id)
-        setActiveConversationId(remaining[0]?.id ?? null)
+        const remaining = conversations.filter((c) => c.id !== id);
+        setActiveConversationId(remaining[0]?.id ?? null);
       }
     },
     [
@@ -372,7 +377,7 @@ export function ChatSidebar() {
       conversations,
       setActiveConversationId,
     ],
-  )
+  );
 
   return (
     <ConversationSidebar
@@ -382,7 +387,7 @@ export function ChatSidebar() {
       onNewConversation={handleNewConversation}
       onDeleteConversation={handleDeleteConversation}
     />
-  )
+  );
 }
 
 // ============================================================================
@@ -391,39 +396,42 @@ export function ChatSidebar() {
 
 export function ChatWorkspace() {
   const streamingStatesRef = useRef<
-    Map<string, { messageId: string; accumulatedContent: string; sessionId: string }>
-  >(new Map())
+    Map<
+      string,
+      { messageId: string; accumulatedContent: string; sessionId: string }
+    >
+  >(new Map());
 
   // Domain store state
-  const conversations = useChatDomainConversations()
-  const activeConversationId = useChatDomainActiveId()
-  const activeConversation = useChatDomainActiveConversation()
-  const isLoadingConversations = useChatDomainLoading()
-  const hasRunningExecution = useChatDomainHasRunningExecution()
+  const conversations = useChatDomainConversations();
+  const activeConversationId = useChatDomainActiveId();
+  const activeConversation = useChatDomainActiveConversation();
+  const isLoadingConversations = useChatDomainLoading();
+  const hasRunningExecution = useChatDomainHasRunningExecution();
 
   const {
     setActiveConversationId,
     updateConversations,
     updateConversation: updateConversationStore,
-  } = useChatDomainActions()
+  } = useChatDomainActions();
 
   // Chat store state (shared)
-  const composerValue = useComposerValue()
-  const provider = useSelectedProvider()
-  const model = useSelectedModel()
-  const tone = useTone()
-  const { clearComposer, setSelectedModel } = useChatActions()
+  const composerValue = useComposerValue();
+  const provider = useSelectedProvider();
+  const model = useSelectedModel();
+  const tone = useTone();
+  const { clearComposer, setSelectedModel } = useChatActions();
 
   // Provider store state
-  const isOllamaConnected = useOllamaConnected()
-  const ollamaModels = useOllamaModels()
-  const authStatus = useAuthStatus()
+  const isOllamaConnected = useOllamaConnected();
+  const ollamaModels = useOllamaModels();
+  const authStatus = useAuthStatus();
 
   // Context hooks
-  const { createConversation, addMessage } = useChatDomainContext()
+  const { createConversation, addMessage } = useChatDomainContext();
 
   // Streaming hook
-  const { startChatStream } = useChatProvider()
+  const { startChatStream } = useChatProvider();
 
   // Auto-select first conversation
   useEffect(() => {
@@ -432,61 +440,62 @@ export function ChatWorkspace() {
       conversations.length > 0 &&
       !activeConversationId
     ) {
-      setActiveConversationId(conversations[0].id)
+      setActiveConversationId(conversations[0].id);
     }
   }, [
     isLoadingConversations,
     conversations,
     activeConversationId,
     setActiveConversationId,
-  ])
+  ]);
 
   // Auto-select first model
   useEffect(() => {
     if (provider === "ollama" && ollamaModels.length > 0 && !model) {
-      setSelectedModel(ollamaModels[0].name)
+      setSelectedModel(ollamaModels[0].name);
     }
-  }, [ollamaModels, model, provider, setSelectedModel])
+  }, [ollamaModels, model, provider, setSelectedModel]);
 
   const handleNewConversation = useCallback(async () => {
-    const existingEmpty = conversations.find((c) => c.items.length === 0)
+    const existingEmpty = conversations.find((c) => c.items.length === 0);
     if (existingEmpty) {
-      setActiveConversationId(existingEmpty.id)
-      return
+      setActiveConversationId(existingEmpty.id);
+      return;
     }
 
-    const newConv = await createConversation("New conversation")
+    const newConv = await createConversation("New conversation");
     if (newConv) {
-      setActiveConversationId(newConv.id)
+      setActiveConversationId(newConv.id);
     }
-  }, [conversations, createConversation, setActiveConversationId])
+  }, [conversations, createConversation, setActiveConversationId]);
 
   const handleSendMessage = useCallback(async () => {
-    if (!activeConversation || !composerValue.trim()) return
+    if (!activeConversation || !composerValue.trim()) return;
     if (
       hasRunningExecution ||
       streamingStatesRef.current.has(activeConversation.id)
     )
-      return
-    if (!model) return
+      return;
+    if (!model) return;
 
     // Check provider availability
-    if (provider === "ollama" && !isOllamaConnected) return
-    if (provider === "openai" && !authStatus?.openai.is_configured) return
-    if (provider === "anthropic" && !authStatus?.anthropic.is_configured) return
+    if (provider === "ollama" && !isOllamaConnected) return;
+    if (provider === "openai" && !authStatus?.openai.is_configured) return;
+    if (provider === "anthropic" && !authStatus?.anthropic.is_configured)
+      return;
 
-    const now = Date.now()
-    const messageId = buildMessageId()
-    const assistantId = buildMessageId()
-    const sessionId = `session-${now}`
-    const userContent = composerValue.trim()
-    const conversationId = activeConversation.id
+    const now = Date.now();
+    const messageId = buildMessageId();
+    const assistantId = buildMessageId();
+    const sessionId = `session-${now}`;
+    const userContent = composerValue.trim();
+    const conversationId = activeConversation.id;
 
     streamingStatesRef.current.set(conversationId, {
       messageId: assistantId,
       accumulatedContent: "",
       sessionId,
-    })
+    });
 
     const userMessage: ChatItem = {
       id: messageId,
@@ -499,7 +508,7 @@ export function ChatWorkspace() {
         createdAt: now,
         meta: { provider, model, tone },
       },
-    }
+    };
 
     const assistantMessage: ChatItem = {
       id: assistantId,
@@ -513,17 +522,17 @@ export function ChatWorkspace() {
         meta: { provider, model, tone },
         streamedChars: 0,
       },
-    }
+    };
 
     const nextTitle =
       activeConversation.title === "New conversation" ||
       activeConversation.items.length === 0
         ? userContent.slice(0, 32)
-        : activeConversation.title
+        : activeConversation.title;
 
     updateConversations((prev) =>
       prev.map((conversation) => {
-        if (conversation.id !== conversationId) return conversation
+        if (conversation.id !== conversationId) return conversation;
         return {
           ...conversation,
           title: nextTitle,
@@ -531,11 +540,11 @@ export function ChatWorkspace() {
           status: "running" as ConversationStatus,
           updatedAt: now,
           items: [...conversation.items, userMessage, assistantMessage],
-        }
+        };
       }),
-    )
+    );
 
-    clearComposer()
+    clearComposer();
 
     await addMessage(conversationId, {
       id: messageId,
@@ -546,7 +555,7 @@ export function ChatWorkspace() {
       provider,
       model,
       tone,
-    })
+    });
 
     if (nextTitle !== activeConversation.title) {
       invoke("db_update_conversation", {
@@ -555,7 +564,7 @@ export function ChatWorkspace() {
         summary: userContent.slice(0, 60),
         status: null,
         conversationState: null,
-      })
+      });
     }
 
     const conversationHistory: Array<ChatMessage> = activeConversation.items
@@ -563,9 +572,9 @@ export function ChatWorkspace() {
       .map((item) => ({
         role: item.message.role as "user" | "assistant" | "system",
         content: item.message.content,
-      }))
+      }));
 
-    conversationHistory.push({ role: "user", content: userContent })
+    conversationHistory.push({ role: "user", content: userContent });
 
     startChatStream({
       sessionId,
@@ -575,20 +584,20 @@ export function ChatWorkspace() {
       temperature: 0.7,
       maxTokens: 4096,
       onChunk: (content, done) => {
-        const state = streamingStatesRef.current.get(conversationId)
-        if (!state) return
+        const state = streamingStatesRef.current.get(conversationId);
+        if (!state) return;
 
-        state.accumulatedContent += content
-        const currentContent = state.accumulatedContent
-        const currentMessageId = state.messageId
+        state.accumulatedContent += content;
+        const currentContent = state.accumulatedContent;
+        const currentMessageId = state.messageId;
 
         updateConversations((prev) =>
           prev.map((conversation) => {
-            if (conversation.id !== conversationId) return conversation
+            if (conversation.id !== conversationId) return conversation;
 
             const nextItems = conversation.items.map((item) => {
               if (item.id !== currentMessageId || item.kind !== "message")
-                return item
+                return item;
               return {
                 ...item,
                 message: {
@@ -597,17 +606,17 @@ export function ChatWorkspace() {
                   state: (done ? "normal" : "streaming") as MessageState,
                   streamedChars: currentContent.length,
                 },
-              }
-            })
+              };
+            });
 
             return {
               ...conversation,
               status: (done ? "idle" : "running") as ConversationStatus,
               updatedAt: Date.now(),
               items: nextItems,
-            }
+            };
           }),
-        )
+        );
 
         if (done) {
           addMessage(conversationId, {
@@ -619,25 +628,25 @@ export function ChatWorkspace() {
             provider,
             model,
             tone,
-          })
+          });
 
-          streamingStatesRef.current.delete(conversationId)
+          streamingStatesRef.current.delete(conversationId);
         }
       },
       onError: (error) => {
-        const state = streamingStatesRef.current.get(conversationId)
-        if (!state) return
+        const state = streamingStatesRef.current.get(conversationId);
+        if (!state) return;
 
-        const currentMessageId = state.messageId
-        const errorContent = error || "An error occurred"
+        const currentMessageId = state.messageId;
+        const errorContent = error || "An error occurred";
 
         updateConversations((prev) =>
           prev.map((conversation) => {
-            if (conversation.id !== conversationId) return conversation
+            if (conversation.id !== conversationId) return conversation;
 
             const nextItems = conversation.items.map((item) => {
               if (item.id !== currentMessageId || item.kind !== "message")
-                return item
+                return item;
               return {
                 ...item,
                 message: {
@@ -645,17 +654,17 @@ export function ChatWorkspace() {
                   content: errorContent,
                   state: "error" as MessageState,
                 },
-              }
-            })
+              };
+            });
 
             return {
               ...conversation,
               status: "error" as ConversationStatus,
               updatedAt: Date.now(),
               items: nextItems,
-            }
+            };
           }),
-        )
+        );
 
         addMessage(conversationId, {
           id: currentMessageId,
@@ -666,11 +675,11 @@ export function ChatWorkspace() {
           provider,
           model,
           tone,
-        })
+        });
 
-        streamingStatesRef.current.delete(conversationId)
+        streamingStatesRef.current.delete(conversationId);
       },
-    })
+    });
   }, [
     activeConversation,
     composerValue,
@@ -684,7 +693,7 @@ export function ChatWorkspace() {
     addMessage,
     updateConversations,
     clearComposer,
-  ])
+  ]);
 
   return (
     <section className="border-border bg-background my-3 mr-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border">
@@ -700,13 +709,13 @@ export function ChatWorkspace() {
         />
       </div>
     </section>
-  )
+  );
 }
 
 // ============================================================================
 // Legacy exports for backwards compatibility
 // ============================================================================
 
-export { ChatDomainProvider as ChatTabProvider }
-export { ChatSidebar as ChatTabSidebar }
-export { ChatWorkspace as ChatTabWorkspace }
+export { ChatDomainProvider as ChatTabProvider };
+export { ChatSidebar as ChatTabSidebar };
+export { ChatWorkspace as ChatTabWorkspace };

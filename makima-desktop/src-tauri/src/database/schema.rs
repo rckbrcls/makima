@@ -2,7 +2,7 @@ use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-const SCHEMA_VERSION: i32 = 6;
+const SCHEMA_VERSION: i32 = 7;
 
 pub fn get_database_path(app: &AppHandle) -> PathBuf {
     let app_data_dir = app
@@ -73,6 +73,9 @@ fn run_migrations(conn: &Connection, from_version: i32) -> Result<()> {
     }
     if from_version < 6 {
         migration_v6(conn)?;
+    }
+    if from_version < 7 {
+        migration_v7(conn)?;
     }
     Ok(())
 }
@@ -286,5 +289,39 @@ fn migration_v6(conn: &Connection) -> Result<()> {
     )?;
 
     log::info!("Database migration v6 completed (cli_sessions table added)");
+    Ok(())
+}
+
+fn migration_v7(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        r#"
+        CREATE TABLE IF NOT EXISTS cli_sessions_new (
+            id TEXT PRIMARY KEY,
+            repository_id TEXT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+            cli_name TEXT,
+            cli_command TEXT,
+            status TEXT NOT NULL DEFAULT 'idle',
+            exit_code INTEGER,
+            resume_session_id TEXT,
+            started_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+
+        INSERT INTO cli_sessions_new
+            SELECT id, repository_id, cli_name, cli_command, status, exit_code,
+                   resume_session_id, started_at, created_at, updated_at
+            FROM cli_sessions;
+
+        DROP TABLE cli_sessions;
+
+        ALTER TABLE cli_sessions_new RENAME TO cli_sessions;
+
+        CREATE INDEX IF NOT EXISTS idx_cli_sessions_repository
+            ON cli_sessions(repository_id);
+        "#,
+    )?;
+
+    log::info!("Database migration v7 completed (cli_name/cli_command now nullable)");
     Ok(())
 }

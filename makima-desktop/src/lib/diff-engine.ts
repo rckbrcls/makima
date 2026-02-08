@@ -1,120 +1,117 @@
-import type { DiffLine } from "@/lib/code-types"
+import type { DiffLine } from "@/lib/code-types";
 
 // --- Types ---
 
 export interface IntralineSpan {
-  start: number
-  length: number
+  start: number;
+  length: number;
 }
 
 export interface RowSide {
-  kind: "add" | "del" | "context" | "placeholder"
-  content: string
-  lineNumber: number | null
-  spans: Array<IntralineSpan>
+  kind: "add" | "del" | "context" | "placeholder";
+  content: string;
+  lineNumber: number | null;
+  spans: Array<IntralineSpan>;
 }
 
 export interface RowModel {
-  left: RowSide
-  right: RowSide
-  isSeparator: boolean
-  isContext: boolean
-  hunkId: number
-  hunkHeader: string
+  left: RowSide;
+  right: RowSide;
+  isSeparator: boolean;
+  isContext: boolean;
+  hunkId: number;
+  hunkHeader: string;
 }
 
 // --- Tokenizer ---
 
 export function tokenize(text: string): Array<string> {
-  return text.match(/\w+|\W+/g) ?? []
+  return text.match(/\w+|\W+/g) ?? [];
 }
 
 // --- Intraline highlighting ---
 
-const MAX_TOKENS = 200
+const MAX_TOKENS = 200;
 
 export function computeIntraline(
   oldText: string,
   newText: string,
 ): [Array<IntralineSpan>, Array<IntralineSpan>] {
-  const oldTokens = tokenize(oldText)
-  const newTokens = tokenize(newText)
+  const oldTokens = tokenize(oldText);
+  const newTokens = tokenize(newText);
 
-  if (
-    oldTokens.length > MAX_TOKENS ||
-    newTokens.length > MAX_TOKENS
-  ) {
-    return [[], []]
+  if (oldTokens.length > MAX_TOKENS || newTokens.length > MAX_TOKENS) {
+    return [[], []];
   }
 
   if (oldTokens.length === 0 && newTokens.length === 0) {
-    return [[], []]
+    return [[], []];
   }
 
   // DP-LCS on tokens
-  const m = oldTokens.length
-  const n = newTokens.length
+  const m = oldTokens.length;
+  const n = newTokens.length;
   const dp: Array<Array<number>> = Array.from({ length: m + 1 }, () =>
     Array(n + 1).fill(0),
-  )
+  );
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       if (oldTokens[i - 1] === newTokens[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1
+        dp[i][j] = dp[i - 1][j - 1] + 1;
       } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
       }
     }
   }
 
   // Backtrack to find which tokens are in LCS
-  const oldInLcs = new Set<number>()
-  const newInLcs = new Set<number>()
-  let i = m
-  let j = n
+  const oldInLcs = new Set<number>();
+  const newInLcs = new Set<number>();
+  let i = m;
+  let j = n;
   while (i > 0 && j > 0) {
     if (oldTokens[i - 1] === newTokens[j - 1]) {
-      oldInLcs.add(i - 1)
-      newInLcs.add(j - 1)
-      i--
-      j--
+      oldInLcs.add(i - 1);
+      newInLcs.add(j - 1);
+      i--;
+      j--;
     } else if (dp[i - 1][j] >= dp[i][j - 1]) {
-      i--
+      i--;
     } else {
-      j--
+      j--;
     }
   }
 
   // Build spans for tokens NOT in LCS (= changed tokens)
-  const oldSpans = buildSpansFromTokens(oldTokens, oldInLcs)
-  const newSpans = buildSpansFromTokens(newTokens, newInLcs)
+  const oldSpans = buildSpansFromTokens(oldTokens, oldInLcs);
+  const newSpans = buildSpansFromTokens(newTokens, newInLcs);
 
-  return [oldSpans, newSpans]
+  return [oldSpans, newSpans];
 }
 
 function buildSpansFromTokens(
   tokens: Array<string>,
   inLcs: Set<number>,
 ): Array<IntralineSpan> {
-  const spans: Array<IntralineSpan> = []
-  let charOffset = 0
+  const spans: Array<IntralineSpan> = [];
+  let charOffset = 0;
 
   for (let t = 0; t < tokens.length; t++) {
-    const token = tokens[t]
+    const token = tokens[t];
     if (!inLcs.has(t)) {
       // Merge with previous span if adjacent
-      const last = spans.length > 0 ? spans[spans.length - 1] : null
+      const last = spans.length > 0 ? spans[spans.length - 1] : null;
       if (last && last.start + last.length === charOffset) {
-        last.length += token.length
+        last.length += token.length;
       } else {
-        spans.push({ start: charOffset, length: token.length })
+        spans.push({ start: charOffset, length: token.length });
       }
     }
-    charOffset += token.length
+    charOffset += token.length;
   }
 
-  return spans
+  return spans;
 }
 
 // --- Row model builder ---
@@ -124,19 +121,19 @@ const PLACEHOLDER: RowSide = {
   content: "",
   lineNumber: null,
   spans: [],
-}
+};
 
 export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
-  const rows: Array<RowModel> = []
-  let idx = 0
-  let hunkId = 0
+  const rows: Array<RowModel> = [];
+  let idx = 0;
+  let hunkId = 0;
 
   while (idx < lines.length) {
-    const line = lines[idx]
+    const line = lines[idx];
 
     // Hunk separator
     if (line.kind === "hunk") {
-      hunkId++
+      hunkId++;
       rows.push({
         left: { ...PLACEHOLDER },
         right: { ...PLACEHOLDER },
@@ -144,9 +141,9 @@ export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
         isContext: false,
         hunkId,
         hunkHeader: line.content,
-      })
-      idx++
-      continue
+      });
+      idx++;
+      continue;
     }
 
     // Context line
@@ -156,7 +153,7 @@ export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
         content: line.content,
         lineNumber: null,
         spans: [],
-      }
+      };
       rows.push({
         left: {
           ...side,
@@ -170,34 +167,34 @@ export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
         isContext: true,
         hunkId,
         hunkHeader: "",
-      })
-      idx++
-      continue
+      });
+      idx++;
+      continue;
     }
 
     // Collect consecutive del then add blocks
-    const dels: Array<DiffLine> = []
-    const adds: Array<DiffLine> = []
+    const dels: Array<DiffLine> = [];
+    const adds: Array<DiffLine> = [];
 
     while (idx < lines.length && lines[idx].kind === "del") {
-      dels.push(lines[idx])
-      idx++
+      dels.push(lines[idx]);
+      idx++;
     }
     while (idx < lines.length && lines[idx].kind === "add") {
-      adds.push(lines[idx])
-      idx++
+      adds.push(lines[idx]);
+      idx++;
     }
 
-    const maxLen = Math.max(dels.length, adds.length)
+    const maxLen = Math.max(dels.length, adds.length);
     for (let p = 0; p < maxLen; p++) {
-      const del = p < dels.length ? dels[p] : null
-      const add = p < adds.length ? adds[p] : null
+      const del = p < dels.length ? dels[p] : null;
+      const add = p < adds.length ? adds[p] : null;
 
       // Compute intraline if both sides present (paired modification)
-      let delSpans: Array<IntralineSpan> = []
-      let addSpans: Array<IntralineSpan> = []
+      let delSpans: Array<IntralineSpan> = [];
+      let addSpans: Array<IntralineSpan> = [];
       if (del && add) {
-        ;[delSpans, addSpans] = computeIntraline(del.content, add.content)
+        [delSpans, addSpans] = computeIntraline(del.content, add.content);
       }
 
       const left: RowSide = del
@@ -207,7 +204,7 @@ export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
             lineNumber: del.oldLineno ?? null,
             spans: delSpans,
           }
-        : { ...PLACEHOLDER }
+        : { ...PLACEHOLDER };
 
       const right: RowSide = add
         ? {
@@ -216,7 +213,7 @@ export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
             lineNumber: add.newLineno ?? null,
             spans: addSpans,
           }
-        : { ...PLACEHOLDER }
+        : { ...PLACEHOLDER };
 
       rows.push({
         left,
@@ -225,9 +222,9 @@ export function buildRowModels(lines: Array<DiffLine>): Array<RowModel> {
         isContext: false,
         hunkId,
         hunkHeader: "",
-      })
+      });
     }
   }
 
-  return rows
+  return rows;
 }

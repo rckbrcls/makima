@@ -1,5 +1,5 @@
-import { defineConfig } from "vitest/config"
-import viteTsConfigPaths from "vite-tsconfig-paths"
+import { defineConfig } from "vitest/config";
+import viteTsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [
@@ -11,4 +11,4 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
   },
-})
+});

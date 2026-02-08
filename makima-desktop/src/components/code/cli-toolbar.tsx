@@ -3,20 +3,20 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 
 interface CliToolbarProps {
-  repositoryName?: string
-  isAgentPanelCollapsed?: boolean
-  onToggleAgentPanel?: () => void
-  isGitPanelCollapsed?: boolean
-  onToggleGitPanel?: () => void
+  repositoryName?: string;
+  isAgentPanelCollapsed?: boolean;
+  onToggleAgentPanel?: () => void;
+  isGitPanelCollapsed?: boolean;
+  onToggleGitPanel?: () => void;
 }
 
 export function CliToolbar({
@@ -27,7 +27,7 @@ export function CliToolbar({
   onToggleGitPanel,
 }: CliToolbarProps) {
   return (
-    <div className="bg-background border-border border flex items-center gap-3 rounded-xl px-4 py-2">
+    <div className="bg-background border-border flex items-center gap-3 rounded-xl border px-4 py-2">
       {/* Repository name */}
       {repositoryName && (
         <span className="text-foreground truncate text-xs font-medium">
@@ -96,5 +96,5 @@ export function CliToolbar({
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,10 +1,10 @@
-import { useCallback } from "react"
-import { invoke } from "@tauri-apps/api/core"
+import { useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import type {
   OllamaInstallation,
   OllamaProcessStatus,
-} from "@/lib/ollama-process-types"
-import { useProviderActions } from "@/stores/provider-store"
+} from "@/lib/ollama-process-types";
+import { useProviderActions } from "@/stores/provider-store";
 
 /**
  * Hook for managing the Ollama process lifecycle.
@@ -15,76 +15,86 @@ import { useProviderActions } from "@/stores/provider-store"
  * - Refresh process status
  */
 export function useOllamaProcess() {
-  const actions = useProviderActions()
+  const actions = useProviderActions();
 
   /**
    * Detects how Ollama is installed on the system
    */
   const detectInstallation = useCallback(async () => {
-    console.log("Detecting Ollama installation...")
+    console.log("Detecting Ollama installation...");
     try {
       const installation = await invoke<OllamaInstallation>(
         "ollama_detect_installation",
-      )
-      console.log("Ollama installation detected:", installation)
-      actions.setOllamaInstallation(installation)
-      return installation
+      );
+      console.log("Ollama installation detected:", installation);
+      actions.setOllamaInstallation(installation);
+      return installation;
     } catch (error) {
-      console.error("Failed to detect Ollama installation:", error)
-      return null
+      console.error("Failed to detect Ollama installation:", error);
+      return null;
     }
-  }, [actions])
+  }, [actions]);
 
   /**
    * Starts the Ollama process
    * @returns The PID of the started process
    */
   const startProcess = useCallback(async () => {
-    console.log("Starting Ollama process...")
-    actions.setOllamaProcessStatus("starting")
+    console.log("Starting Ollama process...");
+    actions.setOllamaProcessStatus("starting");
 
     try {
-      const pid = await invoke<number>("ollama_start_process")
-      console.log("Ollama started with PID:", pid)
-      actions.setOllamaProcessStatus("running")
-      actions.setOllamaManagedByApp(true)
-      actions.setOllamaPid(pid)
+      const pid = await invoke<number>("ollama_start_process");
+      console.log("Ollama started with PID:", pid);
+      actions.setOllamaProcessStatus("running");
+      actions.setOllamaManagedByApp(true);
+      actions.setOllamaPid(pid);
       // Connection state will be updated by the health check
-      actions.setOllamaConnectionState({ isConnected: true, isChecking: false })
-      return pid
+      actions.setOllamaConnectionState({
+        isConnected: true,
+        isChecking: false,
+      });
+      return pid;
     } catch (error) {
-      console.error("Failed to start Ollama process:", error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error("Failed to start Ollama process:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       // If already running, update state to reflect that
       if (errorMessage.includes("already running")) {
-        actions.setOllamaProcessStatus("running")
-        actions.setOllamaConnectionState({ isConnected: true, isChecking: false })
+        actions.setOllamaProcessStatus("running");
+        actions.setOllamaConnectionState({
+          isConnected: true,
+          isChecking: false,
+        });
       } else {
-        actions.setOllamaProcessStatus("stopped")
+        actions.setOllamaProcessStatus("stopped");
       }
-      throw error
+      throw error;
     }
-  }, [actions])
+  }, [actions]);
 
   /**
    * Stops the Ollama process
    */
   const stopProcess = useCallback(async () => {
-    actions.setOllamaProcessStatus("stopping")
+    actions.setOllamaProcessStatus("stopping");
 
     try {
-      await invoke("ollama_stop_process")
-      actions.setOllamaProcessStatus("stopped")
-      actions.setOllamaManagedByApp(false)
-      actions.setOllamaPid(null)
-      actions.setOllamaConnectionState({ isConnected: false, isChecking: false })
+      await invoke("ollama_stop_process");
+      actions.setOllamaProcessStatus("stopped");
+      actions.setOllamaManagedByApp(false);
+      actions.setOllamaPid(null);
+      actions.setOllamaConnectionState({
+        isConnected: false,
+        isChecking: false,
+      });
     } catch (error) {
-      console.error("Failed to stop Ollama process:", error)
+      console.error("Failed to stop Ollama process:", error);
       // Refresh status to get actual state
-      await refreshStatus()
-      throw error
+      await refreshStatus();
+      throw error;
     }
-  }, [actions])
+  }, [actions]);
 
   /**
    * Refreshes the current process status from the backend
@@ -93,21 +103,21 @@ export function useOllamaProcess() {
     try {
       const status = await invoke<OllamaProcessStatus>(
         "ollama_get_process_status",
-      )
-      actions.setOllamaProcessStatus(status.isRunning ? "running" : "stopped")
-      actions.setOllamaManagedByApp(status.managedByApp)
-      actions.setOllamaPid(status.pid)
-      return status
+      );
+      actions.setOllamaProcessStatus(status.isRunning ? "running" : "stopped");
+      actions.setOllamaManagedByApp(status.managedByApp);
+      actions.setOllamaPid(status.pid);
+      return status;
     } catch (error) {
-      console.error("Failed to get Ollama process status:", error)
-      return null
+      console.error("Failed to get Ollama process status:", error);
+      return null;
     }
-  }, [actions])
+  }, [actions]);
 
   return {
     detectInstallation,
     startProcess,
     stopProcess,
     refreshStatus,
-  }
+  };
 }

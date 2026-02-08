@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import {
   ExternalLink,
   HardDrive,
@@ -10,8 +10,8 @@ import {
   Settings,
   Square,
   Sun,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -19,24 +19,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useTheme } from "@/components/theme-provider"
-import { useSettingsStore } from "@/stores/settings-store"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTheme } from "@/components/theme-provider";
+import { useSettingsStore } from "@/stores/settings-store";
 import {
   useOllamaCanStart,
   useOllamaCanStop,
   useOllamaConnected,
   useOllamaInstallation,
   useOllamaProcessStatus,
-} from "@/stores/provider-store"
-import { useOllamaProcess } from "@/hooks/ollama/use-ollama-process"
-import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models"
-import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection"
-import { cn } from "@/lib/utils"
+} from "@/stores/provider-store";
+import { useOllamaProcess } from "@/hooks/ollama/use-ollama-process";
+import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models";
+import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection";
+import { cn } from "@/lib/utils";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -52,76 +52,80 @@ const themeOptions: Array<{ value: Theme; label: string; icon: typeof Sun }> = [
 ];
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { theme, setTheme } = useTheme()
-  const settings = useSettingsStore()
+  const { theme, setTheme } = useTheme();
+  const settings = useSettingsStore();
 
   // Ollama process state
-  const isOllamaConnected = useOllamaConnected()
-  const installation = useOllamaInstallation()
-  const processStatus = useOllamaProcessStatus()
-  const canStart = useOllamaCanStart()
-  const canStop = useOllamaCanStop()
+  const isOllamaConnected = useOllamaConnected();
+  const installation = useOllamaInstallation();
+  const processStatus = useOllamaProcessStatus();
+  const canStart = useOllamaCanStart();
+  const canStop = useOllamaCanStop();
 
   // Ollama process hooks
   const { detectInstallation, startProcess, stopProcess, refreshStatus } =
-    useOllamaProcess()
-  const { fetchModels } = useOllamaModelsHook()
-  const { checkHealth } = useOllamaConnection()
+    useOllamaProcess();
+  const { fetchModels } = useOllamaModelsHook();
+  const { checkHealth } = useOllamaConnection();
 
   // Local state for form fields
   const [ollamaEndpoint, setOllamaEndpoint] = useState(
     settings.providers.ollama.endpoint ?? "",
-  )
+  );
   const [numParallel, setNumParallel] = useState(
     settings.providers.ollama.numParallel ?? 1,
-  )
+  );
   const [compactMode, setCompactMode] = useState(
     settings.preferences.compactMode,
-  )
+  );
   const [showEventNotifications, setShowEventNotifications] = useState(
     settings.preferences.showEventNotifications,
-  )
+  );
   const [autoApproveReadOnly, setAutoApproveReadOnly] = useState(
     settings.preferences.autoApproveReadOnly,
-  )
+  );
   const [autoApproveLowRisk, setAutoApproveLowRisk] = useState(
     settings.preferences.autoApproveLowRisk,
-  )
+  );
 
   // Sync local state when dialog opens
   useEffect(() => {
     if (open) {
-      setOllamaEndpoint(settings.providers.ollama.endpoint ?? "")
-      setNumParallel(settings.providers.ollama.numParallel ?? 1)
-      setCompactMode(settings.preferences.compactMode)
-      setShowEventNotifications(settings.preferences.showEventNotifications)
-      setAutoApproveReadOnly(settings.preferences.autoApproveReadOnly)
-      setAutoApproveLowRisk(settings.preferences.autoApproveLowRisk)
+      setOllamaEndpoint(settings.providers.ollama.endpoint ?? "");
+      setNumParallel(settings.providers.ollama.numParallel ?? 1);
+      setCompactMode(settings.preferences.compactMode);
+      setShowEventNotifications(settings.preferences.showEventNotifications);
+      setAutoApproveReadOnly(settings.preferences.autoApproveReadOnly);
+      setAutoApproveLowRisk(settings.preferences.autoApproveLowRisk);
       // Detect Ollama installation, check health, and refresh status when dialog opens
-      detectInstallation()
-      checkHealth()
-      refreshStatus()
+      detectInstallation();
+      checkHealth();
+      refreshStatus();
     }
-  }, [open, settings, detectInstallation, checkHealth, refreshStatus])
+  }, [open, settings, detectInstallation, checkHealth, refreshStatus]);
 
   const handleStartOllama = async () => {
-    console.log("Starting Ollama...", { installation, canStart, processStatus })
+    console.log("Starting Ollama...", {
+      installation,
+      canStart,
+      processStatus,
+    });
     try {
-      await startProcess()
+      await startProcess();
       // Fetch models after starting
-      fetchModels()
+      fetchModels();
     } catch (error) {
-      console.error("Failed to start Ollama:", error)
+      console.error("Failed to start Ollama:", error);
     }
-  }
+  };
 
   const handleStopOllama = async () => {
     try {
-      await stopProcess()
+      await stopProcess();
     } catch (error) {
-      console.error("Failed to stop Ollama:", error)
+      console.error("Failed to stop Ollama:", error);
     }
-  }
+  };
 
   const handleSave = () => {
     // Apply Ollama settings
@@ -264,7 +268,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
 
               {/* Installation Info */}
-              <div className="text-muted-foreground mt-2 border-t border-border pt-2 text-xs">
+              <div className="text-muted-foreground border-border mt-2 border-t pt-2 text-xs">
                 {installation ? (
                   <>
                     {installation.installationType === "cli" &&

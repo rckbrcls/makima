@@ -13,11 +13,6 @@ import {
   ChatWorkspace,
 } from "@/components/chat";
 import {
-  WorkDomainProvider,
-  WorkSidebar,
-  WorkWorkspace,
-} from "@/components/work";
-import {
   CodeTabSidebar,
   CodeTabWithProvider,
   CodeTabWorkspace,
@@ -36,7 +31,7 @@ export function MainPage() {
     {
       id: 1,
       label: "work",
-      content: <WorkSidebar />,
+      content: <div />,
     },
     {
       id: 2,
@@ -50,7 +45,7 @@ export function MainPage() {
       case 0:
         return <ChatWorkspace />;
       case 1:
-        return <WorkWorkspace />;
+        return <div />;
       case 2:
         return <CodeTabWorkspace />;
       default:
@@ -60,8 +55,7 @@ export function MainPage() {
 
   return (
     <ChatDomainProvider>
-      <WorkDomainProvider>
-        <CodeTabWithProvider>
+      <CodeTabWithProvider>
           <div className="text-foreground relative h-full max-h-dvh min-h-0 w-full max-w-[100vw] overflow-hidden">
             <TextureOverlay texture="grid" className="mix-blend-overlay" />
             <div className="relative z-10 flex h-full min-h-0">
@@ -98,7 +92,6 @@ export function MainPage() {
             <RunDetailsModal activeRun={null} onClose={() => {}} />
           </div>
         </CodeTabWithProvider>
-      </WorkDomainProvider>
     </ChatDomainProvider>
   );
 }

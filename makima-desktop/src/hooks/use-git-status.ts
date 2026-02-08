@@ -53,7 +53,10 @@ export function useGitStatus(options: UseGitStatusOptions = {}) {
   );
 
   const fetchDiff = useCallback(
-    async (filePath: string, options?: { repoPath?: string; staged?: boolean }): Promise<FileDiff | null> => {
+    async (
+      filePath: string,
+      options?: { repoPath?: string; staged?: boolean },
+    ): Promise<FileDiff | null> => {
       const targetPath = options?.repoPath ?? pathRef.current;
       if (!targetPath) return null;
 

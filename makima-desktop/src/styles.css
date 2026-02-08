@@ -43,7 +43,7 @@
   --glow-3: oklch(0.8 0.1 230 / 0.14);
   --grid-line: oklch(0% 0 0 / 0.08);
   --diff-add-bg: oklch(0.94 0.05 145);
-  --diff-add-fg: oklch(0.30 0.10 145);
+  --diff-add-fg: oklch(0.3 0.1 145);
   --diff-del-bg: oklch(0.94 0.06 25);
   --diff-del-fg: oklch(0.35 0.12 25);
   --diff-add-inline-bg: oklch(0.88 0.08 145);
@@ -92,8 +92,8 @@
   --diff-add-fg: oklch(0.78 0.12 150);
   --diff-del-bg: oklch(0.22 0.07 25);
   --diff-del-fg: oklch(0.78 0.12 25);
-  --diff-add-inline-bg: oklch(0.30 0.10 150);
-  --diff-del-inline-bg: oklch(0.30 0.11 25);
+  --diff-add-inline-bg: oklch(0.3 0.1 150);
+  --diff-del-inline-bg: oklch(0.3 0.11 25);
   --diff-filler: oklch(0.22 0 0);
 }
 

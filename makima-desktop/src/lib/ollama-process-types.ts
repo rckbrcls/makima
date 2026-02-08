@@ -5,15 +5,15 @@
 /**
  * Type of Ollama installation found on the system
  */
-export type InstallationType = "none" | "cli" | "app" | "both"
+export type InstallationType = "none" | "cli" | "app" | "both";
 
 /**
  * Information about the Ollama installation on the system
  */
 export interface OllamaInstallation {
-  installationType: InstallationType
-  cliPath: string | null
-  appInstalled: boolean
+  installationType: InstallationType;
+  cliPath: string | null;
+  appInstalled: boolean;
 }
 
 /**
@@ -24,13 +24,13 @@ export type ProcessStatus =
   | "stopped"
   | "starting"
   | "running"
-  | "stopping"
+  | "stopping";
 
 /**
  * Current status of the Ollama process from the backend
  */
 export interface OllamaProcessStatus {
-  isRunning: boolean
-  managedByApp: boolean
-  pid: number | null
+  isRunning: boolean;
+  managedByApp: boolean;
+  pid: number | null;
 }

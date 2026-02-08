@@ -13,8 +13,8 @@ import { mapPtySession } from "@/lib/code-types";
 const ACK_INTERVAL_MS = 64;
 
 function decodeBase64(b64: string, decoder: TextDecoder): string {
-  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
-  return decoder.decode(bytes, { stream: true })
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return decoder.decode(bytes, { stream: true });
 }
 
 export interface TerminalOptions {
@@ -111,7 +111,10 @@ export function useTerminal(options: TerminalOptions = {}) {
           (event) => {
             if (event.payload.sessionId === sessionId) {
               lastReceivedSeqRef.current = event.payload.seq;
-              const decoded = decodeBase64(event.payload.data, decoderRef.current);
+              const decoded = decodeBase64(
+                event.payload.data,
+                decoderRef.current,
+              );
               optionsRef.current.onOutput?.(decoded);
             }
           },

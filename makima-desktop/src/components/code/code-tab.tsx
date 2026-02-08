@@ -6,26 +6,26 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react"
-import { invoke } from "@tauri-apps/api/core"
-import { Play } from "lucide-react"
-import { AddRepositoryDialog } from "./add-repository-dialog"
-import { CliEmptyState, CliTerminalCard } from "./cli-terminal-card"
-import { CliToolbar } from "./cli-toolbar"
-import { GitChangesCard } from "./git-changes-card"
-import { RepositorySidebar } from "./repository-sidebar"
-import type { PanelImperativeHandle } from "react-resizable-panels"
-import type { Repository } from "@/lib/code-types"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+} from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { Play } from "lucide-react";
+import { AddRepositoryDialog } from "./add-repository-dialog";
+import { CliEmptyState, CliTerminalCard } from "./cli-terminal-card";
+import { CliToolbar } from "./cli-toolbar";
+import { GitChangesCard } from "./git-changes-card";
+import { RepositorySidebar } from "./repository-sidebar";
+import type { PanelImperativeHandle } from "react-resizable-panels";
+import type { Repository } from "@/lib/code-types";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable"
-import { useAiCliDetection } from "@/hooks/use-ai-cli-detection"
-import { useCliSessionsDb } from "@/hooks/use-cli-sessions"
-import { useRepositories } from "@/hooks/use-repositories"
+} from "@/components/ui/resizable";
+import { useAiCliDetection } from "@/hooks/use-ai-cli-detection";
+import { useCliSessionsDb } from "@/hooks/use-cli-sessions";
+import { useRepositories } from "@/hooks/use-repositories";
 import {
   useAgentPanelCollapsed,
   useCliActiveSessionId,
@@ -38,40 +38,39 @@ import {
   useCodeLayoutStore,
   useCodePanelLayout,
   useGitPanelCollapsed,
-  useInstalledClis,
   useLastActiveRepositoryId,
   useSelectedCliCommand,
-} from "@/stores"
+} from "@/stores";
 
 // ============================================================================
 // CodeTab Context (repository management only)
 // ============================================================================
 
 interface CodeTabContextValue {
-  repositories: Array<Repository>
-  activeRepositoryId: string | null
-  activeRepository: Repository | undefined
-  setActiveRepositoryId: (id: string | null) => void
-  handleSelectRepository: (repoId: string) => void
-  handleSelectSession: (sessionId: string) => void
+  repositories: Array<Repository>;
+  activeRepositoryId: string | null;
+  activeRepository: Repository | undefined;
+  setActiveRepositoryId: (id: string | null) => void;
+  handleSelectRepository: (repoId: string) => void;
+  handleSelectSession: (sessionId: string) => void;
   handleAddRepository: (
     name: string,
     path: string,
     branch?: string,
-  ) => Promise<void>
-  handleDeleteRepository: (repoId: string) => Promise<void>
-  handleRenameRepository: (repoId: string, newName: string) => Promise<void>
-  isAddRepoDialogOpen: boolean
-  setIsAddRepoDialogOpen: (open: boolean) => void
+  ) => Promise<void>;
+  handleDeleteRepository: (repoId: string) => Promise<void>;
+  handleRenameRepository: (repoId: string, newName: string) => Promise<void>;
+  isAddRepoDialogOpen: boolean;
+  setIsAddRepoDialogOpen: (open: boolean) => void;
 }
 
-const CodeTabContext = createContext<CodeTabContextValue | null>(null)
+const CodeTabContext = createContext<CodeTabContextValue | null>(null);
 
 function useCodeTabContext() {
-  const ctx = useContext(CodeTabContext)
+  const ctx = useContext(CodeTabContext);
   if (!ctx)
-    throw new Error("useCodeTabContext must be used within CodeTabProvider")
-  return ctx
+    throw new Error("useCodeTabContext must be used within CodeTabProvider");
+  return ctx;
 }
 
 // ============================================================================
@@ -79,103 +78,124 @@ function useCodeTabContext() {
 // ============================================================================
 
 interface CodeTabProviderProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function CodeTabProvider({ children }: CodeTabProviderProps) {
   const { repositories, createRepository, deleteRepository, updateRepository } =
-    useRepositories()
-  const {
-    setActiveRepositoryId: setCliActiveRepoId,
-    setActiveSessionId,
-  } = useCliSessionActions()
-  const sessions = useCliSessions()
-  const lastActiveRepoId = useLastActiveRepositoryId()
-  const isHydrated = useCodeLayoutHydrated()
-  const { setLastActiveRepositoryId } = useCodeLayoutActions()
+    useRepositories();
+  const { setActiveRepositoryId: setCliActiveRepoId, setActiveSessionId } =
+    useCliSessionActions();
+  const sessions = useCliSessions();
+  const lastActiveRepoId = useLastActiveRepositoryId();
+  const isHydrated = useCodeLayoutHydrated();
+  const { setLastActiveRepositoryId } = useCodeLayoutActions();
 
-  const [isAddRepoDialogOpen, setIsAddRepoDialogOpen] = useState(false)
+  const [isAddRepoDialogOpen, setIsAddRepoDialogOpen] = useState(false);
   const [activeRepositoryId, setActiveRepositoryId] = useState<string | null>(
     null,
-  )
+  );
 
   // Restore last active repository on mount after hydration
-  const hasRestoredRepo = useRef(false)
+  const hasRestoredRepo = useRef(false);
   useEffect(() => {
-    if (!isHydrated || hasRestoredRepo.current || repositories.length === 0) return
-    hasRestoredRepo.current = true
-    if (lastActiveRepoId && repositories.some((r) => r.id === lastActiveRepoId)) {
-      setActiveRepositoryId(lastActiveRepoId)
-      setCliActiveRepoId(lastActiveRepoId)
+    if (!isHydrated || hasRestoredRepo.current || repositories.length === 0)
+      return;
+    hasRestoredRepo.current = true;
+    if (
+      lastActiveRepoId &&
+      repositories.some((r) => r.id === lastActiveRepoId)
+    ) {
+      setActiveRepositoryId(lastActiveRepoId);
+      setCliActiveRepoId(lastActiveRepoId);
     }
-  }, [isHydrated, lastActiveRepoId, repositories, setCliActiveRepoId])
+  }, [isHydrated, lastActiveRepoId, repositories, setCliActiveRepoId]);
 
   const activeRepository = useMemo(
     () => repositories.find((r) => r.id === activeRepositoryId),
     [repositories, activeRepositoryId],
-  )
+  );
 
   const handleSelectRepository = useCallback(
     (repoId: string) => {
-      setActiveRepositoryId(repoId)
-      setCliActiveRepoId(repoId)
-      setLastActiveRepositoryId(repoId)
+      setActiveRepositoryId(repoId);
+      setCliActiveRepoId(repoId);
+      setLastActiveRepositoryId(repoId);
 
       // Auto-select the best session for this repo (prefer running, fallback to most recent)
-      let bestSession: { id: string; startedAt: number; running: boolean } | null = null
+      let bestSession: {
+        id: string;
+        startedAt: number;
+        running: boolean;
+      } | null = null;
       for (const session of sessions.values()) {
-        if (session.repositoryId !== repoId) continue
-        const isRunning = session.status === "running"
+        if (session.repositoryId !== repoId) continue;
+        const isRunning = session.status === "running";
         if (
           !bestSession ||
           (isRunning && !bestSession.running) ||
-          (isRunning === bestSession.running && session.startedAt > bestSession.startedAt)
+          (isRunning === bestSession.running &&
+            session.startedAt > bestSession.startedAt)
         ) {
-          bestSession = { id: session.id, startedAt: session.startedAt, running: isRunning }
+          bestSession = {
+            id: session.id,
+            startedAt: session.startedAt,
+            running: isRunning,
+          };
         }
       }
-      setActiveSessionId(bestSession?.id ?? null)
+      setActiveSessionId(bestSession?.id ?? null);
     },
-    [setCliActiveRepoId, setActiveSessionId, sessions, setLastActiveRepositoryId],
-  )
+    [
+      setCliActiveRepoId,
+      setActiveSessionId,
+      sessions,
+      setLastActiveRepositoryId,
+    ],
+  );
 
   const handleSelectSession = useCallback(
     (sessionId: string) => {
-      setActiveSessionId(sessionId)
+      setActiveSessionId(sessionId);
     },
     [setActiveSessionId],
-  )
+  );
 
   const handleAddRepository = useCallback(
     async (name: string, path: string, branch?: string) => {
-      const repo = await createRepository(name, path, branch)
+      const repo = await createRepository(name, path, branch);
       if (repo) {
-        setActiveRepositoryId(repo.id)
-        setCliActiveRepoId(repo.id)
-        setActiveSessionId(null)
+        setActiveRepositoryId(repo.id);
+        setCliActiveRepoId(repo.id);
+        setActiveSessionId(null);
       }
     },
     [createRepository, setCliActiveRepoId, setActiveSessionId],
-  )
+  );
 
   const handleDeleteRepository = useCallback(
     async (repoId: string) => {
-      await deleteRepository(repoId)
+      await deleteRepository(repoId);
       if (activeRepositoryId === repoId) {
-        setActiveRepositoryId(null)
-        setCliActiveRepoId(null)
-        setActiveSessionId(null)
+        setActiveRepositoryId(null);
+        setCliActiveRepoId(null);
+        setActiveSessionId(null);
       }
     },
-    [deleteRepository, activeRepositoryId, setCliActiveRepoId, setActiveSessionId],
-  )
+    [
+      deleteRepository,
+      activeRepositoryId,
+      setCliActiveRepoId,
+      setActiveSessionId,
+    ],
+  );
 
   const handleRenameRepository = useCallback(
     async (repoId: string, newName: string) => {
-      await updateRepository(repoId, { name: newName })
+      await updateRepository(repoId, { name: newName });
     },
     [updateRepository],
-  )
+  );
 
   const value: CodeTabContextValue = {
     repositories,
@@ -189,7 +209,7 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
     handleRenameRepository,
     isAddRepoDialogOpen,
     setIsAddRepoDialogOpen,
-  }
+  };
 
   return (
     <CodeTabContext.Provider value={value}>
@@ -200,7 +220,7 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
         onAdd={handleAddRepository}
       />
     </CodeTabContext.Provider>
-  )
+  );
 }
 
 // ============================================================================
@@ -208,11 +228,9 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
 // ============================================================================
 
 export function CodeTabSidebar() {
-  const ctx = useCodeTabContext()
-  const sessions = useCliSessions()
-  const activeSessionId = useCliActiveSessionId()
-  const selectedCommand = useSelectedCliCommand()
-  const installedClis = useInstalledClis()
+  const ctx = useCodeTabContext();
+  const sessions = useCliSessions();
+  const activeSessionId = useCliActiveSessionId();
   const {
     createSession,
     updateSessionStatus,
@@ -221,78 +239,84 @@ export function CodeTabSidebar() {
     resetSession,
     addSpawning,
     removeSpawning,
-  } = useCliSessionActions()
+  } = useCliSessionActions();
   const { createSessionDb, updateSessionDb, deleteSessionDb } =
-    useCliSessionsDb()
+    useCliSessionsDb();
 
   const handleStopSession = useCallback(
     (sessionId: string) => {
-      const session = sessions.get(sessionId)
-      if (!session) return
-      removeSpawning(sessionId)
+      const session = sessions.get(sessionId);
+      if (!session) return;
+      removeSpawning(sessionId);
       if (session.ptySessionId) {
-        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
+        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {});
       }
-      updateSessionStatus(sessionId, "exited")
-      updateSessionDb(sessionId, { status: "exited" })
+      updateSessionStatus(sessionId, "exited");
+      updateSessionDb(sessionId, { status: "exited" });
     },
     [sessions, updateSessionStatus, removeSpawning, updateSessionDb],
-  )
+  );
 
   const handleRestartSession = useCallback(
     (sessionId: string) => {
-      const session = sessions.get(sessionId)
-      if (!session) return
+      const session = sessions.get(sessionId);
+      if (!session) return;
 
       // Stop current
-      removeSpawning(sessionId)
+      removeSpawning(sessionId);
       if (session.ptySessionId) {
-        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
+        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {});
       }
-      updateSessionStatus(sessionId, "exited")
-      updateSessionDb(sessionId, { status: "exited" })
+      updateSessionStatus(sessionId, "exited");
+      updateSessionDb(sessionId, { status: "exited" });
 
       // Reset SAME session and trigger spawn after brief delay
       setTimeout(() => {
-        resetSession(sessionId)
-        setActiveSessionId(sessionId)
-        addSpawning(sessionId)
-      }, 200)
+        resetSession(sessionId);
+        setActiveSessionId(sessionId);
+        addSpawning(sessionId);
+      }, 200);
     },
-    [sessions, updateSessionStatus, resetSession, setActiveSessionId, addSpawning, removeSpawning, updateSessionDb],
-  )
+    [
+      sessions,
+      updateSessionStatus,
+      resetSession,
+      setActiveSessionId,
+      addSpawning,
+      removeSpawning,
+      updateSessionDb,
+    ],
+  );
 
   const handleRemoveSession = useCallback(
     (sessionId: string) => {
-      const session = sessions.get(sessionId)
+      const session = sessions.get(sessionId);
       if (session?.ptySessionId && session.status === "running") {
-        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
+        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {});
       }
-      removeSession(sessionId)
-      deleteSessionDb(sessionId)
+      removeSession(sessionId);
+      deleteSessionDb(sessionId);
     },
     [sessions, removeSession, deleteSessionDb],
-  )
+  );
 
   const handleNewSession = useCallback(
     (repoId: string) => {
-      const cli = installedClis.find((c) => c.command === selectedCommand)
-      if (!selectedCommand || !cli) return
-      const sessionId = `cli-${Date.now()}`
+      const sessionId = `cli-${Date.now()}`;
       createSession({
         id: sessionId,
         repositoryId: repoId,
-        cliName: cli.name,
-        cliCommand: selectedCommand,
+        cliName: null,
+        cliCommand: null,
         ptySessionId: null,
         status: "idle",
         startedAt: Date.now(),
-      })
-      createSessionDb(sessionId, repoId, cli.name, selectedCommand)
-      setActiveSessionId(sessionId)
+      });
+      createSessionDb(sessionId, repoId, null, null);
+      setActiveSessionId(sessionId);
     },
-    [selectedCommand, installedClis, createSession, setActiveSessionId, createSessionDb],
-  )
+    [createSession, setActiveSessionId, createSessionDb],
+  );
 
   return (
     <RepositorySidebar
@@ -310,7 +334,7 @@ export function CodeTabSidebar() {
       onRemoveSession={handleRemoveSession}
       sessions={sessions}
     />
-  )
+  );
 }
 
 // ============================================================================
@@ -318,83 +342,102 @@ export function CodeTabSidebar() {
 // ============================================================================
 
 export function CodeTabWorkspace() {
-  const ctx = useCodeTabContext()
-  const { clis, installedClis } = useAiCliDetection()
+  const ctx = useCodeTabContext();
+  const { clis, installedClis } = useAiCliDetection();
   const {
     setAvailableClis,
     createSession,
     setActiveSessionId,
     addSpawning,
     updateSessionCli,
-  } = useCliSessionActions()
-  const selectedCommand = useSelectedCliCommand()
-  const activeSessionId = useCliActiveSessionId()
-  const sessions = useCliSessions()
-  const pollInterval = useCliGitPollInterval()
+  } = useCliSessionActions();
+  const selectedCommand = useSelectedCliCommand();
+  const activeSessionId = useCliActiveSessionId();
+  const sessions = useCliSessions();
+  const pollInterval = useCliGitPollInterval();
   const { loadSessions, createSessionDb, updateSessionDb, deleteSessionDb } =
-    useCliSessionsDb()
+    useCliSessionsDb();
 
   // Hydrate sessions from DB on mount
-  const hasHydrated = useRef(false)
+  const hasHydrated = useRef(false);
   useEffect(() => {
-    if (hasHydrated.current) return
-    hasHydrated.current = true
-    loadSessions()
-  }, [loadSessions])
+    if (hasHydrated.current) return;
+    hasHydrated.current = true;
+    loadSessions();
+  }, [loadSessions]);
 
   // Sync all detected CLIs to store
   useEffect(() => {
     if (clis.length > 0) {
-      setAvailableClis(clis)
+      setAvailableClis(clis);
     }
-  }, [clis, setAvailableClis])
+  }, [clis, setAvailableClis]);
 
-  const repoPath = ctx.activeRepository?.path
-  const repoId = ctx.activeRepositoryId
+  const repoPath = ctx.activeRepository?.path;
+  const repoId = ctx.activeRepositoryId;
 
   const selectedCli = useMemo(
     () => installedClis.find((c) => c.command === selectedCommand),
     [installedClis, selectedCommand],
-  )
+  );
 
   // All sessions as array for rendering the pool
-  const allSessions = useMemo(() => [...sessions.values()], [sessions])
+  const allSessions = useMemo(() => [...sessions.values()], [sessions]);
 
   // Check if current repo has any sessions
   const repoHasNoSessions = useMemo(
     () => !allSessions.some((s) => s.repositoryId === repoId),
     [allSessions, repoId],
-  )
+  );
 
   const handleStart = useCallback(() => {
-    if (!repoId || !selectedCommand || !selectedCli) return
+    if (!repoId) return;
 
     // Read latest session directly from store to avoid stale closures
     const { activeSessionId: currentId, sessions: storeSessions } =
-      useCliSessionStore.getState()
-    const current = currentId ? storeSessions.get(currentId) ?? null : null
+      useCliSessionStore.getState();
+    const current = currentId ? (storeSessions.get(currentId) ?? null) : null;
 
-    // Reuse existing session if it's exited or errored
-    if (
-      current &&
-      current.repositoryId === repoId &&
-      (current.status === "exited" || current.status === "error")
-    ) {
-      const { resetSession } = useCliSessionStore.getState()
-      // Sync CLI selector to session before starting
-      updateSessionCli(current.id, selectedCommand, selectedCli.name)
-      updateSessionDb(current.id, {
-        status: "idle",
-        cliCommand: selectedCommand,
-        cliName: selectedCli.name,
-      })
-      resetSession(current.id)
-      addSpawning(current.id)
-      return
+    // Reuse existing session if it's idle (no CLI yet), exited, or errored
+    if (current && current.repositoryId === repoId) {
+      // Idle session without CLI — assign from global selector
+      if (current.status === "idle" && !current.cliCommand) {
+        if (!selectedCommand || !selectedCli) return;
+        updateSessionCli(current.id, selectedCommand, selectedCli.name);
+        updateSessionDb(current.id, {
+          cliCommand: selectedCommand,
+          cliName: selectedCli.name,
+        });
+        addSpawning(current.id);
+        return;
+      }
+
+      // Exited/errored session — use stored CLI, don't overwrite
+      if (current.status === "exited" || current.status === "error") {
+        const { resetSession } = useCliSessionStore.getState();
+        // Only sync CLI if the session already has one
+        if (current.cliCommand) {
+          resetSession(current.id);
+          addSpawning(current.id);
+        } else {
+          // Exited session without CLI (shouldn't normally happen) — assign from selector
+          if (!selectedCommand || !selectedCli) return;
+          updateSessionCli(current.id, selectedCommand, selectedCli.name);
+          updateSessionDb(current.id, {
+            status: "idle",
+            cliCommand: selectedCommand,
+            cliName: selectedCli.name,
+          });
+          resetSession(current.id);
+          addSpawning(current.id);
+        }
+        return;
+      }
     }
 
-    // First time — create a new session
-    const sessionId = `cli-${Date.now()}`
+    // First time — need a CLI to create a new session
+    if (!selectedCommand || !selectedCli) return;
+    const sessionId = `cli-${Date.now()}`;
     createSession({
       id: sessionId,
       repositoryId: repoId,
@@ -403,18 +446,28 @@ export function CodeTabWorkspace() {
       ptySessionId: null,
       status: "idle",
       startedAt: Date.now(),
-    })
-    createSessionDb(sessionId, repoId, selectedCli.name, selectedCommand)
-    setActiveSessionId(sessionId)
-    addSpawning(sessionId)
-  }, [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning, createSessionDb, updateSessionDb, updateSessionCli])
+    });
+    createSessionDb(sessionId, repoId, selectedCli.name, selectedCommand);
+    setActiveSessionId(sessionId);
+    addSpawning(sessionId);
+  }, [
+    repoId,
+    selectedCommand,
+    selectedCli,
+    createSession,
+    setActiveSessionId,
+    addSpawning,
+    createSessionDb,
+    updateSessionDb,
+    updateSessionCli,
+  ]);
 
   const handleNewSession = useCallback(
     (forRepoId?: string) => {
-      const targetRepoId = forRepoId ?? repoId
-      if (!targetRepoId || !selectedCommand || !selectedCli) return
+      const targetRepoId = forRepoId ?? repoId;
+      if (!targetRepoId || !selectedCommand || !selectedCli) return;
 
-      const sessionId = `cli-${Date.now()}`
+      const sessionId = `cli-${Date.now()}`;
       createSession({
         id: sessionId,
         repositoryId: targetRepoId,
@@ -423,109 +476,119 @@ export function CodeTabWorkspace() {
         ptySessionId: null,
         status: "idle",
         startedAt: Date.now(),
-      })
-      createSessionDb(sessionId, targetRepoId, selectedCli.name, selectedCommand)
-      setActiveSessionId(sessionId)
-      addSpawning(sessionId)
+      });
+      createSessionDb(
+        sessionId,
+        targetRepoId,
+        selectedCli.name,
+        selectedCommand,
+      );
+      setActiveSessionId(sessionId);
+      addSpawning(sessionId);
     },
-    [repoId, selectedCommand, selectedCli, createSession, setActiveSessionId, addSpawning, createSessionDb],
-  )
+    [
+      repoId,
+      selectedCommand,
+      selectedCli,
+      createSession,
+      setActiveSessionId,
+      addSpawning,
+      createSessionDb,
+    ],
+  );
 
   // Persisted layout state
-  const isAgentCollapsed = useAgentPanelCollapsed()
-  const isGitCollapsed = useGitPanelCollapsed()
-  const savedLayout = useCodePanelLayout()
-  const isHydrated = useCodeLayoutHydrated()
-  const {
-    setAgentPanelCollapsed,
-    setGitPanelCollapsed,
-    setPanelLayout,
-  } = useCodeLayoutActions()
+  const isAgentCollapsed = useAgentPanelCollapsed();
+  const isGitCollapsed = useGitPanelCollapsed();
+  const savedLayout = useCodePanelLayout();
+  const isHydrated = useCodeLayoutHydrated();
+  const { setAgentPanelCollapsed, setGitPanelCollapsed, setPanelLayout } =
+    useCodeLayoutActions();
 
   // Agent panel collapse
-  const agentPanelRef = useRef<PanelImperativeHandle | null>(null)
+  const agentPanelRef = useRef<PanelImperativeHandle | null>(null);
 
   const handleAgentPanelResize = useCallback(() => {
-    const panel = agentPanelRef.current
+    const panel = agentPanelRef.current;
     if (panel) {
-      const collapsed = panel.isCollapsed()
+      const collapsed = panel.isCollapsed();
       if (collapsed !== useCodeLayoutStore.getState().agentPanelCollapsed) {
-        setAgentPanelCollapsed(collapsed)
+        setAgentPanelCollapsed(collapsed);
       }
     }
-  }, [setAgentPanelCollapsed])
+  }, [setAgentPanelCollapsed]);
 
   const toggleAgentPanel = useCallback(() => {
-    const panel = agentPanelRef.current
-    if (!panel) return
+    const panel = agentPanelRef.current;
+    if (!panel) return;
     if (panel.isCollapsed()) {
-      panel.expand()
+      panel.expand();
     } else {
-      panel.collapse()
+      panel.collapse();
     }
-  }, [])
+  }, []);
 
   // Git panel collapse
-  const gitPanelRef = useRef<PanelImperativeHandle | null>(null)
+  const gitPanelRef = useRef<PanelImperativeHandle | null>(null);
 
   const handleGitPanelResize = useCallback(() => {
-    const panel = gitPanelRef.current
+    const panel = gitPanelRef.current;
     if (panel) {
-      const collapsed = panel.isCollapsed()
+      const collapsed = panel.isCollapsed();
       if (collapsed !== useCodeLayoutStore.getState().gitPanelCollapsed) {
-        setGitPanelCollapsed(collapsed)
+        setGitPanelCollapsed(collapsed);
       }
     }
-  }, [setGitPanelCollapsed])
+  }, [setGitPanelCollapsed]);
 
   const toggleGitPanel = useCallback(() => {
-    const panel = gitPanelRef.current
-    if (!panel) return
+    const panel = gitPanelRef.current;
+    if (!panel) return;
     if (panel.isCollapsed()) {
-      panel.expand()
+      panel.expand();
     } else {
-      panel.collapse()
+      panel.collapse();
     }
-  }, [])
+  }, []);
 
   // Persist panel layout on resize (fires after pointer release)
   // Layout is keyed by panel id: { "agent-panel": number, "git-panel": number }
   const handleLayoutChanged = useCallback(
     (layout: Record<string, number>) => {
-      setPanelLayout(layout)
+      setPanelLayout(layout);
     },
     [setPanelLayout],
-  )
+  );
 
   // Restore collapsed state on mount after hydration
-  const hasRestoredPanels = useRef(false)
+  const hasRestoredPanels = useRef(false);
   useEffect(() => {
-    if (!isHydrated || hasRestoredPanels.current) return
-    hasRestoredPanels.current = true
-    const state = useCodeLayoutStore.getState()
+    if (!isHydrated || hasRestoredPanels.current) return;
+    hasRestoredPanels.current = true;
+    const state = useCodeLayoutStore.getState();
     requestAnimationFrame(() => {
-      if (state.agentPanelCollapsed) agentPanelRef.current?.collapse()
-      if (state.gitPanelCollapsed) gitPanelRef.current?.collapse()
-    })
-  }, [isHydrated])
+      if (state.agentPanelCollapsed) agentPanelRef.current?.collapse();
+      if (state.gitPanelCollapsed) gitPanelRef.current?.collapse();
+    });
+  }, [isHydrated]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // ⌘B — toggle agent panel
       if (e.metaKey && !e.altKey && e.code === "KeyB") {
-        e.preventDefault()
-        toggleAgentPanel()
+        e.preventDefault();
+        toggleAgentPanel();
       }
       // ⌥⌘B — toggle git panel
       if (e.metaKey && e.altKey && e.code === "KeyB") {
-        e.preventDefault()
-        toggleGitPanel()
+        e.preventDefault();
+        toggleGitPanel();
       }
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [toggleAgentPanel, toggleGitPanel])
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [toggleAgentPanel, toggleGitPanel]);
 
   // Show empty state if no repository selected
   if (!ctx.activeRepositoryId) {
@@ -536,7 +599,7 @@ export function CodeTabWorkspace() {
           Add a repository using the + button in the sidebar
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -581,8 +644,8 @@ export function CodeTabWorkspace() {
                   <select
                     value={selectedCommand ?? ""}
                     onChange={(e) => {
-                      const store = useCliSessionStore.getState()
-                      store.setSelectedCliCommand(e.target.value || null)
+                      const store = useCliSessionStore.getState();
+                      store.setSelectedCliCommand(e.target.value || null);
                     }}
                     className="bg-input text-foreground border-border h-6 rounded-md border px-2 text-xs focus:outline-none"
                   >
@@ -624,7 +687,10 @@ export function CodeTabWorkspace() {
                 <CliTerminalCard
                   sessionId={session.id}
                   isVisible={session.id === activeSessionId}
-                  cwd={ctx.repositories.find((r) => r.id === session.repositoryId)?.path}
+                  cwd={
+                    ctx.repositories.find((r) => r.id === session.repositoryId)
+                      ?.path
+                  }
                   onNewSession={() => handleNewSession(session.repositoryId)}
                   className="h-full"
                 />
@@ -653,7 +719,7 @@ export function CodeTabWorkspace() {
         </ResizablePanel>
       </ResizablePanelGroup>
     </section>
-  )
+  );
 }
 
 // ============================================================================
@@ -663,12 +729,12 @@ export function CodeTabWorkspace() {
 export function CodeTabWithProvider({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  return <CodeTabProvider>{children}</CodeTabProvider>
+  return <CodeTabProvider>{children}</CodeTabProvider>;
 }
 
 // Legacy export for backwards compatibility
 export function CodeTab() {
-  return <CodeTabSidebar />
+  return <CodeTabSidebar />;
 }

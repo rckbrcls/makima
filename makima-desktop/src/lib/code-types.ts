@@ -51,54 +51,54 @@ export interface PtyExitPayload {
 
 // AI CLI types
 export interface AiCliInfo {
-  name: string
-  command: string
-  version: string | null
-  installed: boolean
+  name: string;
+  command: string;
+  version: string | null;
+  installed: boolean;
 }
 
 export interface AiCliDetectionResult {
-  clis: Array<AiCliInfo>
+  clis: Array<AiCliInfo>;
 }
 
 export interface CliSession {
-  id: string
-  repositoryId: string
-  cliName: string
-  cliCommand: string
-  ptySessionId: string | null
-  status: "idle" | "running" | "exited" | "error"
-  startedAt: number
-  exitCode?: number
-  resumeSessionId?: string
+  id: string;
+  repositoryId: string;
+  cliName: string | null;
+  cliCommand: string | null;
+  ptySessionId: string | null;
+  status: "idle" | "running" | "exited" | "error";
+  startedAt: number;
+  exitCode?: number;
+  resumeSessionId?: string;
 }
 
 // CLI Session database types (snake_case from Rust)
 export interface CliSessionDb {
-  id: string
-  repository_id: string
-  cli_name: string
-  cli_command: string
-  status: string
-  exit_code: number | null
-  resume_session_id: string | null
-  started_at: number
-  created_at: number
-  updated_at: number
+  id: string;
+  repository_id: string;
+  cli_name: string | null;
+  cli_command: string | null;
+  status: string;
+  exit_code: number | null;
+  resume_session_id: string | null;
+  started_at: number;
+  created_at: number;
+  updated_at: number;
 }
 
 export function mapCliSessionFromDb(db: CliSessionDb): CliSession {
   return {
     id: db.id,
     repositoryId: db.repository_id,
-    cliName: db.cli_name,
-    cliCommand: db.cli_command,
+    cliName: db.cli_name ?? null,
+    cliCommand: db.cli_command ?? null,
     ptySessionId: null,
     status: db.status as CliSession["status"],
     startedAt: db.started_at,
     exitCode: db.exit_code ?? undefined,
     resumeSessionId: db.resume_session_id ?? undefined,
-  }
+  };
 }
 
 // Database response types (snake_case from Rust)

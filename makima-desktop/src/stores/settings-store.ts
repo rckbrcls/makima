@@ -47,18 +47,6 @@ interface SettingsState {
       apiKey?: string;
       preferredAuthSource?: AuthSourcePreference;
     };
-    openclaw: {
-      enabled: boolean;
-      gatewayUrl: string;
-      password?: string;
-      token?: string;
-      autoConnect: boolean;
-    };
-    supabase: {
-      enabled: boolean;
-      url?: string;
-      anonKey?: string;
-    };
   };
 
   // Hydration state
@@ -106,14 +94,6 @@ const defaultSettings: Omit<SettingsState, "_hasHydrated"> = {
     ollama: { enabled: true, numParallel: 1 },
     openai: { enabled: false },
     anthropic: { enabled: false },
-    openclaw: {
-      enabled: false,
-      gatewayUrl: "ws://127.0.0.1:18789",
-      autoConnect: false,
-    },
-    supabase: {
-      enabled: false,
-    },
   },
 };
 
@@ -144,14 +124,6 @@ function migrateSettings(
           enabled:
             (oldProviders.api as { enabled?: boolean })?.enabled ?? false,
           apiKey: (oldProviders.api as { apiKey?: string })?.apiKey,
-        },
-        openclaw: {
-          enabled: false,
-          gatewayUrl: "ws://127.0.0.1:18789",
-          autoConnect: false,
-        },
-        supabase: {
-          enabled: false,
         },
       };
     }
@@ -314,40 +286,6 @@ export const useSettingsStore = create<SettingsStore>()(
           state = { ...state, ...migrated };
         }
 
-        if (version < 2) {
-          // Add openclaw provider config if missing
-          const providers = (state.providers ?? {}) as Record<string, unknown>;
-          if (!providers.openclaw) {
-            state = {
-              ...state,
-              providers: {
-                ...providers,
-                openclaw: {
-                  enabled: false,
-                  gatewayUrl: "ws://127.0.0.1:18789",
-                  autoConnect: false,
-                },
-              },
-            };
-          }
-        }
-
-        if (version < 3) {
-          // Add supabase provider config if missing
-          const providers = (state.providers ?? {}) as Record<string, unknown>;
-          if (!providers.supabase) {
-            state = {
-              ...state,
-              providers: {
-                ...providers,
-                supabase: {
-                  enabled: false,
-                },
-              },
-            };
-          }
-        }
-
         return state as unknown as SettingsState;
       },
     },
@@ -405,22 +343,6 @@ export const useOpenAIAuthPreference = () =>
 
 export const useAnthropicAuthPreference = () =>
   useSettingsStore((s) => s.providers.anthropic.preferredAuthSource);
-
-const defaultOpenClawConfig: SettingsState["providers"]["openclaw"] = {
-  enabled: false,
-  gatewayUrl: "ws://127.0.0.1:18789",
-  autoConnect: false,
-};
-
-export const useOpenClawConfig = () =>
-  useSettingsStore((s) => s.providers.openclaw ?? defaultOpenClawConfig);
-
-const defaultSupabaseConfig: SettingsState["providers"]["supabase"] = {
-  enabled: false,
-};
-
-export const useSupabaseConfig = () =>
-  useSettingsStore((s) => s.providers.supabase ?? defaultSupabaseConfig);
 
 export const useProviders = () => useSettingsStore((s) => s.providers);
 

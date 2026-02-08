@@ -6,4 +6,4 @@ export {
   ChatTabProvider,
   ChatTabSidebar,
   ChatTabWorkspace,
-} from "@/components/chat"
+} from "@/components/chat";

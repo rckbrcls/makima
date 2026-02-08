@@ -11,10 +11,7 @@ import {
   useSelectedProvider,
 } from "@/stores/chat-store";
 import { useHasRunningExecution } from "@/stores/conversation-store";
-import {
-  useAuthStatus,
-  useOllamaConnected,
-} from "@/stores/provider-store";
+import { useAuthStatus, useOllamaConnected } from "@/stores/provider-store";
 
 interface ConversationComposerProps {
   /**
@@ -73,15 +70,15 @@ export function ConversationComposer({
   const isProviderAvailable = (() => {
     switch (selectedProvider) {
       case "ollama":
-        return isOllamaConnected
+        return isOllamaConnected;
       case "openai":
-        return authStatus?.openai.is_configured ?? false
+        return authStatus?.openai.is_configured ?? false;
       case "anthropic":
-        return authStatus?.anthropic.is_configured ?? false
+        return authStatus?.anthropic.is_configured ?? false;
       default:
-        return false
+        return false;
     }
-  })()
+  })();
 
   const isDisabled =
     hasRunningExecution ||
@@ -104,7 +101,9 @@ export function ConversationComposer({
                 : `Configure ${selectedProvider} API key...`
               : "Write your message..."
         }
-        disabled={hasRunningExecution || !isModelSelected || !isProviderAvailable}
+        disabled={
+          hasRunningExecution || !isModelSelected || !isProviderAvailable
+        }
         className="resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
       />
       <div className="flex items-end justify-between">

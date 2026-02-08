@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from "react"
+} from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -19,79 +19,83 @@ import {
   FolderOpenIcon,
   GitBranch,
   List,
+  ListTree,
   RefreshCw,
   Rows2,
-  ListTree,
-} from "lucide-react"
-import type { FileDiff, GitFileChange, GitStatus } from "@/lib/code-types"
-import type { IntralineSpan, RowModel } from "@/lib/diff-engine"
-import { buildRowModels } from "@/lib/diff-engine"
-import { ScrollSyncController } from "@/lib/scroll-sync"
-import { useGitStatus } from "@/hooks/use-git-status"
+} from "lucide-react";
+import type { FileDiff, GitFileChange, GitStatus } from "@/lib/code-types";
+import type { IntralineSpan, RowModel } from "@/lib/diff-engine";
+import { buildRowModels } from "@/lib/diff-engine";
+import { ScrollSyncController } from "@/lib/scroll-sync";
+import { useGitStatus } from "@/hooks/use-git-status";
 import {
-  useFileListView,
+  useCodeLayoutActions,
   useDiffView,
   useExpandedSections,
+  useFileListView,
   useSplitPosition,
-  useCodeLayoutActions,
-} from "@/stores"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+} from "@/stores";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 
 interface GitChangesCardProps {
-  repoPath?: string
-  pollInterval?: number
-  className?: string
+  repoPath?: string;
+  pollInterval?: number;
+  className?: string;
 }
 
 function FileIcon({ status }: { status: GitFileChange["status"] }) {
   switch (status) {
     case "added":
-      return <FilePlus className="size-4 text-diff-add-fg" />
+      return <FilePlus className="text-diff-add-fg size-4" />;
     case "deleted":
-      return <FileMinus className="size-4 text-diff-del-fg" />
+      return <FileMinus className="text-diff-del-fg size-4" />;
     case "modified":
-      return <FileEdit className="size-4 text-foreground" />
+      return <FileEdit className="text-foreground size-4" />;
     case "renamed":
-      return <File className="size-4 text-ring" />
+      return <File className="text-ring size-4" />;
     default:
-      return <File className="size-4 text-muted-foreground" />
+      return <File className="text-muted-foreground size-4" />;
   }
 }
 
 // --- File tree helpers ---
 
 interface FileTreeNode {
-  name: string
-  fullPath: string
-  isFile: boolean
-  status?: GitFileChange["status"]
-  staged?: boolean
-  children: Map<string, FileTreeNode>
+  name: string;
+  fullPath: string;
+  isFile: boolean;
+  status?: GitFileChange["status"];
+  staged?: boolean;
+  children: Map<string, FileTreeNode>;
 }
 
 function buildFileTree(
-  files: Array<{ path: string; status?: GitFileChange["status"]; staged?: boolean }>,
+  files: Array<{
+    path: string;
+    status?: GitFileChange["status"];
+    staged?: boolean;
+  }>,
 ): FileTreeNode {
   const root: FileTreeNode = {
     name: "",
     fullPath: "",
     isFile: false,
     children: new Map(),
-  }
+  };
 
   for (const file of files) {
-    const parts = file.path.split("/")
-    let current = root
+    const parts = file.path.split("/");
+    let current = root;
 
     for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
-      const isLast = i === parts.length - 1
+      const part = parts[i];
+      const isLast = i === parts.length - 1;
 
       if (!current.children.has(part)) {
         current.children.set(part, {
@@ -101,14 +105,14 @@ function buildFileTree(
           status: isLast ? file.status : undefined,
           staged: isLast ? file.staged : undefined,
           children: new Map(),
-        })
+        });
       }
 
-      current = current.children.get(part)!
+      current = current.children.get(part)!;
     }
   }
 
-  return root
+  return root;
 }
 
 function FileTreeView({
@@ -117,20 +121,20 @@ function FileTreeView({
   onFileClick,
   depth = 0,
 }: {
-  node: FileTreeNode
-  selectedFile: string | null
-  onFileClick: (path: string, staged?: boolean) => void
-  depth?: number
+  node: FileTreeNode;
+  selectedFile: string | null;
+  onFileClick: (path: string, staged?: boolean) => void;
+  depth?: number;
 }) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(true);
   const sortedChildren = useMemo(() => {
-    const entries = Array.from(node.children.values())
+    const entries = Array.from(node.children.values());
     // folders first, then files, alphabetical within each group
     return entries.sort((a, b) => {
-      if (a.isFile !== b.isFile) return a.isFile ? 1 : -1
-      return a.name.localeCompare(b.name)
-    })
-  }, [node.children])
+      if (a.isFile !== b.isFile) return a.isFile ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [node.children]);
 
   return (
     <>
@@ -139,7 +143,7 @@ function FileTreeView({
           <button
             key={child.fullPath}
             className={cn(
-              "bg-background border-border border flex w-full items-center gap-2 py-1 text-xs",
+              "bg-background border-border flex w-full items-center gap-2 border py-1 text-xs",
               selectedFile === child.fullPath && "glass-selected",
             )}
             style={{ paddingLeft: depth * 12 + 16 }}
@@ -151,7 +155,7 @@ function FileTreeView({
         ) : (
           <div key={child.fullPath}>
             <button
-              className="glass-hover flex w-full items-center gap-1 py-1 text-xs text-muted-foreground"
+              className="glass-hover text-muted-foreground flex w-full items-center gap-1 py-1 text-xs"
               style={{ paddingLeft: depth * 12 + 8 }}
               onClick={() => setExpanded((prev) => !prev)}
             >
@@ -174,7 +178,7 @@ function FileTreeView({
         ),
       )}
     </>
-  )
+  );
 }
 
 function DiffViewer({
@@ -182,53 +186,53 @@ function DiffViewer({
   scrollRequestId,
   targetChangeIndex,
 }: {
-  diff: FileDiff
-  scrollRequestId?: number
-  targetChangeIndex?: number
+  diff: FileDiff;
+  scrollRequestId?: number;
+  targetChangeIndex?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (targetChangeIndex == null || targetChangeIndex < 0) return
+    if (targetChangeIndex == null || targetChangeIndex < 0) return;
     const el = containerRef.current?.querySelector(
       `[data-change-index="${targetChangeIndex}"]`,
-    )
-    el?.scrollIntoView({ block: "start", behavior: "smooth" })
-  }, [scrollRequestId, targetChangeIndex])
+    );
+    el?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [scrollRequestId, targetChangeIndex]);
 
   if (!diff.lines.length) {
     return (
       <div className="text-muted-foreground px-4 py-2 text-xs">
         No changes to display
       </div>
-    )
+    );
   }
 
-  let changeCounter = -1
-  let inChange = false
+  let changeCounter = -1;
+  let inChange = false;
 
   return (
     <div ref={containerRef} className="overflow-x-auto font-mono text-xs">
       {diff.lines.map((line, idx) => {
-        const isChange = line.kind === "add" || line.kind === "del"
-        let changeIndex: number | undefined
+        const isChange = line.kind === "add" || line.kind === "del";
+        let changeIndex: number | undefined;
         if (isChange && !inChange) {
-          changeCounter++
-          changeIndex = changeCounter
+          changeCounter++;
+          changeIndex = changeCounter;
         }
-        inChange = isChange
+        inChange = isChange;
 
         if (line.kind === "hunk") {
-          inChange = false
+          inChange = false;
           return (
             <div
               key={idx}
-              className="bg-accent leading-6 border-y border-accent"
+              className="bg-accent border-accent border-y leading-6"
             >
-              <span className="text-muted-foreground w-12 inline-block shrink-0 select-none px-2 text-right" />
-              <span className="text-muted-foreground w-12 inline-block shrink-0 select-none px-2 text-right" />
+              <span className="text-muted-foreground inline-block w-12 shrink-0 px-2 text-right select-none" />
+              <span className="text-muted-foreground inline-block w-12 shrink-0 px-2 text-right select-none" />
             </div>
-          )
+          );
         }
 
         return (
@@ -236,65 +240,65 @@ function DiffViewer({
             key={idx}
             data-change-index={changeIndex}
             className={cn(
-              "flex min-w-max whitespace-pre leading-6",
+              "flex min-w-max leading-6 whitespace-pre",
               line.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
               line.kind === "del" && "bg-diff-del-bg text-diff-del-fg",
               line.kind === "context" && "text-muted-foreground",
             )}
           >
-            <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
+            <span className="text-muted-foreground w-12 shrink-0 px-2 text-right select-none">
               {line.oldLineno ?? ""}
             </span>
-            <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
+            <span className="text-muted-foreground w-12 shrink-0 px-2 text-right select-none">
               {line.newLineno ?? ""}
             </span>
             <span className="border-border shrink-0 border-r" />
-            <span className="px-3 flex-1">{line.content}</span>
+            <span className="flex-1 px-3">{line.content}</span>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 // --- Side-by-side diff ---
 
-const ROW_HEIGHT = 24
-const OVERSCAN = 20
+const ROW_HEIGHT = 24;
+const OVERSCAN = 20;
 
 function renderLineContent(
   text: string,
   spans: Array<IntralineSpan>,
   cssClass: string,
 ) {
-  if (!spans.length) return text
+  if (!spans.length) return text;
 
-  const parts: Array<React.ReactNode> = []
-  let cursor = 0
+  const parts: Array<React.ReactNode> = [];
+  let cursor = 0;
 
   for (let i = 0; i < spans.length; i++) {
-    const { start, length } = spans[i]
+    const { start, length } = spans[i];
     if (start > cursor) {
-      parts.push(text.slice(cursor, start))
+      parts.push(text.slice(cursor, start));
     }
     parts.push(
       <mark key={i} className={cn("rounded-sm", cssClass)}>
         {text.slice(start, start + length)}
       </mark>,
-    )
-    cursor = start + length
+    );
+    cursor = start + length;
   }
 
   if (cursor < text.length) {
-    parts.push(text.slice(cursor))
+    parts.push(text.slice(cursor));
   }
 
-  return <>{parts}</>
+  return <>{parts}</>;
 }
 
 interface DiffRowSideProps {
-  side: RowModel["left"]
-  inlineClass: string
+  side: RowModel["left"];
+  inlineClass: string;
 }
 
 const DiffRowSide = React.memo(function DiffRowSide({
@@ -304,17 +308,15 @@ const DiffRowSide = React.memo(function DiffRowSide({
   return (
     <div
       className={cn(
-        "flex min-w-max whitespace-pre leading-6",
+        "flex min-w-max leading-6 whitespace-pre",
         side.kind === "placeholder" && "diff-filler-hatched",
         side.kind === "del" && "bg-diff-del-bg text-diff-del-fg",
         side.kind === "add" && "bg-diff-add-bg text-diff-add-fg",
         side.kind === "context" && "text-muted-foreground",
       )}
     >
-      <span className="text-muted-foreground w-12 shrink-0 select-none px-2 text-right">
-        {side.kind === "placeholder"
-          ? "\u2014"
-          : (side.lineNumber ?? "")}
+      <span className="text-muted-foreground w-12 shrink-0 px-2 text-right select-none">
+        {side.kind === "placeholder" ? "\u2014" : (side.lineNumber ?? "")}
       </span>
       <span className="border-border shrink-0 border-r" />
       <span className="px-3">
@@ -323,160 +325,161 @@ const DiffRowSide = React.memo(function DiffRowSide({
           : side.content}
       </span>
     </div>
-  )
-})
+  );
+});
 
 function SideBySideDiffViewer({
   diff,
   scrollRequestId,
   targetChangeIndex,
 }: {
-  diff: FileDiff
-  scrollRequestId?: number
-  targetChangeIndex?: number
+  diff: FileDiff;
+  scrollRequestId?: number;
+  targetChangeIndex?: number;
 }) {
-  const rows = useMemo(() => buildRowModels(diff.lines), [diff.lines])
+  const rows = useMemo(() => buildRowModels(diff.lines), [diff.lines]);
 
   const changeRowIndices = useMemo(() => {
-    const positions: Array<number> = []
-    let inChange = false
+    const positions: Array<number> = [];
+    let inChange = false;
     for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
-      const isChange = !row.isSeparator && !row.isContext
-      if (isChange && !inChange) positions.push(i)
-      inChange = isChange
+      const row = rows[i];
+      const isChange = !row.isSeparator && !row.isContext;
+      if (isChange && !inChange) positions.push(i);
+      inChange = isChange;
     }
-    return positions
-  }, [rows])
+    return positions;
+  }, [rows]);
 
   // Split position: local state for instant drag feedback, synced from/to store
-  const savedSplitPosition = useSplitPosition()
-  const { setSplitPosition: persistSplitPosition } = useCodeLayoutActions()
-  const [split, setSplit] = useState(savedSplitPosition)
-  const splitRef = useRef(split)
+  const savedSplitPosition = useSplitPosition();
+  const { setSplitPosition: persistSplitPosition } = useCodeLayoutActions();
+  const [split, setSplit] = useState(savedSplitPosition);
+  const splitRef = useRef(split);
   useEffect(() => {
-    splitRef.current = split
-  }, [split])
-  const [range, setRange] = useState({ start: 0, end: 50 })
+    splitRef.current = split;
+  }, [split]);
+  const [range, setRange] = useState({ start: 0, end: 50 });
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const leftRef = useRef<HTMLDivElement>(null)
-  const rightRef = useRef<HTMLDivElement>(null)
-  const vRaf = useRef(0)
-  const syncRef = useRef<ScrollSyncController | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+  const vRaf = useRef(0);
+  const syncRef = useRef<ScrollSyncController | null>(null);
 
   // Attach scroll sync controller
   useEffect(() => {
-    const left = leftRef.current
-    const right = rightRef.current
-    if (!left || !right) return
+    const left = leftRef.current;
+    const right = rightRef.current;
+    if (!left || !right) return;
 
-    const ctrl = new ScrollSyncController()
-    ctrl.attach(left, right)
-    syncRef.current = ctrl
+    const ctrl = new ScrollSyncController();
+    ctrl.attach(left, right);
+    syncRef.current = ctrl;
 
     return () => {
-      ctrl.dispose()
-      syncRef.current = null
-    }
-  }, [])
+      ctrl.dispose();
+      syncRef.current = null;
+    };
+  }, []);
 
   // Cleanup vRaf on unmount
   useEffect(() => {
     return () => {
-      if (vRaf.current) cancelAnimationFrame(vRaf.current)
-    }
-  }, [])
+      if (vRaf.current) cancelAnimationFrame(vRaf.current);
+    };
+  }, []);
 
   // Initialize visible range on mount / diff change
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
+    const el = scrollRef.current;
+    if (!el) return;
     const end = Math.min(
       rows.length,
       Math.ceil(el.clientHeight / ROW_HEIGHT) + OVERSCAN,
-    )
-    setRange({ start: 0, end })
-  }, [rows.length])
+    );
+    setRange({ start: 0, end });
+  }, [rows.length]);
 
   // Restore horizontal scroll after visible range changes
   useLayoutEffect(() => {
     if (syncRef.current) {
-      syncRef.current.restoreScrollLeft(syncRef.current.getScrollLeft())
+      syncRef.current.restoreScrollLeft(syncRef.current.getScrollLeft());
     }
-  }, [range])
+  }, [range]);
 
   // Resize handle - persist to store on mouseup
-  const handleResize = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    const onMove = (ev: MouseEvent) => {
-      if (!wrapperRef.current) return
-      const rect = wrapperRef.current.getBoundingClientRect()
-      const pct = ((ev.clientX - rect.left) / rect.width) * 100
-      setSplit(Math.max(25, Math.min(75, pct)))
-    }
-    const onUp = () => {
-      document.removeEventListener("mousemove", onMove)
-      document.removeEventListener("mouseup", onUp)
-      persistSplitPosition(splitRef.current)
-    }
-    document.addEventListener("mousemove", onMove)
-    document.addEventListener("mouseup", onUp)
-  }, [persistSplitPosition])
+  const handleResize = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const onMove = (ev: MouseEvent) => {
+        if (!wrapperRef.current) return;
+        const rect = wrapperRef.current.getBoundingClientRect();
+        const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+        setSplit(Math.max(25, Math.min(75, pct)));
+      };
+      const onUp = () => {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        persistSplitPosition(splitRef.current);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    },
+    [persistSplitPosition],
+  );
 
   // Vertical scroll -> update visible range, rAF batched
   const handleVScroll = useCallback(() => {
     if (!vRaf.current) {
       vRaf.current = requestAnimationFrame(() => {
-        vRaf.current = 0
-        const el = scrollRef.current
-        if (!el) return
+        vRaf.current = 0;
+        const el = scrollRef.current;
+        if (!el) return;
         const start = Math.max(
           0,
           Math.floor(el.scrollTop / ROW_HEIGHT) - OVERSCAN,
-        )
+        );
         const end = Math.min(
           rows.length,
           Math.ceil((el.scrollTop + el.clientHeight) / ROW_HEIGHT) + OVERSCAN,
-        )
+        );
         setRange((prev) =>
-          prev.start === start && prev.end === end
-            ? prev
-            : { start, end },
-        )
-      })
+          prev.start === start && prev.end === end ? prev : { start, end },
+        );
+      });
     }
-  }, [rows.length])
+  }, [rows.length]);
 
   // Scroll to target change block when requested
   useEffect(() => {
-    if (targetChangeIndex == null || targetChangeIndex < 0) return
-    if (targetChangeIndex >= changeRowIndices.length) return
-    const rowIndex = changeRowIndices[targetChangeIndex]
+    if (targetChangeIndex == null || targetChangeIndex < 0) return;
+    if (targetChangeIndex >= changeRowIndices.length) return;
+    const rowIndex = changeRowIndices[targetChangeIndex];
     scrollRef.current?.scrollTo({
       top: rowIndex * ROW_HEIGHT,
       behavior: "smooth",
-    })
-  }, [scrollRequestId, targetChangeIndex, changeRowIndices])
+    });
+  }, [scrollRequestId, targetChangeIndex, changeRowIndices]);
 
   if (!diff.lines.length) {
     return (
       <div className="text-muted-foreground px-4 py-2 text-xs">
         No changes to display
       </div>
-    )
+    );
   }
 
-  const totalHeight = rows.length * ROW_HEIGHT
-  const visibleRows = rows.slice(range.start, range.end)
-  const offsetY = range.start * ROW_HEIGHT
+  const totalHeight = rows.length * ROW_HEIGHT;
+  const visibleRows = rows.slice(range.start, range.end);
+  const offsetY = range.start * ROW_HEIGHT;
 
   return (
     <div ref={wrapperRef} className="relative h-full font-mono text-xs">
       {/* Drag handle */}
       <div
-        className="absolute top-0 bottom-0 z-10 w-1 cursor-col-resize hover:bg-ring active:bg-ring"
+        className="hover:bg-ring active:bg-ring absolute top-0 bottom-0 z-10 w-1 cursor-col-resize"
         style={{ left: `${split}%`, transform: "translateX(-50%)" }}
         onMouseDown={handleResize}
       />
@@ -490,13 +493,13 @@ function SideBySideDiffViewer({
       >
         <div className="relative" style={{ height: totalHeight }}>
           <div
-            className="absolute left-0 right-0 flex"
+            className="absolute right-0 left-0 flex"
             style={{ top: offsetY }}
           >
             {/* Left column */}
             <div
               ref={leftRef}
-              className="border border-card shrink-0 overflow-x-auto overflow-y-hidden"
+              className="border-card shrink-0 overflow-x-auto overflow-y-hidden border"
               style={{
                 width: `${split}%`,
                 contain: "layout style",
@@ -507,7 +510,7 @@ function SideBySideDiffViewer({
                   row.isSeparator ? (
                     <div
                       key={range.start + i}
-                      className="bg-accent flex h-6 items-center border-y border-accent px-2"
+                      className="bg-accent border-accent flex h-6 items-center border-y px-2"
                     >
                       <span className="text-muted-foreground truncate text-[10px]">
                         {row.hunkHeader}
@@ -527,7 +530,7 @@ function SideBySideDiffViewer({
             {/* Right column */}
             <div
               ref={rightRef}
-              className="border border-card min-w-0 flex-1 overflow-x-auto overflow-y-hidden"
+              className="border-card min-w-0 flex-1 overflow-x-auto overflow-y-hidden border"
               style={{ contain: "layout style" }}
             >
               <div className="w-max min-w-full">
@@ -535,7 +538,7 @@ function SideBySideDiffViewer({
                   row.isSeparator ? (
                     <div
                       key={range.start + i}
-                      className="bg-accent flex h-6 items-center border-y border-accent px-2"
+                      className="bg-accent border-accent flex h-6 items-center border-y px-2"
                     >
                       <span className="text-muted-foreground truncate text-[10px]">
                         {row.hunkHeader}
@@ -555,23 +558,23 @@ function SideBySideDiffViewer({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // --- File list view components ---
 
 function getFileName(path: string) {
-  return path.split("/").pop() ?? path
+  return path.split("/").pop() ?? path;
 }
 
 interface FileListProps {
-  status: GitStatus | null
-  selectedFile: string | null
-  expandedSections: Set<string>
-  toggleSection: (section: string) => void
-  onFileClick: (path: string, staged?: boolean) => void
-  totalChanges: number
-  isLoading: boolean
+  status: GitStatus | null;
+  selectedFile: string | null;
+  expandedSections: Set<string>;
+  toggleSection: (section: string) => void;
+  onFileClick: (path: string, staged?: boolean) => void;
+  totalChanges: number;
+  isLoading: boolean;
 }
 
 function FlatFileList({
@@ -589,7 +592,7 @@ function FlatFileList({
       {status?.staged && status.staged.length > 0 && (
         <div>
           <button
-            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-diff-add-fg"
+            className="glass-hover text-diff-add-fg flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium"
             onClick={() => toggleSection("staged")}
           >
             {expandedSections.has("staged") ? (
@@ -625,7 +628,7 @@ function FlatFileList({
       {status?.unstaged && status.unstaged.length > 0 && (
         <div>
           <button
-            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-foreground"
+            className="glass-hover text-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium"
             onClick={() => toggleSection("unstaged")}
           >
             {expandedSections.has("unstaged") ? (
@@ -661,7 +664,7 @@ function FlatFileList({
       {status?.untracked && status.untracked.length > 0 && (
         <div>
           <button
-            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground"
+            className="glass-hover text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium"
             onClick={() => toggleSection("untracked")}
           >
             {expandedSections.has("untracked") ? (
@@ -682,7 +685,7 @@ function FlatFileList({
                   )}
                   onClick={() => onFileClick(filePath)}
                 >
-                  <FilePlus className="size-4 text-muted-foreground" />
+                  <FilePlus className="text-muted-foreground size-4" />
                   <span className="text-muted-foreground truncate">
                     {getFileName(filePath)}
                   </span>
@@ -700,7 +703,7 @@ function FlatFileList({
         </div>
       )}
     </>
-  )
+  );
 }
 
 function TreeFileList({
@@ -713,25 +716,37 @@ function TreeFileList({
   isLoading,
 }: FileListProps) {
   const stagedTree = useMemo(() => {
-    if (!status?.staged?.length) return null
+    if (!status?.staged?.length) return null;
     return buildFileTree(
-      status.staged.map((f) => ({ path: f.path, status: f.status, staged: true })),
-    )
-  }, [status?.staged])
+      status.staged.map((f) => ({
+        path: f.path,
+        status: f.status,
+        staged: true,
+      })),
+    );
+  }, [status?.staged]);
 
   const unstagedTree = useMemo(() => {
-    if (!status?.unstaged?.length) return null
+    if (!status?.unstaged?.length) return null;
     return buildFileTree(
-      status.unstaged.map((f) => ({ path: f.path, status: f.status, staged: false })),
-    )
-  }, [status?.unstaged])
+      status.unstaged.map((f) => ({
+        path: f.path,
+        status: f.status,
+        staged: false,
+      })),
+    );
+  }, [status?.unstaged]);
 
   const untrackedTree = useMemo(() => {
-    if (!status?.untracked?.length) return null
+    if (!status?.untracked?.length) return null;
     return buildFileTree(
-      status.untracked.map((p) => ({ path: p, status: "added" as const, staged: false })),
-    )
-  }, [status?.untracked])
+      status.untracked.map((p) => ({
+        path: p,
+        status: "added" as const,
+        staged: false,
+      })),
+    );
+  }, [status?.untracked]);
 
   return (
     <>
@@ -739,7 +754,7 @@ function TreeFileList({
       {stagedTree && (
         <div>
           <button
-            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-diff-add-fg"
+            className="glass-hover text-diff-add-fg flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium"
             onClick={() => toggleSection("staged")}
           >
             {expandedSections.has("staged") ? (
@@ -765,7 +780,7 @@ function TreeFileList({
       {unstagedTree && (
         <div>
           <button
-            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-foreground"
+            className="glass-hover text-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium"
             onClick={() => toggleSection("unstaged")}
           >
             {expandedSections.has("unstaged") ? (
@@ -791,7 +806,7 @@ function TreeFileList({
       {untrackedTree && (
         <div>
           <button
-            className="glass-hover flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground"
+            className="glass-hover text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium"
             onClick={() => toggleSection("untracked")}
           >
             {expandedSections.has("untracked") ? (
@@ -820,90 +835,95 @@ function TreeFileList({
         </div>
       )}
     </>
-  )
+  );
 }
 
-export function GitChangesCard({ repoPath, pollInterval = 5000, className }: GitChangesCardProps) {
+export function GitChangesCard({
+  repoPath,
+  pollInterval = 5000,
+  className,
+}: GitChangesCardProps) {
   const { status, isLoading, error, fetchStatus, fetchDiff } = useGitStatus({
     path: repoPath,
     pollInterval,
     autoStart: Boolean(repoPath),
-  })
+  });
 
   // Persisted preferences from store
-  const fileListView = useFileListView()
-  const diffView = useDiffView()
-  const expandedSectionsArr = useExpandedSections()
-  const {
-    setFileListView,
-    setDiffView,
-    toggleSection,
-  } = useCodeLayoutActions()
+  const fileListView = useFileListView();
+  const diffView = useDiffView();
+  const expandedSectionsArr = useExpandedSections();
+  const { setFileListView, setDiffView, toggleSection } =
+    useCodeLayoutActions();
 
   // Convert persisted array to Set for component use
   const expandedSections = useMemo(
     () => new Set(expandedSectionsArr),
     [expandedSectionsArr],
-  )
+  );
 
   // Ephemeral state (not persisted)
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [selectedDiff, setSelectedDiff] = useState<FileDiff | null>(null)
-  const [isLoadingDiff, setIsLoadingDiff] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedDiff, setSelectedDiff] = useState<FileDiff | null>(null);
+  const [isLoadingDiff, setIsLoadingDiff] = useState(false);
 
   const handleFileClick = useCallback(
     async (filePath: string, staged?: boolean) => {
       if (selectedFile === filePath) {
-        setSelectedFile(null)
-        setSelectedDiff(null)
-        return
+        setSelectedFile(null);
+        setSelectedDiff(null);
+        return;
       }
 
-      setSelectedFile(filePath)
-      setIsLoadingDiff(true)
-      setCurrentChangeIndex(0)
-      pendingChangeNav.current = null
-      const diff = await fetchDiff(filePath, { staged })
-      setSelectedDiff(diff)
-      setIsLoadingDiff(false)
+      setSelectedFile(filePath);
+      setIsLoadingDiff(true);
+      setCurrentChangeIndex(0);
+      pendingChangeNav.current = null;
+      const diff = await fetchDiff(filePath, { staged });
+      setSelectedDiff(diff);
+      setIsLoadingDiff(false);
     },
     [selectedFile, fetchDiff],
-  )
+  );
 
   const handleRefresh = useCallback(() => {
-    fetchStatus()
-  }, [fetchStatus])
+    fetchStatus();
+  }, [fetchStatus]);
 
   const allFiles = useMemo(() => {
-    const files: Array<{ path: string; staged: boolean }> = []
-    for (const f of status?.staged ?? []) files.push({ path: f.path, staged: true })
-    for (const f of status?.unstaged ?? []) files.push({ path: f.path, staged: false })
-    for (const p of status?.untracked ?? []) files.push({ path: p, staged: false })
-    return files
-  }, [status])
+    const files: Array<{ path: string; staged: boolean }> = [];
+    for (const f of status?.staged ?? [])
+      files.push({ path: f.path, staged: true });
+    for (const f of status?.unstaged ?? [])
+      files.push({ path: f.path, staged: false });
+    for (const p of status?.untracked ?? [])
+      files.push({ path: p, staged: false });
+    return files;
+  }, [status]);
 
   const currentFileIndex = useMemo(
-    () => (selectedFile ? allFiles.findIndex((f) => f.path === selectedFile) : -1),
+    () =>
+      selectedFile ? allFiles.findIndex((f) => f.path === selectedFile) : -1,
     [allFiles, selectedFile],
-  )
+  );
 
   // Change block navigation
   const changePositions = useMemo(() => {
-    if (!selectedDiff) return []
-    const positions: Array<number> = []
-    let inChange = false
+    if (!selectedDiff) return [];
+    const positions: Array<number> = [];
+    let inChange = false;
     for (let i = 0; i < selectedDiff.lines.length; i++) {
-      const kind = selectedDiff.lines[i].kind
-      const isChange = kind === "add" || kind === "del"
-      if (isChange && !inChange) positions.push(i)
-      inChange = kind === "hunk" ? false : isChange
+      const kind = selectedDiff.lines[i].kind;
+      const isChange = kind === "add" || kind === "del";
+      if (isChange && !inChange) positions.push(i);
+      inChange = kind === "hunk" ? false : isChange;
     }
-    return positions
-  }, [selectedDiff])
+    return positions;
+  }, [selectedDiff]);
 
-  const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
-  const [scrollRequestId, setScrollRequestId] = useState(0)
-  const pendingChangeNav = useRef<"first" | "last" | null>(null)
+  const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
+  const [scrollRequestId, setScrollRequestId] = useState(0);
+  const pendingChangeNav = useRef<"first" | "last" | null>(null);
 
   // After diff loads from a cross-file nav, scroll to pending change
   useEffect(() => {
@@ -911,56 +931,62 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
       const idx =
         pendingChangeNav.current === "last"
           ? Math.max(0, changePositions.length - 1)
-          : 0
-      setCurrentChangeIndex(idx)
-      setScrollRequestId((prev) => prev + 1)
-      pendingChangeNav.current = null
+          : 0;
+      setCurrentChangeIndex(idx);
+      setScrollRequestId((prev) => prev + 1);
+      pendingChangeNav.current = null;
     }
-  }, [isLoadingDiff, selectedDiff, changePositions])
+  }, [isLoadingDiff, selectedDiff, changePositions]);
 
   const navigateChange = useCallback(
     (delta: 1 | -1) => {
-      const nextChange = currentChangeIndex + delta
+      const nextChange = currentChangeIndex + delta;
 
       if (nextChange >= 0 && nextChange < changePositions.length) {
         // Navigate within current file
-        setCurrentChangeIndex(nextChange)
-        setScrollRequestId((prev) => prev + 1)
+        setCurrentChangeIndex(nextChange);
+        setScrollRequestId((prev) => prev + 1);
       } else if (delta === 1 && currentFileIndex < allFiles.length - 1) {
         // Past last change → next file, first change
-        const file = allFiles[currentFileIndex + 1]
-        setSelectedFile(file.path)
-        setIsLoadingDiff(true)
-        pendingChangeNav.current = "first"
+        const file = allFiles[currentFileIndex + 1];
+        setSelectedFile(file.path);
+        setIsLoadingDiff(true);
+        pendingChangeNav.current = "first";
         fetchDiff(file.path, { staged: file.staged }).then((diff) => {
-          setSelectedDiff(diff)
-          setIsLoadingDiff(false)
-        })
+          setSelectedDiff(diff);
+          setIsLoadingDiff(false);
+        });
       } else if (delta === -1 && currentFileIndex > 0) {
         // Before first change → prev file, last change
-        const file = allFiles[currentFileIndex - 1]
-        setSelectedFile(file.path)
-        setIsLoadingDiff(true)
-        pendingChangeNav.current = "last"
+        const file = allFiles[currentFileIndex - 1];
+        setSelectedFile(file.path);
+        setIsLoadingDiff(true);
+        pendingChangeNav.current = "last";
         fetchDiff(file.path, { staged: file.staged }).then((diff) => {
-          setSelectedDiff(diff)
-          setIsLoadingDiff(false)
-        })
+          setSelectedDiff(diff);
+          setIsLoadingDiff(false);
+        });
       }
     },
-    [currentChangeIndex, changePositions, currentFileIndex, allFiles, fetchDiff],
-  )
+    [
+      currentChangeIndex,
+      changePositions,
+      currentFileIndex,
+      allFiles,
+      fetchDiff,
+    ],
+  );
 
-  const canGoPrev = currentChangeIndex > 0 || currentFileIndex > 0
+  const canGoPrev = currentChangeIndex > 0 || currentFileIndex > 0;
   const canGoNext =
     currentChangeIndex < changePositions.length - 1 ||
-    currentFileIndex < allFiles.length - 1
+    currentFileIndex < allFiles.length - 1;
 
   // Reset state when repoPath changes
   useEffect(() => {
-    setSelectedFile(null)
-    setSelectedDiff(null)
-  }, [repoPath])
+    setSelectedFile(null);
+    setSelectedDiff(null);
+  }, [repoPath]);
 
   if (!repoPath) {
     return (
@@ -975,13 +1001,13 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
           Select a repository to view changes
         </p>
       </div>
-    )
+    );
   }
 
   const totalChanges =
     (status?.staged.length ?? 0) +
     (status?.unstaged.length ?? 0) +
-    (status?.untracked.length ?? 0)
+    (status?.untracked.length ?? 0);
 
   return (
     <div
@@ -998,7 +1024,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
             {status?.branch ?? "Loading..."}
           </span>
           {totalChanges > 0 && (
-            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+            <span className="bg-secondary text-secondary-foreground rounded-full px-1.5 py-0.5 text-[10px] font-medium">
               {totalChanges}
             </span>
           )}
@@ -1044,7 +1070,7 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
 
       {/* Error */}
       {error && (
-        <div className="border-border border-b bg-destructive px-3 py-1 text-xs text-destructive-foreground">
+        <div className="border-border bg-destructive text-destructive-foreground border-b px-3 py-1 text-xs">
           {error}
         </div>
       )}
@@ -1124,7 +1150,10 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={cn("size-6", diffView === "inline" && "bg-muted")}
+                      className={cn(
+                        "size-6",
+                        diffView === "inline" && "bg-muted",
+                      )}
                       onClick={() => setDiffView("inline")}
                     >
                       <Rows2 className="size-3.5" />
@@ -1137,13 +1166,18 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={cn("size-6", diffView === "split" && "bg-muted")}
+                      className={cn(
+                        "size-6",
+                        diffView === "split" && "bg-muted",
+                      )}
                       onClick={() => setDiffView("split")}
                     >
                       <Columns2 className="size-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">Side-by-side view</TooltipContent>
+                  <TooltipContent side="bottom">
+                    Side-by-side view
+                  </TooltipContent>
                 </Tooltip>
               </div>
             </div>
@@ -1187,5 +1221,5 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
         </div>
       </div>
     </div>
-  )
+  );
 }

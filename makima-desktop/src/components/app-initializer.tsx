@@ -1,7 +1,7 @@
-import { useEffect } from "react"
-import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection"
-import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models"
-import { useOllamaProcess } from "@/hooks/ollama/use-ollama-process"
+import { useEffect } from "react";
+import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection";
+import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models";
+import { useOllamaProcess } from "@/hooks/ollama/use-ollama-process";
 
 /**
  * Component that initializes app-level services on mount.
@@ -11,31 +11,31 @@ import { useOllamaProcess } from "@/hooks/ollama/use-ollama-process"
  * - Fetch available models if connected
  */
 export function AppInitializer({ children }: { children: React.ReactNode }) {
-  const { checkHealth } = useOllamaConnection()
-  const { fetchModels } = useOllamaModelsHook()
-  const { detectInstallation, refreshStatus } = useOllamaProcess()
+  const { checkHealth } = useOllamaConnection();
+  const { fetchModels } = useOllamaModelsHook();
+  const { detectInstallation, refreshStatus } = useOllamaProcess();
 
   useEffect(() => {
     const initialize = async () => {
-      console.log("Initializing app...")
+      console.log("Initializing app...");
 
       // Detect Ollama installation
-      await detectInstallation()
+      await detectInstallation();
 
       // Check if Ollama is healthy/connected
-      const isHealthy = await checkHealth()
-      console.log("Ollama health check:", isHealthy)
+      const isHealthy = await checkHealth();
+      console.log("Ollama health check:", isHealthy);
 
       if (isHealthy) {
         // Fetch available models
-        await fetchModels()
+        await fetchModels();
         // Refresh process status
-        await refreshStatus()
+        await refreshStatus();
       }
-    }
+    };
 
-    initialize()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    initialize();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <>{children}</>
+  return <>{children}</>;
 }

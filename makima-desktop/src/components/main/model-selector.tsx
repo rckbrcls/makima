@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react"
+import { useCallback, useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -11,7 +11,7 @@ import {
   Trash2,
   Wifi,
   WifiOff,
-} from "lucide-react"
+} from "lucide-react";
 import { APIKeyDialog } from "./api-key-dialog";
 import type { ModelInfo } from "@/lib/provider-types";
 import { POPULAR_MODELS } from "@/lib/ollama-types";
@@ -41,15 +41,15 @@ import {
   useOpenAIConfigured,
   usePullProgress,
   usePullingModel,
-} from "@/stores/provider-store"
+} from "@/stores/provider-store";
 import {
   useChatActions,
   useSelectedModel,
   useSelectedProvider,
-} from "@/stores/chat-store"
-import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection"
-import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models"
-import { useOllamaPull } from "@/hooks/ollama/use-ollama-pull"
+} from "@/stores/chat-store";
+import { useOllamaConnection } from "@/hooks/ollama/use-ollama-connection";
+import { useOllamaModelsHook } from "@/hooks/ollama/use-ollama-models";
+import { useOllamaPull } from "@/hooks/ollama/use-ollama-pull";
 
 /**
  * ModelSelector - Refactored to use Zustand stores directly.
@@ -64,39 +64,39 @@ import { useOllamaPull } from "@/hooks/ollama/use-ollama-pull"
  */
 export function ModelSelector() {
   // Provider store state
-  const ollamaModels = useOllamaModels()
-  const isOllamaConnected = useOllamaConnected()
-  const isOllamaChecking = useOllamaChecking()
-  const isLoadingModels = useIsLoadingModels()
-  const pullingModel = usePullingModel()
-  const pullProgress = usePullProgress()
-  const hasOpenAIKey = useOpenAIConfigured()
-  const hasAnthropicKey = useAnthropicConfigured()
+  const ollamaModels = useOllamaModels();
+  const isOllamaConnected = useOllamaConnected();
+  const isOllamaChecking = useOllamaChecking();
+  const isLoadingModels = useIsLoadingModels();
+  const pullingModel = usePullingModel();
+  const pullProgress = usePullProgress();
+  const hasOpenAIKey = useOpenAIConfigured();
+  const hasAnthropicKey = useAnthropicConfigured();
 
   // Chat store state
-  const selectedModel = useSelectedModel()
-  const selectedProvider = useSelectedProvider()
-  const { selectModel } = useChatActions()
+  const selectedModel = useSelectedModel();
+  const selectedProvider = useSelectedProvider();
+  const { selectModel } = useChatActions();
 
   // Hooks for actions
-  const { checkHealth } = useOllamaConnection()
-  const { fetchModels } = useOllamaModelsHook()
-  const { pullModel, deleteModel } = useOllamaPull(fetchModels)
+  const { checkHealth } = useOllamaConnection();
+  const { fetchModels } = useOllamaModelsHook();
+  const { pullModel, deleteModel } = useOllamaPull(fetchModels);
 
   // Reconnect to Ollama
   const handleReconnect = useCallback(async () => {
-    const isHealthy = await checkHealth()
+    const isHealthy = await checkHealth();
     if (isHealthy) {
-      await fetchModels()
+      await fetchModels();
     }
-  }, [checkHealth, fetchModels])
+  }, [checkHealth, fetchModels]);
 
   // Local UI state
-  const [isManageOpen, setIsManageOpen] = useState(false)
-  const [isApiKeyOpen, setIsApiKeyOpen] = useState(false)
+  const [isManageOpen, setIsManageOpen] = useState(false);
+  const [isApiKeyOpen, setIsApiKeyOpen] = useState(false);
   const [apiKeyInitialTab, setApiKeyInitialTab] = useState<
     "openai" | "anthropic"
-  >("openai")
+  >("openai");
 
   const downloadedModelNames = new Set(
     ollamaModels.map((m) => m.name.split(":")[0]),
@@ -140,8 +140,8 @@ export function ModelSelector() {
     model: string,
     provider: "ollama" | "openai" | "anthropic",
   ) => {
-    selectModel(model, provider)
-  }
+    selectModel(model, provider);
+  };
 
   // Build menu items dynamically
   const menuItems = useMemo(() => {
@@ -282,7 +282,9 @@ export function ModelSelector() {
             ) : (
               <>
                 {getProviderIcon()}
-                <span className="max-w-[120px] truncate">{getDisplayName()}</span>
+                <span className="max-w-[120px] truncate">
+                  {getDisplayName()}
+                </span>
                 <ChevronDown className="size-3.5 opacity-50" />
               </>
             )}
