@@ -102,7 +102,7 @@ function CliBottomBar({
       <select
         value={selectedCommand ?? ""}
         onChange={(e) => setSelectedCliCommand(e.target.value || null)}
-        disabled={isRunning}
+        disabled={!!activeSession}
         className="bg-input text-foreground border-border h-6 rounded-md border px-2 text-xs focus:outline-none"
       >
         {installedClis.length === 0 && (

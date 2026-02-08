@@ -27,6 +27,7 @@ interface RepositorySidebarProps {
   onAddRepository: () => void
   onDeleteRepository: (repoId: string) => void
   onRenameRepository: (repoId: string, newName: string) => void
+  onNewSession: (repoId: string) => void
   onStopSession: (sessionId: string) => void
   onRestartSession: (sessionId: string) => void
   onRemoveSession: (sessionId: string) => void
@@ -42,6 +43,7 @@ export function RepositorySidebar({
   onAddRepository,
   onDeleteRepository,
   onRenameRepository,
+  onNewSession,
   onStopSession,
   onRestartSession,
   onRemoveSession,
@@ -210,6 +212,17 @@ export function RepositorySidebar({
                         )}
                       </div>
                     </div>
+                    {isActive && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onNewSession(repo.id)
+                        }}
+                        className="text-muted-foreground hover:text-foreground flex-none rounded-md p-0.5 transition-colors"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    )}
                   </button>
                 </NativeContextMenu>
 

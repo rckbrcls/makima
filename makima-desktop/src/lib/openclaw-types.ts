@@ -52,6 +52,14 @@ export interface OpenClawAgentConfig {
   tools: Array<string>
 }
 
+/** Agent entry in the config file */
+export interface OpenClawAgentEntry {
+  id: string
+  name?: string
+  default?: boolean
+  model?: string
+}
+
 /** OpenClaw file config (~/.openclaw/openclaw.json) */
 export interface OpenClawFileConfig {
   gateway: {
@@ -60,6 +68,9 @@ export interface OpenClawFileConfig {
     auth: { token: string }
     workspace?: string
     password?: string
+  }
+  agents?: {
+    list: Array<OpenClawAgentEntry>
   }
 }
 

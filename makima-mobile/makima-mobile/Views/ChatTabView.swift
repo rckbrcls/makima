@@ -43,6 +43,8 @@ struct ChatTabView: View {
                     .ignoresSafeArea()
 
                 ChatThreadView(messages: messages)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(dismissKeyboardDragGesture, including: .subviews)
 
                 if let approvalVM, !approvalVM.pendingApprovals.isEmpty {
                     ApprovalBannerView(
@@ -96,6 +98,7 @@ struct ChatTabView: View {
                 }
             }
         }
+        .simultaneousGesture(dismissKeyboardDragGesture, including: .subviews)
         .photosPicker(
             isPresented: $isPhotoPickerPresented,
             selection: $pendingPhotoSelections,
@@ -183,7 +186,7 @@ struct ChatTabView: View {
         .padding(.top, 10)
         .padding(.bottom, 12)
         .background(Color.clear)
-        .simultaneousGesture(dismissKeyboardDragGesture)
+        .simultaneousGesture(dismissKeyboardDragGesture, including: .subviews)
         .onChange(of: isActive) { _, isCurrentTab in
             if !isCurrentTab {
                 dismissKeyboard()
@@ -319,12 +322,12 @@ struct ChatTabView: View {
     }
 
     private var dismissKeyboardDragGesture: some Gesture {
-        DragGesture(minimumDistance: 16, coordinateSpace: .local)
+        DragGesture(minimumDistance: 8, coordinateSpace: .local)
             .onEnded { value in
                 let verticalDelta = value.translation.height
                 let horizontalDelta = abs(value.translation.width)
 
-                guard verticalDelta > 36, verticalDelta > horizontalDelta else {
+                guard verticalDelta > 20, verticalDelta > horizontalDelta else {
                     return
                 }
 
@@ -333,6 +336,15 @@ struct ChatTabView: View {
     }
 
     private func dismissKeyboard() {
+        let windowScene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })
+        let keyWindow = windowScene?.windows.first(where: \.isKeyWindow)
+
+        if keyWindow?.endEditing(true) == true {
+            return
+        }
+
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder),
             to: nil,

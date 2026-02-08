@@ -1,9 +1,26 @@
-import { createContext, useCallback, useContext, useEffect } from "react"
-import { Bot, Play, Shield, Zap } from "lucide-react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
+import { Bot, Loader2, Play, Plus, Shield, Trash2, X, Zap } from "lucide-react"
 
+import { WorkApprovalBanner } from "./work-approval-banner"
+import { WorkChat } from "./work-chat"
+import { WorkSetupWizard } from "./work-setup-wizard"
 import type { Agent, Run, Session } from "@/lib/work-types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  useOpenClawAgent,
+  useOpenClawApprovals,
+  useOpenClawConnection,
+  useOpenClawFileConfig,
+  useOpenClawGateway,
+} from "@/hooks/openclaw"
 import { cn } from "@/lib/utils"
 import {
   useOpenClawConnected,
@@ -20,15 +37,6 @@ import {
   useWorkIsLoadingAgents,
   useWorkSessionRuns,
 } from "@/stores"
-import {
-  useOpenClawGateway,
-  useOpenClawConnection,
-  useOpenClawAgent,
-  useOpenClawApprovals,
-} from "@/hooks/openclaw"
-import { WorkSetupWizard } from "./work-setup-wizard"
-import { WorkChat } from "./work-chat"
-import { WorkApprovalBanner } from "./work-approval-banner"
 
 // ============================================================================
 // Context
@@ -37,8 +45,13 @@ import { WorkApprovalBanner } from "./work-approval-banner"
 interface WorkDomainContextValue {
   // Agent operations
   loadAgents: () => Promise<void>
-  createAgent: (name: string, description?: string) => Promise<Agent | null>
+  createAgent: (
+    id: string,
+    name: string,
+    model?: string,
+  ) => Promise<Agent | null>
   deleteAgent: (id: string) => Promise<boolean>
+  isRestarting: boolean
 
   // Session operations
   startSession: (agentId: string, title?: string) => Promise<Session | null>
@@ -70,6 +83,7 @@ interface WorkDomainProviderProps {
 
 export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
   const isConnected = useOpenClawConnected()
+  const [isRestarting, setIsRestarting] = useState(false)
 
   const {
     addAgent,
@@ -81,10 +95,12 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
     clearChatMessages,
   } = useWorkDomainActions()
 
-  const { detectInstallation, refreshGatewayStatus } = useOpenClawGateway()
+  const { detectInstallation, refreshGatewayStatus, stopGateway, startGateway } =
+    useOpenClawGateway()
   useOpenClawConnection() // Sets up event listeners for connection status
   const { loadAgents: loadOpenClawAgents } = useOpenClawAgent()
   const { approve, reject } = useOpenClawApprovals()
+  const { readFileConfig, writeFileConfig } = useOpenClawFileConfig()
 
   // Load agents from OpenClaw when connected
   const loadAgents = useCallback(async () => {
@@ -95,40 +111,107 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
     await loadOpenClawAgents()
   }, [isConnected, loadOpenClawAgents, setIsLoadingAgents])
 
+  // Restart gateway and reload agents
+  const restartGateway = useCallback(async () => {
+    setIsRestarting(true)
+    try {
+      await stopGateway()
+      // Brief delay to let the process fully stop
+      await new Promise((r) => setTimeout(r, 500))
+      await startGateway()
+      // Wait for connection to re-establish
+      await new Promise((r) => setTimeout(r, 1500))
+      await loadOpenClawAgents()
+    } finally {
+      setIsRestarting(false)
+    }
+  }, [stopGateway, startGateway, loadOpenClawAgents])
+
   const createAgent = useCallback(
-    async (name: string, description?: string): Promise<Agent | null> => {
+    async (
+      id: string,
+      name: string,
+      model?: string,
+    ): Promise<Agent | null> => {
       try {
-        // Creating agents through the gateway is not yet supported
-        // For now, create a local-only agent entry
+        const config = await readFileConfig()
+        if (!config) {
+          setError("Could not read OpenClaw config file")
+          return null
+        }
+
+        const agentsList = config.agents?.list ?? []
+
+        // Check for duplicate id
+        if (agentsList.some((a) => a.id === id)) {
+          setError(`Agent with id "${id}" already exists`)
+          return null
+        }
+
+        const updatedConfig = {
+          ...config,
+          agents: {
+            list: [
+              ...agentsList,
+              {
+                id,
+                name: name || undefined,
+                model: model || undefined,
+              },
+            ],
+          },
+        }
+
+        const written = await writeFileConfig(updatedConfig)
+        if (!written) return null
+
+        await restartGateway()
+
         const newAgent: Agent = {
-          id: `agent-${Date.now()}`,
+          id,
           name,
-          description,
-          config: {},
+          config: { model },
           createdAt: Date.now(),
           updatedAt: Date.now(),
         }
-        addAgent(newAgent)
         return newAgent
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
         return null
       }
     },
-    [addAgent, setError],
+    [readFileConfig, writeFileConfig, restartGateway, setError],
   )
 
   const deleteAgent = useCallback(
     async (id: string): Promise<boolean> => {
       try {
+        const config = await readFileConfig()
+        if (!config) {
+          setError("Could not read OpenClaw config file")
+          return false
+        }
+
+        const agentsList = config.agents?.list ?? []
+        const updatedConfig = {
+          ...config,
+          agents: {
+            list: agentsList.filter((a) => a.id !== id),
+          },
+        }
+
+        const written = await writeFileConfig(updatedConfig)
+        if (!written) return false
+
         removeAgent(id)
+        await restartGateway()
         return true
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
         return false
       }
     },
-    [removeAgent, setError],
+    [readFileConfig, writeFileConfig, restartGateway, removeAgent, setError],
   )
 
   const startSession = useCallback(
@@ -197,6 +280,7 @@ export function WorkDomainProvider({ children }: WorkDomainProviderProps) {
     loadAgents,
     createAgent,
     deleteAgent,
+    isRestarting,
     startSession,
     endSession,
     approveAction,
@@ -226,7 +310,14 @@ export function WorkSidebar() {
 
   const { setActiveAgentId, setActiveSessionId, toggleExecutionMode } =
     useWorkDomainActions()
-  const { startSession, createAgent } = useWorkDomainContext()
+  const { startSession, createAgent, deleteAgent, isRestarting } =
+    useWorkDomainContext()
+
+  const [isCreating, setIsCreating] = useState(false)
+  const [newAgentId, setNewAgentId] = useState("")
+  const [newAgentName, setNewAgentName] = useState("")
+  const [newAgentModel, setNewAgentModel] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleSelectAgent = useCallback(
     (agentId: string) => {
@@ -258,12 +349,44 @@ export function WorkSidebar() {
     }
   }, [activeAgentId, startSession, setActiveSessionId])
 
-  const handleCreateAgent = useCallback(async () => {
-    const agent = await createAgent("New Agent")
+  const handleSaveAgent = useCallback(async () => {
+    if (!newAgentId.trim()) return
+    setIsSaving(true)
+    const agent = await createAgent(
+      newAgentId.trim(),
+      newAgentName.trim() || newAgentId.trim(),
+      newAgentModel.trim() || undefined,
+    )
+    setIsSaving(false)
     if (agent) {
       setActiveAgentId(agent.id)
+      setIsCreating(false)
+      setNewAgentId("")
+      setNewAgentName("")
+      setNewAgentModel("")
     }
-  }, [createAgent, setActiveAgentId])
+  }, [
+    newAgentId,
+    newAgentName,
+    newAgentModel,
+    createAgent,
+    setActiveAgentId,
+  ])
+
+  const handleCancelCreate = useCallback(() => {
+    setIsCreating(false)
+    setNewAgentId("")
+    setNewAgentName("")
+    setNewAgentModel("")
+  }, [])
+
+  const handleDeleteAgent = useCallback(
+    async (e: React.MouseEvent, agentId: string) => {
+      e.stopPropagation()
+      await deleteAgent(agentId)
+    },
+    [deleteAgent],
+  )
 
   if (isLoading) {
     return (
@@ -284,10 +407,15 @@ export function WorkSidebar() {
           )}
         />
         <span className="text-muted-foreground text-xs">
-          {isConnected
-            ? `Connected${connectionStatus.gatewayVersion ? ` (v${connectionStatus.gatewayVersion})` : ""}`
-            : "Offline"}
+          {isRestarting
+            ? "Restarting gateway..."
+            : isConnected
+              ? `Connected${connectionStatus.gatewayVersion ? ` (v${connectionStatus.gatewayVersion})` : ""}`
+              : "Offline"}
         </span>
+        {isRestarting && (
+          <Loader2 className="text-muted-foreground size-3 animate-spin" />
+        )}
       </div>
 
       {/* Mode Toggle */}
@@ -320,13 +448,13 @@ export function WorkSidebar() {
 
       {/* Agents List */}
       <div className="flex-1 space-y-1 overflow-y-auto">
-        {agents.length === 0 && isConnected && (
+        {agents.length === 0 && isConnected && !isCreating && (
           <p className="text-muted-foreground px-2 py-4 text-center text-xs">
             No agents configured in the gateway
           </p>
         )}
         {agents.map((agent) => (
-          <div key={agent.id}>
+          <div key={agent.id} className="group">
             <button
               onClick={() => handleSelectAgent(agent.id)}
               className={cn(
@@ -336,9 +464,15 @@ export function WorkSidebar() {
             >
               <div className="flex items-center gap-2">
                 <Bot className="size-4 text-sky-500" />
-                <span className="text-foreground text-sm font-medium">
+                <span className="text-foreground flex-1 text-sm font-medium">
                   {agent.name}
                 </span>
+                <button
+                  onClick={(e) => handleDeleteAgent(e, agent.id)}
+                  className="text-muted-foreground hover:text-destructive-foreground hidden rounded p-0.5 transition-colors group-hover:block"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
               </div>
               {agent.description && (
                 <p className="text-muted-foreground mt-0.5 pl-6 text-xs">
@@ -382,6 +516,69 @@ export function WorkSidebar() {
         ))}
       </div>
 
+      {/* Agent Creation Form */}
+      {isCreating && (
+        <div className="glass mt-2 space-y-2 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-foreground text-xs font-medium">
+              New Agent
+            </span>
+            <button
+              onClick={handleCancelCreate}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+          <Input
+            placeholder="my-agent"
+            value={newAgentId}
+            onChange={(e) =>
+              setNewAgentId(
+                e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+              )
+            }
+            className="h-7 text-xs"
+          />
+          <Input
+            placeholder="My Agent (optional)"
+            value={newAgentName}
+            onChange={(e) => setNewAgentName(e.target.value)}
+            className="h-7 text-xs"
+          />
+          <Input
+            placeholder="anthropic/claude-sonnet-4-5 (optional)"
+            value={newAgentModel}
+            onChange={(e) => setNewAgentModel(e.target.value)}
+            className="h-7 text-xs"
+          />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={handleCancelCreate}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 border-sky-600 text-sky-500"
+              onClick={handleSaveAgent}
+              disabled={!newAgentId.trim() || isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="mt-4 space-y-2">
         {activeAgentId && (
@@ -395,15 +592,18 @@ export function WorkSidebar() {
             New Session
           </Button>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground w-full justify-start gap-2"
-          onClick={handleCreateAgent}
-        >
-          <Bot className="size-3.5" />
-          Create Agent
-        </Button>
+        {!isCreating && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground w-full justify-start gap-2"
+            onClick={() => setIsCreating(true)}
+            disabled={!isConnected || isRestarting}
+          >
+            <Plus className="size-3.5" />
+            Create Agent
+          </Button>
+        )}
       </div>
     </div>
   )

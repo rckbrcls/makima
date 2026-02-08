@@ -31,6 +31,7 @@ import {
   useCliSessionStore,
   useCliSessions,
   useCliShouldSpawn,
+  useInstalledClis,
   useSelectedCliCommand,
   useAgentPanelCollapsed,
   useGitPanelCollapsed,
@@ -209,7 +210,10 @@ export function CodeTabSidebar() {
   const ctx = useCodeTabContext()
   const sessions = useCliSessions()
   const activeSessionId = useCliActiveSessionId()
+  const selectedCommand = useSelectedCliCommand()
+  const installedClis = useInstalledClis()
   const {
+    createSession,
     updateSessionStatus,
     removeSession,
     setActiveSessionId,
@@ -264,6 +268,25 @@ export function CodeTabSidebar() {
     [sessions, removeSession],
   )
 
+  const handleNewSession = useCallback(
+    (repoId: string) => {
+      const cli = installedClis.find((c) => c.command === selectedCommand)
+      if (!selectedCommand || !cli) return
+      const sessionId = `cli-${Date.now()}`
+      createSession({
+        id: sessionId,
+        repositoryId: repoId,
+        cliName: cli.name,
+        cliCommand: selectedCommand,
+        ptySessionId: null,
+        status: "idle",
+        startedAt: Date.now(),
+      })
+      setActiveSessionId(sessionId)
+    },
+    [selectedCommand, installedClis, createSession, setActiveSessionId],
+  )
+
   return (
     <RepositorySidebar
       repositories={ctx.repositories}
@@ -274,6 +297,7 @@ export function CodeTabSidebar() {
       onAddRepository={() => ctx.setIsAddRepoDialogOpen(true)}
       onDeleteRepository={ctx.handleDeleteRepository}
       onRenameRepository={ctx.handleRenameRepository}
+      onNewSession={handleNewSession}
       onStopSession={handleStopSession}
       onRestartSession={handleRestartSession}
       onRemoveSession={handleRemoveSession}

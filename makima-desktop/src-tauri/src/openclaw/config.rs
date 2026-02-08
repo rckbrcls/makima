@@ -9,6 +9,25 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenClawFileConfig {
     pub gateway: GatewayFileConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agents: Option<AgentsFileConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentsFileConfig {
+    #[serde(default)]
+    pub list: Vec<AgentEntryConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentEntryConfig {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,6 +128,7 @@ pub fn ensure_config(
             workspace,
             password,
         },
+        agents: None,
     };
 
     write_config(&config)?;
