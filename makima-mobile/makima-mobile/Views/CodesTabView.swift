@@ -47,7 +47,7 @@ struct CodesTabView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text(session.agentName)
-                                        .font(.headline)
+                                        .font(MakimaTypography.title(size: 17))
 
                                     Spacer()
 

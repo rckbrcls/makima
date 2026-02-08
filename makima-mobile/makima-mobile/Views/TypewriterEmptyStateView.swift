@@ -19,7 +19,7 @@ struct TypewriterEmptyStateView: View {
             Spacer()
 
             Text(displayedText)
-                .font(.custom("Baskerville", size: 32))
+                .font(MakimaTypography.bodyTitle(size: 32, relativeTo: .largeTitle))
                 .foregroundStyle(appState.resolvedTheme.mutedForeground)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)

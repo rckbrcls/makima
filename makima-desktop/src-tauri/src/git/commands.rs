@@ -78,7 +78,7 @@ pub fn git_diff(repo_path: String, file_path: String, staged: Option<bool>) -> R
     let repo = Repository::open(&repo_path).map_err(|e| e.to_string())?;
 
     let mut diff_opts = DiffOptions::new();
-    diff_opts.pathspec(&file_path);
+    diff_opts.pathspec(&file_path).context_lines(u32::MAX);
 
     let diff = if staged.unwrap_or(false) {
         // Staged: compare HEAD tree to index

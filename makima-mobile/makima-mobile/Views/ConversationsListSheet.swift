@@ -28,7 +28,7 @@ struct ConversationsTabView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(conversation.title)
-                                            .font(.body)
+                                            .font(MakimaTypography.bodyTitle(size: 17))
                                             .foregroundStyle(theme.foreground)
 
                                         Text(conversation.updatedAt, style: .relative)
