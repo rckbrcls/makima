@@ -30,7 +30,9 @@ export type { BridgeMode, SettingsStore } from "./settings-store";
 // UI Store
 export {
   useUIStore,
+  useUIHydrated,
   // Atomic selectors
+  useActiveTabId,
   useApprovalDrawerOpen,
   useTerminalDrawerOpen,
   useMobileSidebarOpen,
@@ -124,6 +126,7 @@ export type { AnimationStore } from "./animation-store";
 // Chat Domain Store (isolated conversations without repository)
 export {
   useChatDomainStore,
+  useChatDomainHydrated,
   // Atomic selectors
   useChatDomainConversations,
   useChatDomainConversationsCount,
@@ -141,6 +144,7 @@ export type { ChatDomainStore } from "./chat-domain-store";
 // Code Domain Store (isolated conversations with repository)
 export {
   useCodeDomainStore,
+  useCodeDomainHydrated,
   // Atomic selectors
   useCodeDomainConversations,
   useCodeDomainConversationsCount,
@@ -157,6 +161,7 @@ export type { CodeDomainStore } from "./code-domain-store";
 // CLI Session Store (AI CLI sessions - persisted to SQLite)
 export {
   useCliSessionStore,
+  useCliSessionHydrated,
   // Atomic selectors
   useAvailableClis,
   useInstalledClis,

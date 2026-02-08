@@ -507,57 +507,61 @@ export function CodeTabWorkspace() {
 
   // Agent panel collapse
   const agentPanelRef = useRef<PanelImperativeHandle | null>(null);
-
-  const handleAgentPanelResize = useCallback(() => {
-    const panel = agentPanelRef.current;
-    if (panel) {
-      const collapsed = panel.isCollapsed();
-      if (collapsed !== useCodeLayoutStore.getState().agentPanelCollapsed) {
-        setAgentPanelCollapsed(collapsed);
-      }
-    }
-  }, [setAgentPanelCollapsed]);
+  // Git panel collapse
+  const gitPanelRef = useRef<PanelImperativeHandle | null>(null);
+  // Guard flag: suppresses collapsed-state sync in handleLayoutChanged during programmatic toggles
+  const isTogglingRef = useRef(false);
 
   const toggleAgentPanel = useCallback(() => {
     const panel = agentPanelRef.current;
     if (!panel) return;
+    isTogglingRef.current = true;
     if (panel.isCollapsed()) {
       panel.expand();
+      setAgentPanelCollapsed(false);
     } else {
       panel.collapse();
+      setAgentPanelCollapsed(true);
     }
-  }, []);
-
-  // Git panel collapse
-  const gitPanelRef = useRef<PanelImperativeHandle | null>(null);
-
-  const handleGitPanelResize = useCallback(() => {
-    const panel = gitPanelRef.current;
-    if (panel) {
-      const collapsed = panel.isCollapsed();
-      if (collapsed !== useCodeLayoutStore.getState().gitPanelCollapsed) {
-        setGitPanelCollapsed(collapsed);
-      }
-    }
-  }, [setGitPanelCollapsed]);
+    requestAnimationFrame(() => {
+      isTogglingRef.current = false;
+    });
+  }, [setAgentPanelCollapsed]);
 
   const toggleGitPanel = useCallback(() => {
     const panel = gitPanelRef.current;
     if (!panel) return;
+    isTogglingRef.current = true;
     if (panel.isCollapsed()) {
       panel.expand();
+      setGitPanelCollapsed(false);
     } else {
       panel.collapse();
+      setGitPanelCollapsed(true);
     }
-  }, []);
+    requestAnimationFrame(() => {
+      isTogglingRef.current = false;
+    });
+  }, [setGitPanelCollapsed]);
 
-  // Persist panel layout on resize (fires after pointer release)
-  // Layout is keyed by panel id: { "agent-panel": number, "git-panel": number }
+  // Persist layout + sync collapsed states from panel refs after any layout change
+  // Skip collapsed sync during programmatic toggles (isTogglingRef) to prevent stale reads
   const handleLayoutChanged = useCallback(
     (layout: Record<string, number>) => {
       setPanelLayout(layout);
+      if (isTogglingRef.current) return;
+      // Sync collapsed state for manual drag-to-collapse only
+      const agentCollapsed = agentPanelRef.current?.isCollapsed() ?? false;
+      const gitCollapsed = gitPanelRef.current?.isCollapsed() ?? false;
+      const state = useCodeLayoutStore.getState();
+      if (agentCollapsed !== state.agentPanelCollapsed) {
+        setAgentPanelCollapsed(agentCollapsed);
+      }
+      if (gitCollapsed !== state.gitPanelCollapsed) {
+        setGitPanelCollapsed(gitCollapsed);
+      }
     },
-    [setPanelLayout],
+    [setPanelLayout, setAgentPanelCollapsed, setGitPanelCollapsed],
   );
 
   // Restore collapsed state on mount after hydration
@@ -627,7 +631,6 @@ export function CodeTabWorkspace() {
           minSize={30}
           collapsible
           collapsedSize={0}
-          onResize={handleAgentPanelResize}
         >
           <div className="relative h-full min-h-0">
             {/* Empty state when no sessions exist for current repo */}
@@ -709,7 +712,6 @@ export function CodeTabWorkspace() {
           minSize={20}
           collapsible
           collapsedSize={0}
-          onResize={handleGitPanelResize}
         >
           <GitChangesCard
             repoPath={repoPath}

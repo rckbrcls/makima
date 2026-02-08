@@ -18,6 +18,7 @@ interface OgImageSectionProps {
   className?: string;
   rounded?: string;
   onChange?: (tabIndex: number) => void;
+  defaultTab?: number;
 }
 
 function DirectionAwareTabs({
@@ -25,8 +26,9 @@ function DirectionAwareTabs({
   className,
   rounded,
   onChange,
+  defaultTab,
 }: OgImageSectionProps) {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(defaultTab ?? 0);
   const [direction, setDirection] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [ref, bounds] = useMeasure();

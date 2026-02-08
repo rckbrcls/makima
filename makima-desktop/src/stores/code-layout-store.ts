@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
-import { Store } from "@tauri-apps/plugin-store";
+import { createTauriStorage } from "@/lib/tauri-storage";
 
 // ============================================================================
 // Code Layout Store - Persistent UI preferences for the Code Tab
@@ -54,73 +54,7 @@ const defaultState: Omit<CodeLayoutState, "_hasHydrated"> = {
   lastActiveRepositoryId: null,
 };
 
-// Check if running in browser environment
-const isBrowser = typeof window !== "undefined";
-
-// Custom storage adapter for Tauri Store
-const tauriCodeLayoutStorage = {
-  store: null as Store | null,
-
-  getItem: async (name: string): Promise<string | null> => {
-    if (!isBrowser) return null;
-
-    try {
-      if (!tauriCodeLayoutStorage.store) {
-        tauriCodeLayoutStorage.store = await Store.load("code-layout.json", {
-          autoSave: true,
-        });
-      }
-      const value = await tauriCodeLayoutStorage.store.get<string>(name);
-      return value ?? null;
-    } catch (error) {
-      console.warn(
-        "Failed to load from Tauri store, using localStorage fallback:",
-        error,
-      );
-      return localStorage.getItem(name);
-    }
-  },
-
-  setItem: async (name: string, value: string): Promise<void> => {
-    if (!isBrowser) return;
-
-    try {
-      if (!tauriCodeLayoutStorage.store) {
-        tauriCodeLayoutStorage.store = await Store.load("code-layout.json", {
-          autoSave: true,
-        });
-      }
-      await tauriCodeLayoutStorage.store.set(name, value);
-      await tauriCodeLayoutStorage.store.save();
-    } catch (error) {
-      console.warn(
-        "Failed to save to Tauri store, using localStorage fallback:",
-        error,
-      );
-      localStorage.setItem(name, value);
-    }
-  },
-
-  removeItem: async (name: string): Promise<void> => {
-    if (!isBrowser) return;
-
-    try {
-      if (!tauriCodeLayoutStorage.store) {
-        tauriCodeLayoutStorage.store = await Store.load("code-layout.json", {
-          autoSave: true,
-        });
-      }
-      await tauriCodeLayoutStorage.store.delete(name);
-      await tauriCodeLayoutStorage.store.save();
-    } catch (error) {
-      console.warn(
-        "Failed to remove from Tauri store, using localStorage fallback:",
-        error,
-      );
-      localStorage.removeItem(name);
-    }
-  },
-};
+const tauriCodeLayoutStorage = createTauriStorage("code-layout.json");
 
 export const useCodeLayoutStore = create<CodeLayoutStore>()(
   persist(

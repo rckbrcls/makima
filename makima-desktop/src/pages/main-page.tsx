@@ -6,6 +6,7 @@ import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { TextureOverlay } from "@/components/ui/texture-overlay";
 import { SettingsDialog } from "@/components/main/settings-dialog";
 import { RunDetailsModal } from "@/components/main/run-details-modal";
+import { useActiveTabId, useUIActions, useUIHydrated } from "@/stores";
 
 import {
   ChatDomainProvider,
@@ -20,7 +21,9 @@ import {
 
 export function MainPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeTabId, setActiveTabId] = useState(0);
+  const activeTabId = useActiveTabId();
+  const { setActiveTabId } = useUIActions();
+  const hydrated = useUIHydrated();
 
   const tabs = [
     {
@@ -53,6 +56,8 @@ export function MainPage() {
     }
   };
 
+  if (!hydrated) return null;
+
   return (
     <ChatDomainProvider>
       <CodeTabWithProvider>
@@ -65,6 +70,7 @@ export function MainPage() {
                   onChange={(tabId) => setActiveTabId(tabId)}
                   tabs={tabs}
                   className="mt-10 rounded-lg"
+                  defaultTab={activeTabId}
                 />
                 <div className="absolute right-3 bottom-3 left-3">
                   <Button

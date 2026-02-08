@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
-import { Store } from "@tauri-apps/plugin-store";
 import type { Provider } from "@/lib/provider-types";
 import type { AuthSourcePreference } from "@/lib/auth-types";
+import { createTauriStorage } from "@/lib/tauri-storage";
 
 export type BridgeMode = "safe" | "auto";
 
@@ -151,82 +151,7 @@ function migrateSettings(
   return migrated;
 }
 
-// Check if running in browser environment
-const isBrowser = typeof window !== "undefined";
-
-// Custom storage adapter for Tauri Store
-const tauriStorage = {
-  store: null as Store | null,
-
-  getItem: async (name: string): Promise<string | null> => {
-    // Skip Tauri APIs during SSR
-    if (!isBrowser) {
-      return null;
-    }
-
-    try {
-      if (!tauriStorage.store) {
-        tauriStorage.store = await Store.load("settings.json", {
-          autoSave: true,
-        });
-      }
-      const value = await tauriStorage.store.get<string>(name);
-      return value ?? null;
-    } catch (error) {
-      console.warn(
-        "Failed to load from Tauri store, using localStorage fallback:",
-        error,
-      );
-      return localStorage.getItem(name);
-    }
-  },
-
-  setItem: async (name: string, value: string): Promise<void> => {
-    // Skip Tauri APIs during SSR
-    if (!isBrowser) {
-      return;
-    }
-
-    try {
-      if (!tauriStorage.store) {
-        tauriStorage.store = await Store.load("settings.json", {
-          autoSave: true,
-        });
-      }
-      await tauriStorage.store.set(name, value);
-      await tauriStorage.store.save();
-    } catch (error) {
-      console.warn(
-        "Failed to save to Tauri store, using localStorage fallback:",
-        error,
-      );
-      localStorage.setItem(name, value);
-    }
-  },
-
-  removeItem: async (name: string): Promise<void> => {
-    // Skip Tauri APIs during SSR
-    if (!isBrowser) {
-      return;
-    }
-
-    try {
-      if (!tauriStorage.store) {
-        tauriStorage.store = await Store.load("settings.json", {
-          autoSave: true,
-        });
-      }
-      await tauriStorage.store.delete(name);
-      await tauriStorage.store.save();
-    } catch (error) {
-      console.warn(
-        "Failed to remove from Tauri store, using localStorage fallback:",
-        error,
-      );
-      localStorage.removeItem(name);
-    }
-  },
-};
+const tauriStorage = createTauriStorage("settings.json");
 
 export const useSettingsStore = create<SettingsStore>()(
   persist(

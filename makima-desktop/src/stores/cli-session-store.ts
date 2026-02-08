@@ -1,6 +1,8 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import type { AiCliInfo, CliSession } from "@/lib/code-types";
+import { createTauriStorage } from "@/lib/tauri-storage";
 
 // ============================================================================
 // CLI Session Store - Ephemeral state for AI CLI sessions
@@ -13,6 +15,9 @@ interface CliSessionState {
   activeRepositoryId: string | null;
   activeSessionId: string | null;
   spawningSessions: Set<string>;
+
+  // Hydration state
+  _hasHydrated: boolean;
 }
 
 interface CliSessionActions {
@@ -38,11 +43,14 @@ interface CliSessionActions {
   hydrateFromDb: (sessions: Array<CliSession>) => void;
   addSpawning: (sessionId: string) => void;
   removeSpawning: (sessionId: string) => void;
+
+  // Hydration
+  setHasHydrated: (state: boolean) => void;
 }
 
 export type CliSessionStore = CliSessionState & CliSessionActions;
 
-const initialState: CliSessionState = {
+const initialState: Omit<CliSessionState, "_hasHydrated"> = {
   availableClis: [],
   selectedCliCommand: null,
   sessions: new Map(),
@@ -51,18 +59,25 @@ const initialState: CliSessionState = {
   spawningSessions: new Set(),
 };
 
-export const useCliSessionStore = create<CliSessionStore>((set) => ({
-  ...initialState,
+const tauriCliSessionStorage = createTauriStorage("cli-session.json");
 
-  setAvailableClis: (clis) => {
-    set({ availableClis: clis });
-    // Auto-select first installed CLI if none selected
-    const installed = clis.filter((c) => c.installed);
-    set((state) => ({
-      selectedCliCommand:
-        state.selectedCliCommand ?? (installed[0]?.command || null),
-    }));
-  },
+export const useCliSessionStore = create<CliSessionStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
+      _hasHydrated: false,
+
+      setAvailableClis: (clis) => {
+        const installed = clis.filter((c) => c.installed);
+        set((state) => ({
+          availableClis: clis,
+          selectedCliCommand:
+            state.selectedCliCommand &&
+            installed.some((c) => c.command === state.selectedCliCommand)
+              ? state.selectedCliCommand
+              : installed[0]?.command || null,
+        }));
+      },
 
   setSelectedCliCommand: (command) => set({ selectedCliCommand: command }),
 
@@ -165,11 +180,31 @@ export const useCliSessionStore = create<CliSessionStore>((set) => ({
       next.delete(sessionId);
       return { spawningSessions: next };
     }),
-}));
+
+  // Hydration
+  setHasHydrated: (state) => set({ _hasHydrated: state }),
+    }),
+    {
+      name: "makima-cli-session",
+      storage: createJSONStorage(() => tauriCliSessionStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+      partialize: (state) => ({
+        selectedCliCommand: state.selectedCliCommand,
+        activeSessionId: state.activeSessionId,
+      }),
+    },
+  ),
+);
 
 // ============================================================================
 // Atomic Selectors
 // ============================================================================
+
+// Hydration selector
+export const useCliSessionHydrated = () =>
+  useCliSessionStore((s) => s._hasHydrated);
 
 export const useAvailableClis = () =>
   useCliSessionStore((s) => s.availableClis);

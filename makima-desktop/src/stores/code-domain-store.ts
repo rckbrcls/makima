@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import type {
   ChatItem,
@@ -6,6 +7,7 @@ import type {
   ConversationStatus,
   MessageState,
 } from "@/components/main/jarvis-types";
+import { createTauriStorage } from "@/lib/tauri-storage";
 
 // ============================================================================
 // Code Domain Store - Isolated conversations for code tab (with repository)
@@ -29,6 +31,9 @@ interface CodeDomainState {
 
   // Streaming state per conversation
   streamingStates: Map<string, StreamingState>;
+
+  // Hydration state
+  _hasHydrated: boolean;
 }
 
 interface CodeDomainActions {
@@ -77,11 +82,14 @@ interface CodeDomainActions {
 
   // Conversation status
   updateConversationStatus: (id: string, status: ConversationStatus) => void;
+
+  // Hydration
+  setHasHydrated: (state: boolean) => void;
 }
 
 export type CodeDomainStore = CodeDomainState & CodeDomainActions;
 
-const initialState: CodeDomainState = {
+const initialState: Omit<CodeDomainState, "_hasHydrated"> = {
   conversations: [],
   activeConversationId: null,
   isLoading: true,
@@ -90,11 +98,16 @@ const initialState: CodeDomainState = {
   streamingStates: new Map(),
 };
 
-export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
-  ...initialState,
+const tauriCodeDomainStorage = createTauriStorage("code-domain.json");
 
-  // CRUD
-  setConversations: (conversations) => set({ conversations }),
+export const useCodeDomainStore = create<CodeDomainStore>()(
+  persist(
+    (set, get) => ({
+      ...initialState,
+      _hasHydrated: false,
+
+      // CRUD
+      setConversations: (conversations) => set({ conversations }),
 
   addConversation: (conversation) =>
     set((state) => ({
@@ -202,11 +215,30 @@ export const useCodeDomainStore = create<CodeDomainStore>((set, get) => ({
         c.id === id ? { ...c, status, updatedAt: Date.now() } : c,
       ),
     })),
-}));
+
+  // Hydration
+  setHasHydrated: (state) => set({ _hasHydrated: state }),
+    }),
+    {
+      name: "makima-code-domain",
+      storage: createJSONStorage(() => tauriCodeDomainStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+      partialize: (state) => ({
+        activeConversationId: state.activeConversationId,
+      }),
+    },
+  ),
+);
 
 // ============================================================================
 // Atomic Selectors - Fine-grained subscriptions for optimal re-renders
 // ============================================================================
+
+// Hydration selector
+export const useCodeDomainHydrated = () =>
+  useCodeDomainStore((s) => s._hasHydrated);
 
 // List selectors
 export const useCodeDomainConversations = () =>
