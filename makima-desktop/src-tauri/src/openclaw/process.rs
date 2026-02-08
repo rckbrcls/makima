@@ -1,6 +1,7 @@
 use crate::openclaw::types::{GatewayProcessStatus, OpenClawInstallation};
+use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -96,6 +97,40 @@ fn get_version(path: &str) -> Option<String> {
         })
 }
 
+/// Installs OpenClaw globally via npm
+pub async fn install_openclaw() -> Result<OpenClawInstallation, String> {
+    if !check_node_available() {
+        return Err("Node.js is not installed. Install it from nodejs.org first.".to_string());
+    }
+
+    log::info!("Installing OpenClaw via npm install -g openclaw");
+
+    let output = Command::new("npm")
+        .args(["install", "-g", "openclaw"])
+        .output()
+        .map_err(|e| format!("Failed to run npm: {}", e))?;
+
+    if output.status.success() {
+        log::info!("OpenClaw installed successfully");
+        Ok(detect_installation())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        log::error!("OpenClaw installation failed: {}", stderr);
+
+        let message = if stderr.contains("EACCES") || stderr.contains("permission denied") {
+            "Permission denied. Try fixing npm permissions or use a Node version manager (nvm).".to_string()
+        } else if stderr.contains("ENOTFOUND") || stderr.contains("EAI_AGAIN") || stderr.contains("ETIMEDOUT") {
+            "Network error. Check your internet connection and try again.".to_string()
+        } else if stderr.contains("404") || stderr.contains("Not Found") {
+            "Package not found. The openclaw package may not be published yet.".to_string()
+        } else {
+            format!("Installation failed: {}", stderr.lines().last().unwrap_or(&stderr).trim())
+        };
+
+        Err(message)
+    }
+}
+
 /// Check if the OpenClaw gateway is running by trying to connect
 pub fn is_gateway_running(port: u16) -> Option<u32> {
     // Check for a process listening on the gateway port
@@ -120,9 +155,22 @@ pub async fn start_gateway(
     process_manager: &Mutex<GatewayProcessManager>,
     port: u16,
 ) -> Result<u32, String> {
-    // Check if already running
+    // Check if already running on the port
     if let Some(pid) = is_gateway_running(port) {
         return Err(format!("OpenClaw gateway is already running with PID {}", pid));
+    }
+
+    // Clean up any stale managed process before spawning a new one
+    {
+        let mut manager = process_manager
+            .lock()
+            .map_err(|e| format!("Failed to lock process manager: {}", e))?;
+        if let Some(mut child) = manager.managed_child.take() {
+            log::info!("Cleaning up stale gateway process");
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+        manager.managed_pid = None;
     }
 
     let path = installation
@@ -130,29 +178,92 @@ pub async fn start_gateway(
         .as_ref()
         .ok_or("OpenClaw is not installed")?;
 
-    log::info!("Starting OpenClaw gateway from: {}", path);
-
-    let child = if path == "npx openclaw" {
-        Command::new("npx")
-            .args(["openclaw", "gateway", "--port", &port.to_string()])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("Failed to spawn OpenClaw gateway: {}", e))?
+    let is_npx = path == "npx openclaw";
+    let port_str = port.to_string();
+    let (cmd_name, cmd_args): (&str, Vec<&str>) = if is_npx {
+        ("npx", vec!["openclaw", "gateway", "--port", &port_str])
     } else {
-        Command::new(path)
-            .args(["gateway", "--port", &port.to_string()])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("Failed to spawn OpenClaw gateway: {}", e))?
+        (path.as_str(), vec!["gateway", "--port", &port_str])
     };
+
+    log::info!("Spawning gateway: {} {}", cmd_name, cmd_args.join(" "));
+
+    let mut child = Command::new(cmd_name)
+        .args(&cmd_args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn OpenClaw gateway: {}", e))?;
 
     let pid = child.id();
     log::info!("OpenClaw gateway started with PID: {}", pid);
 
+    // Shared buffer to accumulate stderr output for error reporting
+    let stderr_buf: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+
+    // Drain stdout in a background thread, logging each line
+    if let Some(stdout) = child.stdout.take() {
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                match line {
+                    Ok(l) => log::info!("openclaw stdout: {}", l),
+                    Err(_) => break,
+                }
+            }
+        });
+    }
+
+    // Drain stderr in a background thread, logging and buffering each line
+    if let Some(stderr) = child.stderr.take() {
+        let buf_clone = Arc::clone(&stderr_buf);
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                match line {
+                    Ok(l) => {
+                        log::warn!("openclaw stderr: {}", l);
+                        if let Ok(mut buf) = buf_clone.lock() {
+                            if !buf.is_empty() {
+                                buf.push('\n');
+                            }
+                            buf.push_str(&l);
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+    }
+
+    // Brief pause to let the process crash early if it's going to
+    sleep(Duration::from_millis(1500)).await;
+
+    // Check if the process died immediately
+    match child.try_wait() {
+        Ok(Some(status)) => {
+            // Give drain thread a moment to flush
+            sleep(Duration::from_millis(100)).await;
+            let captured = stderr_buf.lock().map(|b| b.clone()).unwrap_or_default();
+            let detail = if captured.is_empty() {
+                format!("exit code: {}", status)
+            } else {
+                log::error!("Gateway stderr output:\n{}", captured);
+                captured.lines().last().unwrap_or(&captured).trim().to_string()
+            };
+            log::error!("Gateway process exited immediately: {}", detail);
+            return Err(format!("Gateway process exited immediately ({})", detail));
+        }
+        Ok(None) => {
+            log::info!("Process still alive after 1.5s, waiting for port {}...", port);
+        }
+        Err(e) => {
+            return Err(format!("Failed to check gateway process: {}", e));
+        }
+    }
+
+    // Store in manager
     {
         let mut manager = process_manager
             .lock()
@@ -163,18 +274,59 @@ pub async fn start_gateway(
     }
 
     // Wait for the gateway to become available
-    wait_for_gateway(port, Duration::from_secs(15)).await?;
+    let timeout = if is_npx { Duration::from_secs(30) } else { Duration::from_secs(15) };
 
-    Ok(pid)
+    match wait_for_gateway(port, timeout, process_manager, &stderr_buf).await {
+        Ok(()) => Ok(pid),
+        Err(e) => {
+            // Clean up the failed process
+            log::error!("Gateway failed to start, cleaning up: {}", e);
+            let mut manager = process_manager
+                .lock()
+                .map_err(|err| format!("Failed to lock process manager: {}", err))?;
+            if let Some(mut child) = manager.managed_child.take() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            manager.managed_pid = None;
+            Err(e)
+        }
+    }
 }
 
-/// Wait for the gateway to respond on its WebSocket port
-async fn wait_for_gateway(port: u16, timeout: Duration) -> Result<(), String> {
+/// Wait for the gateway to respond on its port, checking process liveness
+async fn wait_for_gateway(
+    port: u16,
+    timeout: Duration,
+    process_manager: &Mutex<GatewayProcessManager>,
+    stderr_buf: &Arc<Mutex<String>>,
+) -> Result<(), String> {
     let start = std::time::Instant::now();
     let url = format!("http://127.0.0.1:{}", port);
     let client = reqwest::Client::new();
 
     while start.elapsed() < timeout {
+        // Check if the process died during startup
+        if let Ok(mut manager) = process_manager.lock() {
+            if let Some(ref mut child) = manager.managed_child {
+                if let Ok(Some(status)) = child.try_wait() {
+                    let captured = stderr_buf.lock().map(|b| b.clone()).unwrap_or_default();
+                    let detail = if captured.is_empty() {
+                        format!("{}", status)
+                    } else {
+                        log::error!("Gateway stderr at exit:\n{}", captured);
+                        format!("{}: {}", status, captured.lines().last().unwrap_or(&captured).trim())
+                    };
+                    return Err(format!(
+                        "Gateway process exited during startup ({})",
+                        detail
+                    ));
+                }
+            }
+        }
+
+        log::info!("Polling gateway at {} (elapsed: {:.1}s)", url, start.elapsed().as_secs_f64());
+
         // Try a simple HTTP request - the WS server may respond with upgrade required
         match client.get(&url).send().await {
             Ok(_) => {
@@ -187,9 +339,15 @@ async fn wait_for_gateway(port: u16, timeout: Duration) -> Result<(), String> {
         }
     }
 
+    let captured = stderr_buf.lock().map(|b| b.clone()).unwrap_or_default();
+    if !captured.is_empty() {
+        log::error!("Gateway stderr at timeout:\n{}", captured);
+    }
+
     Err(format!(
-        "OpenClaw gateway did not start within {} seconds",
-        timeout.as_secs()
+        "OpenClaw gateway did not respond within {} seconds. Check if 'openclaw gateway' works in your terminal.{}",
+        timeout.as_secs(),
+        if captured.is_empty() { String::new() } else { format!("\nStderr: {}", captured.lines().last().unwrap_or(&captured).trim()) }
     ))
 }
 

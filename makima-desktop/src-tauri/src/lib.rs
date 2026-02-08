@@ -11,6 +11,7 @@ use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 mod anthropic;
 mod auth;
 mod database;
+mod filesystem;
 mod git;
 mod ollama;
 mod openclaw;
@@ -37,10 +38,11 @@ use ollama::{
 use openclaw::{
     openclaw_connect, openclaw_detect_installation, openclaw_disconnect,
     openclaw_get_config, openclaw_get_connection_status, openclaw_get_gateway_status,
-    openclaw_list_agents, openclaw_resolve_approval, openclaw_send_message,
+    openclaw_install, openclaw_list_agents, openclaw_resolve_approval, openclaw_send_message,
     openclaw_start_gateway, openclaw_stop_gateway, OpenClawState,
 };
 use openai::{openai_cancel_stream, openai_chat_stream, openai_validate_key, OpenAIState};
+use filesystem::reveal_in_finder;
 use pty::{detect_ai_clis, pty_ack, pty_kill, pty_resize, pty_spawn, pty_write, PtyState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -97,6 +99,7 @@ pub fn run() {
             git_diff_all,
             git_current_branch,
             openclaw_detect_installation,
+            openclaw_install,
             openclaw_start_gateway,
             openclaw_stop_gateway,
             openclaw_get_gateway_status,
@@ -107,6 +110,7 @@ pub fn run() {
             openclaw_list_agents,
             openclaw_resolve_approval,
             openclaw_get_config,
+            reveal_in_finder,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

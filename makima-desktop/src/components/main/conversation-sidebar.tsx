@@ -1,4 +1,5 @@
-import { AlertTriangle, MoreHorizontal, Plus, Search } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { AlertTriangle, Pin, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback } from "react";
 import type { Conversation } from "@/components/main/jarvis-types";
@@ -6,10 +7,10 @@ import { formatRelativeTime } from "@/components/main/jarvis-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  NativeMenu,
+  NativeContextMenu,
   createMenuItem,
   createSeparator,
-} from "@/components/ui/native-menu";
+} from "@/components/ui/native-context-menu";
 import { cn } from "@/lib/utils";
 // Store imports
 import {
@@ -100,8 +101,12 @@ export function ConversationSidebar({
   const storeConversations = useVisibleConversations();
   const storeActiveConversationId = useActiveConversationId();
   const streamingConversationIds = useStreamingConversationIds();
-  const { setActiveConversationId, removeConversation, addConversation } =
-    useConversationActions();
+  const {
+    setActiveConversationId,
+    removeConversation,
+    addConversation,
+    updateConversation,
+  } = useConversationActions();
 
   // Use props if provided, otherwise fall back to store
   const visibleConversations =
@@ -197,18 +202,49 @@ export function ConversationSidebar({
     [onArchiveConversation],
   );
 
-  const menuItems = [
-    createMenuItem("rename", "Rename"),
-    createMenuItem("duplicate", "Duplicate"),
-    createMenuItem("export", "Export"),
-    createSeparator(),
-    createMenuItem("archive", "Archive"),
-    createMenuItem("delete", "Delete"),
-  ];
+  const getMenuItems = useCallback(
+    (conversation: Conversation) => [
+      createMenuItem(
+        "pin",
+        conversation.isPinned ? "Unpin" : "Pin",
+      ),
+      createSeparator(),
+      createMenuItem("rename", "Rename"),
+      createMenuItem("copy-title", "Copy Title"),
+      createMenuItem("duplicate", "Duplicate"),
+      createMenuItem("export", "Export"),
+      createSeparator(),
+      createMenuItem("clear", "Clear Messages"),
+      createMenuItem("archive", "Archive"),
+      createMenuItem("delete", "Delete"),
+    ],
+    [],
+  );
 
   const handleMenuSelect = useCallback(
     (conversationId: string) => (actionId: string) => {
+      const conversation = visibleConversations.find(
+        (c) => c.id === conversationId,
+      );
+
       switch (actionId) {
+        case "pin": {
+          const newPinned = !conversation?.isPinned;
+          updateConversation(conversationId, { isPinned: newPinned });
+          invoke("db_update_conversation", {
+            id: conversationId,
+            pinned: newPinned,
+          });
+          break;
+        }
+        case "copy-title":
+          if (conversation) {
+            navigator.clipboard.writeText(conversation.title);
+          }
+          break;
+        case "clear":
+          updateConversation(conversationId, { items: [] });
+          break;
         case "rename":
           handleRenameConversation(conversationId);
           break;
@@ -227,6 +263,8 @@ export function ConversationSidebar({
       }
     },
     [
+      visibleConversations,
+      updateConversation,
       handleRenameConversation,
       handleDuplicateConversation,
       handleExportConversation,
@@ -270,63 +308,54 @@ export function ConversationSidebar({
                 animate={{ opacity: 1, x: 0, height: "auto" }}
                 exit={{ opacity: 0, x: -20, height: 0 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="group relative"
               >
-                <button
-                  onClick={() => handleSelectConversation(conversation.id)}
-                  className={cn(
-                    "w-full rounded-lg p-2 pr-8 text-left transition-colors",
-                    isActive ? "glass-selected glass" : "glass-hover",
-                  )}
+                <NativeContextMenu
+                  items={getMenuItems(conversation)}
+                  onSelect={handleMenuSelect(conversation.id)}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-foreground text-sm font-medium">
-                          {conversation.title}
-                        </p>
-                        {streamingConversationIds.includes(conversation.id) ? (
-                          <span className="relative flex size-2">
-                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-400" />
-                            <span className="relative inline-flex size-2 rounded-full bg-amber-500" />
-                          </span>
-                        ) : conversation.status === "running" ? (
-                          <span className="relative flex size-2">
-                            <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400" />
-                            <span className="relative inline-flex size-2 rounded-full bg-sky-500" />
-                          </span>
-                        ) : conversation.status === "idle" &&
-                          conversation.items.length > 0 ? (
-                          <span className="size-2 rounded-full bg-emerald-500" />
-                        ) : null}
-                        {conversation.globalState === "error" ? (
-                          <AlertTriangle className="size-3 text-rose-500" />
-                        ) : null}
-                      </div>
-                    </div>
-                    <span className="text-muted-foreground text-[10px]">
-                      {formatRelativeTime(conversation.updatedAt)}
-                    </span>
-                  </div>
-                </button>
-
-                <div className="absolute top-1/2 right-1 -translate-y-1/2">
-                  <NativeMenu
-                    items={menuItems}
-                    onSelect={handleMenuSelect(conversation.id)}
+                  <button
+                    onClick={() => handleSelectConversation(conversation.id)}
+                    className={cn(
+                      "w-full rounded-lg p-2 text-left transition-colors",
+                      isActive ? "glass-selected glass" : "glass-hover",
+                    )}
                   >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "size-6 opacity-0 transition-opacity group-hover:opacity-100",
-                      )}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </Button>
-                  </NativeMenu>
-                </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {conversation.isPinned ? (
+                            <Pin className="text-muted-foreground size-3 shrink-0" />
+                          ) : null}
+                          <p className="text-foreground text-sm font-medium">
+                            {conversation.title}
+                          </p>
+                          {streamingConversationIds.includes(
+                            conversation.id,
+                          ) ? (
+                            <span className="relative flex size-2">
+                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-400" />
+                              <span className="relative inline-flex size-2 rounded-full bg-amber-500" />
+                            </span>
+                          ) : conversation.status === "running" ? (
+                            <span className="relative flex size-2">
+                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400" />
+                              <span className="relative inline-flex size-2 rounded-full bg-sky-500" />
+                            </span>
+                          ) : conversation.status === "idle" &&
+                            conversation.items.length > 0 ? (
+                            <span className="size-2 rounded-full bg-emerald-500" />
+                          ) : null}
+                          {conversation.globalState === "error" ? (
+                            <AlertTriangle className="size-3 text-rose-500" />
+                          ) : null}
+                        </div>
+                      </div>
+                      <span className="text-muted-foreground text-[10px]">
+                        {formatRelativeTime(conversation.updatedAt)}
+                      </span>
+                    </div>
+                  </button>
+                </NativeContextMenu>
               </motion.div>
             );
           })}

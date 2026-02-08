@@ -7,6 +7,7 @@ pub struct ConversationSummary {
     pub summary: String,
     pub status: String,
     pub state: String,
+    pub pinned: bool,
     pub created_at: i64,
     pub updated_at: i64,
     pub repository_id: Option<String>,
@@ -38,6 +39,7 @@ pub struct Conversation {
     pub summary: String,
     pub status: String,
     pub state: String,
+    pub pinned: bool,
     pub created_at: i64,
     pub updated_at: i64,
     pub repository_id: Option<String>,
@@ -56,6 +58,7 @@ pub struct UpdateConversationInput {
     pub summary: Option<String>,
     pub status: Option<String>,
     pub state: Option<String>,
+    pub pinned: Option<bool>,
     pub repository_id: Option<String>,
 }
 

@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
 import type {
   OpenClawInstallation,
@@ -10,6 +10,8 @@ export function useOpenClawGateway() {
   const { setOpenClawInstallation, setOpenClawGatewayStatus, setError } =
     useWorkDomainActions()
 
+  const [isInstalling, setIsInstalling] = useState(false)
+
   const detectInstallation = useCallback(async () => {
     try {
       const installation =
@@ -19,6 +21,23 @@ export function useOpenClawGateway() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       return null
+    }
+  }, [setOpenClawInstallation, setError])
+
+  const installOpenClaw = useCallback(async () => {
+    setIsInstalling(true)
+    setError(null)
+    try {
+      const installation =
+        await invoke<OpenClawInstallation>("openclaw_install")
+      setOpenClawInstallation(installation)
+      return { success: true, installation }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      return { success: false, installation: null }
+    } finally {
+      setIsInstalling(false)
     }
   }, [setOpenClawInstallation, setError])
 
@@ -63,6 +82,8 @@ export function useOpenClawGateway() {
 
   return {
     detectInstallation,
+    installOpenClaw,
+    isInstalling,
     startGateway,
     stopGateway,
     refreshGatewayStatus,

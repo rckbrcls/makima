@@ -7,9 +7,9 @@ use rusqlite::{params, Connection, OptionalExtension, Result};
 pub fn list_conversations(conn: &Connection) -> Result<Vec<ConversationSummary>> {
     let mut stmt = conn.prepare(
         r#"
-        SELECT id, title, summary, status, state, created_at, updated_at, repository_id
+        SELECT id, title, summary, status, state, pinned, created_at, updated_at, repository_id
         FROM conversations
-        ORDER BY updated_at DESC
+        ORDER BY pinned DESC, updated_at DESC
         "#,
     )?;
 
@@ -20,9 +20,10 @@ pub fn list_conversations(conn: &Connection) -> Result<Vec<ConversationSummary>>
             summary: row.get(2)?,
             status: row.get(3)?,
             state: row.get(4)?,
-            created_at: row.get(5)?,
-            updated_at: row.get(6)?,
-            repository_id: row.get(7)?,
+            pinned: row.get(5)?,
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+            repository_id: row.get(8)?,
         })
     })?;
 
@@ -32,7 +33,7 @@ pub fn list_conversations(conn: &Connection) -> Result<Vec<ConversationSummary>>
 pub fn get_conversation(conn: &Connection, id: &str) -> Result<Option<Conversation>> {
     let mut stmt = conn.prepare(
         r#"
-        SELECT id, title, summary, status, state, created_at, updated_at, repository_id
+        SELECT id, title, summary, status, state, pinned, created_at, updated_at, repository_id
         FROM conversations
         WHERE id = ?1
         "#,
@@ -46,9 +47,10 @@ pub fn get_conversation(conn: &Connection, id: &str) -> Result<Option<Conversati
                 summary: row.get(2)?,
                 status: row.get(3)?,
                 state: row.get(4)?,
-                created_at: row.get(5)?,
-                updated_at: row.get(6)?,
-                repository_id: row.get(7)?,
+                pinned: row.get(5)?,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+                repository_id: row.get(8)?,
                 messages: Vec::new(),
             })
         })
@@ -85,6 +87,7 @@ pub fn create_conversation(
         summary: String::new(),
         status: "idle".to_string(),
         state: "active".to_string(),
+        pinned: false,
         created_at: now,
         updated_at: now,
         repository_id: repository_id.map(|s| s.to_string()),
@@ -123,6 +126,12 @@ pub fn update_conversation(
     if let Some(state) = &input.state {
         updates.push(format!("state = ?{}", param_index));
         params_vec.push(Box::new(state.clone()));
+        param_index += 1;
+    }
+
+    if let Some(pinned) = &input.pinned {
+        updates.push(format!("pinned = ?{}", param_index));
+        params_vec.push(Box::new(*pinned));
         param_index += 1;
     }
 
@@ -455,10 +464,10 @@ pub fn list_conversations_by_repo(
 ) -> Result<Vec<ConversationSummary>> {
     let mut stmt = conn.prepare(
         r#"
-        SELECT id, title, summary, status, state, created_at, updated_at, repository_id
+        SELECT id, title, summary, status, state, pinned, created_at, updated_at, repository_id
         FROM conversations
         WHERE repository_id = ?1
-        ORDER BY updated_at DESC
+        ORDER BY pinned DESC, updated_at DESC
         "#,
     )?;
 
@@ -469,9 +478,10 @@ pub fn list_conversations_by_repo(
             summary: row.get(2)?,
             status: row.get(3)?,
             state: row.get(4)?,
-            created_at: row.get(5)?,
-            updated_at: row.get(6)?,
-            repository_id: row.get(7)?,
+            pinned: row.get(5)?,
+            created_at: row.get(6)?,
+            updated_at: row.get(7)?,
+            repository_id: row.get(8)?,
         })
     })?;
 

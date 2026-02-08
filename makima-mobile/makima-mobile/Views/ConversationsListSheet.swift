@@ -19,6 +19,32 @@ struct ConversationsTabView: View {
 
         NavigationStack {
             List {
+                Section {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(theme.mutedForeground)
+                        TextField("Search conversations", text: $viewModel.searchQuery)
+                            .foregroundStyle(theme.foreground)
+                        if !viewModel.searchQuery.isEmpty {
+                            Button {
+                                viewModel.searchQuery = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(theme.mutedForeground)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(12)
+                    .glassEffect(.regular)
+                    .listRowBackground(Color.clear)
+                } header: {
+                    Text("Conversations")
+                        .font(.custom("Baskerville", size: 32))
+                        .foregroundStyle(theme.foreground)
+                        .textCase(nil)
+                }
+
                 ForEach(viewModel.groupedConversations) { section in
                     Section(section.title) {
                         ForEach(section.conversations, id: \.id) { conversation in
@@ -47,6 +73,7 @@ struct ConversationsTabView: View {
                                     statusDot(for: conversation.status)
                                 }
                             }
+                            .buttonStyle(.plain)
                             .accessibilityIdentifier("conversation.row.\(conversation.id)")
                             .contextMenu {
                                 Button(role: .destructive) {
@@ -60,19 +87,11 @@ struct ConversationsTabView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .contentMargins(.horizontal, 0, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .background(theme.background)
-            .searchable(
-                text: $viewModel.searchQuery,
-                placement: .navigationBarDrawer(displayMode: .automatic),
-                prompt: "Search conversations"
-            )
             .onChange(of: viewModel.searchQuery) { _, _ in
                 viewModel.load()
             }
-            .navigationTitle("Conversations")
-            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 if let onOpenSettings {
                     ToolbarItem(placement: .topBarLeading) {
@@ -81,34 +100,37 @@ struct ConversationsTabView: View {
                         } label: {
                             Image(systemName: "gearshape")
                         }
+                        .foregroundStyle(theme.foreground)
                         .accessibilityIdentifier("conversations.settings.button")
                     }
                 }
 
-                ToolbarItemGroup(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         onNew()
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
+                    .foregroundStyle(theme.foreground)
                     .accessibilityIdentifier("conversations.new.button")
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if !appState.supabase.isConfigured || !appState.supabase.isAuthenticated {
                     HStack {
-                        Spacer()
                         Button {
                             onOpenAuth?()
                         } label: {
                             Label("Sign In", systemImage: "person.crop.circle")
-                                .font(.subheadline)
+                                .font(.headline)
+                                .padding(12)
+                                .glassEffect(.regular)
                         }
-                        .buttonStyle(.glassProminent)
-                        .controlSize(.small)
+                        .buttonStyle(.plain)
                         .accessibilityIdentifier("conversations.signin.button")
                         Spacer()
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
                     .padding(.top, 6)
                     .padding(.bottom, 10)

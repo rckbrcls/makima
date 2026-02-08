@@ -1,17 +1,21 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   FolderGit2,
   FolderPlus,
   GitBranch,
-  MoreHorizontal,
   Plus,
   Search,
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
+import { invoke } from "@tauri-apps/api/core"
 import type { CliSession, Repository } from "@/lib/code-types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { NativeMenu, createMenuItem } from "@/components/ui/native-menu"
+import {
+  NativeContextMenu,
+  createMenuItem,
+  createSeparator,
+} from "@/components/ui/native-context-menu"
 import { cn } from "@/lib/utils"
 
 interface RepositorySidebarProps {
@@ -22,6 +26,10 @@ interface RepositorySidebarProps {
   onSelectSession: (sessionId: string) => void
   onAddRepository: () => void
   onDeleteRepository: (repoId: string) => void
+  onRenameRepository: (repoId: string, newName: string) => void
+  onStopSession: (sessionId: string) => void
+  onRestartSession: (sessionId: string) => void
+  onRemoveSession: (sessionId: string) => void
   sessions: Map<string, CliSession>
 }
 
@@ -33,9 +41,37 @@ export function RepositorySidebar({
   onSelectSession,
   onAddRepository,
   onDeleteRepository,
+  onRenameRepository,
+  onStopSession,
+  onRestartSession,
+  onRemoveSession,
   sessions,
 }: RepositorySidebarProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [editingRepoId, setEditingRepoId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState("")
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  // Focus the rename input when editing starts
+  useEffect(() => {
+    if (editingRepoId && renameInputRef.current) {
+      renameInputRef.current.focus()
+      renameInputRef.current.select()
+    }
+  }, [editingRepoId])
+
+  const commitRename = useCallback(() => {
+    if (editingRepoId && editingName.trim()) {
+      onRenameRepository(editingRepoId, editingName.trim())
+    }
+    setEditingRepoId(null)
+    setEditingName("")
+  }, [editingRepoId, editingName, onRenameRepository])
+
+  const cancelRename = useCallback(() => {
+    setEditingRepoId(null)
+    setEditingName("")
+  }, [])
 
   // Filter repositories by search
   const filteredRepos = useMemo(() => {
@@ -63,7 +99,13 @@ export function RepositorySidebar({
     return map
   }, [sessions])
 
-  const menuItems = [createMenuItem("remove", "Remove")]
+  const repoMenuItems = [
+    createMenuItem("rename", "Rename"),
+    createMenuItem("open-finder", "Open in Finder"),
+    createMenuItem("copy-path", "Copy Path"),
+    createSeparator(),
+    createMenuItem("remove", "Remove"),
+  ]
 
   return (
     <div className="relative flex h-full flex-col">
@@ -97,6 +139,7 @@ export function RepositorySidebar({
           {filteredRepos.map((repo) => {
             const isActive = repo.id === activeRepositoryId
             const repoSessions = sessionsByRepo.get(repo.id) ?? []
+            const isEditing = editingRepoId === repo.id
 
             return (
               <motion.div
@@ -108,20 +151,51 @@ export function RepositorySidebar({
                 className="group/repo"
               >
                 {/* Repository row */}
-                <div
-                  className={cn(
-                    "flex items-center gap-1 rounded-xl px-4 py-2 transition-colors",
-                    isActive ? "glass-selected glass" : "glass-hover",
-                  )}
+                <NativeContextMenu
+                  items={repoMenuItems}
+                  onSelect={(id) => {
+                    if (id === "rename") {
+                      setEditingRepoId(repo.id)
+                      setEditingName(repo.name)
+                    }
+                    if (id === "open-finder") {
+                      invoke("reveal_in_finder", { path: repo.path })
+                    }
+                    if (id === "copy-path") {
+                      navigator.clipboard.writeText(repo.path)
+                    }
+                    if (id === "remove") {
+                      onDeleteRepository(repo.id)
+                    }
+                  }}
                 >
                   <button
-                    className="flex min-w-0 flex-1 items-center gap-2"
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-xl px-4 py-2 transition-colors",
+                      isActive ? "glass-selected glass" : "glass-hover",
+                    )}
                     onClick={() => onSelectRepository(repo.id)}
                   >
                     <div className="min-w-0 flex-1 text-left">
-                      <p className="text-foreground truncate text-sm font-medium">
-                        {repo.name}
-                      </p>
+                      {isEditing ? (
+                        <Input
+                          ref={renameInputRef}
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitRename()
+                            if (e.key === "Escape") cancelRename()
+                            e.stopPropagation()
+                          }}
+                          onBlur={commitRename}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-6 border-0 bg-transparent px-0 text-sm font-medium focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                      ) : (
+                        <p className="text-foreground truncate text-sm font-medium">
+                          {repo.name}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2">
                         <p className="flex items-center gap-1 text-[10px]">
                           <GitBranch className="size-3" />
@@ -137,27 +211,7 @@ export function RepositorySidebar({
                       </div>
                     </div>
                   </button>
-
-                  <div className="flex items-center gap-1">
-                    <NativeMenu
-                      items={menuItems}
-                      onSelect={(id) => {
-                        if (id === "remove") {
-                          onDeleteRepository(repo.id)
-                        }
-                      }}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 opacity-0 group-hover/repo:opacity-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </NativeMenu>
-                  </div>
-                </div>
+                </NativeContextMenu>
 
                 {/* Session sub-items (expanded when repo is active) */}
                 <AnimatePresence initial={false}>
@@ -172,37 +226,55 @@ export function RepositorySidebar({
                       <div className="ml-4 flex flex-col gap-0.5 py-1">
                         {repoSessions.map((session) => {
                           const isSelected = session.id === activeSessionId
-                          const statusColor =
-                            session.status === "running"
-                              ? "bg-emerald-400"
-                              : session.status === "error"
-                                ? "bg-red-400"
-                                : "bg-muted-foreground"
+                          const isRunning = session.status === "running"
+                          const statusColor = isRunning
+                            ? "bg-emerald-400"
+                            : session.status === "error"
+                              ? "bg-red-400"
+                              : "bg-muted-foreground"
+
+                          const sessionMenuItems = [
+                            createMenuItem("stop", "Stop Session", {
+                              enabled: isRunning,
+                            }),
+                            createMenuItem("restart", "Restart Session"),
+                            createSeparator(),
+                            createMenuItem("remove", "Remove Session"),
+                          ]
 
                           return (
-                            <button
+                            <NativeContextMenu
                               key={session.id}
-                              onClick={() => onSelectSession(session.id)}
-                              className={cn(
-                                "flex items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors",
-                                isSelected
-                                  ? "glass glass-selected"
-                                  : "glass-hover",
-                              )}
+                              items={sessionMenuItems}
+                              onSelect={(id) => {
+                                if (id === "stop") onStopSession(session.id)
+                                if (id === "restart") onRestartSession(session.id)
+                                if (id === "remove") onRemoveSession(session.id)
+                              }}
                             >
-                              <span
+                              <button
+                                onClick={() => onSelectSession(session.id)}
                                 className={cn(
-                                  "size-1.5 flex-none rounded-full",
-                                  statusColor,
+                                  "flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors",
+                                  isSelected
+                                    ? "glass glass-selected"
+                                    : "glass-hover",
                                 )}
-                              />
-                              <span className="text-foreground min-w-0 truncate text-xs font-medium">
-                                {session.cliName}
-                              </span>
-                              <span className="text-muted-foreground text-[10px]">
-                                {session.status}
-                              </span>
-                            </button>
+                              >
+                                <span
+                                  className={cn(
+                                    "size-1.5 flex-none rounded-full",
+                                    statusColor,
+                                  )}
+                                />
+                                <span className="text-foreground min-w-0 truncate text-xs font-medium">
+                                  {session.cliName}
+                                </span>
+                                <span className="text-muted-foreground text-[10px]">
+                                  {session.status}
+                                </span>
+                              </button>
+                            </NativeContextMenu>
                           )
                         })}
                       </div>

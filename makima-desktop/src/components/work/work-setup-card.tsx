@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react"
-import { Play, Plug, RefreshCw } from "lucide-react"
+import { Download, Play, Plug, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -8,6 +8,7 @@ import {
   useOpenClawGatewayStatus,
   useOpenClawConfig,
   useSettingsActions,
+  useWorkError,
 } from "@/stores"
 import {
   useOpenClawGateway,
@@ -38,8 +39,15 @@ export function WorkSetupCard() {
   const openclawConfig = useOpenClawConfig()
   const { setProviderConfig } = useSettingsActions()
 
-  const { detectInstallation, startGateway, refreshGatewayStatus } =
-    useOpenClawGateway()
+  const workError = useWorkError()
+
+  const {
+    detectInstallation,
+    installOpenClaw,
+    isInstalling,
+    startGateway,
+    refreshGatewayStatus,
+  } = useOpenClawGateway()
   const { connect } = useOpenClawConnection()
 
   const step = getSetupStep(installation, gatewayStatus, connectionStatus)
@@ -100,23 +108,45 @@ export function WorkSetupCard() {
                         : "Installed"}
                       {installation.path ? ` at ${installation.path}` : ""}
                     </p>
+                  ) : installation?.nodeAvailable === false ? (
+                    <p className="text-muted-foreground text-xs">
+                      Node.js required. Install from nodejs.org
+                    </p>
+                  ) : isInstalling ? (
+                    <p className="text-muted-foreground text-xs">
+                      Installing via npm...
+                    </p>
                   ) : (
                     <p className="text-muted-foreground text-xs">
-                      Run: npm i -g openclaw
+                      Install the OpenClaw CLI globally
                     </p>
                   )}
                 </div>
               </div>
               {!installation?.installed && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={handleRefresh}
-                >
-                  <RefreshCw className="size-3" />
-                  Refresh
-                </Button>
+                <div className="flex gap-1.5">
+                  {installation?.nodeAvailable !== false && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={installOpenClaw}
+                      disabled={isInstalling}
+                    >
+                      <Download className="size-3" />
+                      {isInstalling ? "Installing..." : "Install"}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={handleRefresh}
+                    disabled={isInstalling}
+                  >
+                    <RefreshCw className="size-3" />
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -215,9 +245,9 @@ export function WorkSetupCard() {
         </div>
 
         {/* Error */}
-        {connectionStatus.error && (
+        {(connectionStatus.error || workError) && (
           <p className="text-center text-xs text-rose-400">
-            {connectionStatus.error}
+            {connectionStatus.error || workError}
           </p>
         )}
       </div>

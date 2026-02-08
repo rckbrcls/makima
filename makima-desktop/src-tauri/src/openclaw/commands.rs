@@ -31,6 +31,11 @@ pub async fn openclaw_detect_installation() -> Result<OpenClawInstallation, Stri
 }
 
 #[tauri::command]
+pub async fn openclaw_install() -> Result<OpenClawInstallation, String> {
+    process::install_openclaw().await
+}
+
+#[tauri::command]
 pub async fn openclaw_start_gateway(
     state: State<'_, OpenClawState>,
 ) -> Result<u32, String> {

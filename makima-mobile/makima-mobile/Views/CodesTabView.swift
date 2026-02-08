@@ -43,15 +43,25 @@ struct CodesTabView: View {
                     .accessibilityIdentifier("codes.empty.state")
                 } else {
                     List {
+                        Section {
+                            EmptyView()
+                        } header: {
+                            Text("Codes")
+                                .font(.custom("Baskerville", size: 32))
+                                .foregroundStyle(theme.foreground)
+                                .textCase(nil)
+                                .padding(.bottom, 4)
+                        }
+
                         ForEach(sessions) { session in
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Text(session.agentName)
                                         .font(.headline)
 
                                     Spacer()
 
-                                    statusBadge(session.status)
+                                    statusDetail(session.status)
                                 }
 
                                 if let desktopName = session.desktopName, !desktopName.isEmpty {
@@ -75,10 +85,11 @@ struct CodesTabView: View {
                                 }
                             }
                             .padding(.vertical, 4)
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+                            .listRowBackground(Color.clear)
                         }
                     }
                     .listStyle(.insetGrouped)
-                    .contentMargins(.horizontal, 0, for: .scrollContent)
                     .scrollContentBackground(.hidden)
                     .background(theme.background)
                     .refreshable {
@@ -88,8 +99,7 @@ struct CodesTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(theme.background)
-            .navigationTitle("Codes")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if let onBackToChat {
                     ToolbarItem(placement: .topBarLeading) {
@@ -97,7 +107,10 @@ struct CodesTabView: View {
                             onBackToChat()
                         } label: {
                             Label("Chat", systemImage: "chevron.left")
+                                .padding(10)
+                                .background(theme.card, in: Capsule())
                         }
+                        .foregroundStyle(theme.foreground)
                         .accessibilityIdentifier("codes.chat.button")
                     }
                 }
@@ -132,15 +145,16 @@ struct CodesTabView: View {
         }
     }
 
-    @ViewBuilder
-    private func statusBadge(_ status: String) -> some View {
-        Text(status.capitalized)
-            .font(.caption.bold())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(statusColor(status).opacity(0.14))
-            .foregroundStyle(statusColor(status))
-            .clipShape(Capsule())
+    private func statusDetail(_ status: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(statusColor(status))
+                .frame(width: 8, height: 8)
+
+            Text(status.capitalized)
+                .font(.caption)
+                .foregroundStyle(appState.resolvedTheme.mutedForeground)
+        }
     }
 
     private func statusColor(_ status: String) -> Color {

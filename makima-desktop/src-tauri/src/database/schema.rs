@@ -2,7 +2,7 @@ use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
-const SCHEMA_VERSION: i32 = 4;
+const SCHEMA_VERSION: i32 = 5;
 
 pub fn get_database_path(app: &AppHandle) -> PathBuf {
     let app_data_dir = app
@@ -67,6 +67,9 @@ fn run_migrations(conn: &Connection, from_version: i32) -> Result<()> {
     }
     if from_version < 4 {
         migration_v4(conn)?;
+    }
+    if from_version < 5 {
+        migration_v5(conn)?;
     }
     Ok(())
 }
@@ -246,5 +249,14 @@ fn migration_v4(conn: &Connection) -> Result<()> {
     )?;
 
     log::info!("Database migration v4 completed (work domain tables added)");
+    Ok(())
+}
+
+fn migration_v5(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "ALTER TABLE conversations ADD COLUMN pinned BOOLEAN NOT NULL DEFAULT 0;",
+    )?;
+
+    log::info!("Database migration v5 completed (pinned column added)");
     Ok(())
 }

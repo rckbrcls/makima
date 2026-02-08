@@ -28,6 +28,13 @@ import type { IntralineSpan, RowModel } from "@/lib/diff-engine"
 import { buildRowModels } from "@/lib/diff-engine"
 import { ScrollSyncController } from "@/lib/scroll-sync"
 import { useGitStatus } from "@/hooks/use-git-status"
+import {
+  useFileListView,
+  useDiffView,
+  useExpandedSections,
+  useSplitPosition,
+  useCodeLayoutActions,
+} from "@/stores"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -341,7 +348,15 @@ function SideBySideDiffViewer({
     }
     return positions
   }, [rows])
-  const [split, setSplit] = useState(50)
+
+  // Split position: local state for instant drag feedback, synced from/to store
+  const savedSplitPosition = useSplitPosition()
+  const { setSplitPosition: persistSplitPosition } = useCodeLayoutActions()
+  const [split, setSplit] = useState(savedSplitPosition)
+  const splitRef = useRef(split)
+  useEffect(() => {
+    splitRef.current = split
+  }, [split])
   const [range, setRange] = useState({ start: 0, end: 50 })
 
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -392,7 +407,7 @@ function SideBySideDiffViewer({
     }
   }, [range])
 
-  // Resize handle
+  // Resize handle - persist to store on mouseup
   const handleResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     const onMove = (ev: MouseEvent) => {
@@ -404,10 +419,11 @@ function SideBySideDiffViewer({
     const onUp = () => {
       document.removeEventListener("mousemove", onMove)
       document.removeEventListener("mouseup", onUp)
+      persistSplitPosition(splitRef.current)
     }
     document.addEventListener("mousemove", onMove)
     document.addEventListener("mouseup", onUp)
-  }, [])
+  }, [persistSplitPosition])
 
   // Vertical scroll -> update visible range, rAF batched
   const handleVScroll = useCallback(() => {
@@ -480,7 +496,7 @@ function SideBySideDiffViewer({
             {/* Left column */}
             <div
               ref={leftRef}
-              className="shrink-0 overflow-x-auto overflow-y-hidden"
+              className="border border-card shrink-0 overflow-x-auto overflow-y-hidden"
               style={{
                 width: `${split}%`,
                 contain: "layout style",
@@ -511,7 +527,7 @@ function SideBySideDiffViewer({
             {/* Right column */}
             <div
               ref={rightRef}
-              className="border-border min-w-0 flex-1 overflow-x-auto overflow-y-hidden border-l"
+              className="border border-card min-w-0 flex-1 overflow-x-auto overflow-y-hidden"
               style={{ contain: "layout style" }}
             >
               <div className="w-max min-w-full">
@@ -814,26 +830,26 @@ export function GitChangesCard({ repoPath, pollInterval = 5000, className }: Git
     autoStart: Boolean(repoPath),
   })
 
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(["staged", "unstaged", "untracked"]),
+  // Persisted preferences from store
+  const fileListView = useFileListView()
+  const diffView = useDiffView()
+  const expandedSectionsArr = useExpandedSections()
+  const {
+    setFileListView,
+    setDiffView,
+    toggleSection,
+  } = useCodeLayoutActions()
+
+  // Convert persisted array to Set for component use
+  const expandedSections = useMemo(
+    () => new Set(expandedSectionsArr),
+    [expandedSectionsArr],
   )
+
+  // Ephemeral state (not persisted)
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [selectedDiff, setSelectedDiff] = useState<FileDiff | null>(null)
   const [isLoadingDiff, setIsLoadingDiff] = useState(false)
-  const [diffView, setDiffView] = useState<"inline" | "split">("inline")
-  const [fileListView, setFileListView] = useState<"flat" | "tree">("flat")
-
-  const toggleSection = useCallback((section: string) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(section)) {
-        next.delete(section)
-      } else {
-        next.add(section)
-      }
-      return next
-    })
-  }, [])
 
   const handleFileClick = useCallback(
     async (filePath: string, staged?: boolean) => {

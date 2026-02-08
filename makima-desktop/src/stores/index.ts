@@ -225,3 +225,20 @@ export {
   useWorkDomainActions,
 } from "./work-domain-store";
 export type { WorkDomainStore } from "./work-domain-store";
+
+// Code Layout Store (persisted Code Tab UI preferences)
+export {
+  useCodeLayoutStore,
+  useCodeLayoutHydrated,
+  // Atomic selectors
+  useCodePanelLayout,
+  useAgentPanelCollapsed,
+  useGitPanelCollapsed,
+  useFileListView,
+  useDiffView,
+  useExpandedSections,
+  useSplitPosition,
+  useLastActiveRepositoryId,
+  useCodeLayoutActions,
+} from "./code-layout-store"
+export type { CodeLayoutStore } from "./code-layout-store"

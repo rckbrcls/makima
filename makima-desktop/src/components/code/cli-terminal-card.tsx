@@ -1,11 +1,19 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Play, Plus, RotateCcw, Square } from "lucide-react"
 import type { FitAddon } from "@xterm/addon-fit"
 import type { Terminal } from "@xterm/xterm"
 import { useTerminal } from "@/hooks/use-terminal"
 import { cn } from "@/lib/utils"
-
-type TerminalRenderer = 'dom' | 'canvas' | 'webgl'
-const TERMINAL_RENDERER = 'dom' as TerminalRenderer
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Blob3D } from "@/components/visuals/blob-3d"
+import { Typewriter } from "@/components/ui/typewriter"
+import {
+  useCliActiveSession,
+  useCliSessionActions,
+  useInstalledClis,
+  useSelectedCliCommand,
+} from "@/stores"
 
 // Debounce utility for resize handling
 function debounce<T extends (...args: Array<unknown>) => void>(
@@ -21,12 +29,161 @@ function debounce<T extends (...args: Array<unknown>) => void>(
   return debounced
 }
 
+const CLI_SUGGESTIONS = [
+  "Select a CLI and hit Start",
+  "Run AI agents on your codebase",
+  "Execute commands in real time",
+  "Manage multiple sessions at once",
+]
+
+// ============================================================================
+// Empty State
+// ============================================================================
+
+function CliEmptyState() {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="relative h-[280px] w-full max-w-2xl">
+        <Blob3D className="h-full w-full" />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <Typewriter
+            className="pointer-events-auto max-w-xl px-4 text-center font-serif text-2xl"
+            baseText="Ready to code. "
+            delay={0.5}
+            textsDelay={2}
+            texts={CLI_SUGGESTIONS}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Bottom Action Bar
+// ============================================================================
+
+interface CliBottomBarProps {
+  isConnected: boolean
+  onStart: () => void
+  onStop: () => void
+  onRestart: () => void
+}
+
+function CliBottomBar({
+  isConnected,
+  onStart,
+  onStop,
+  onRestart,
+}: CliBottomBarProps) {
+  const installedClis = useInstalledClis()
+  const selectedCommand = useSelectedCliCommand()
+  const activeSession = useCliActiveSession()
+  const { setSelectedCliCommand } = useCliSessionActions()
+
+  const isRunning = activeSession?.status === "running"
+  const isExited = activeSession?.status === "exited"
+  const hasError = activeSession?.status === "error"
+
+  return (
+    <div className="border-border flex items-center gap-2 border-t px-3 py-1.5">
+      {/* Connection indicator */}
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          isConnected ? "bg-emerald-400" : "bg-muted-foreground",
+        )}
+      />
+
+      {/* CLI Selector */}
+      <select
+        value={selectedCommand ?? ""}
+        onChange={(e) => setSelectedCliCommand(e.target.value || null)}
+        disabled={isRunning}
+        className="bg-input text-foreground border-border h-6 rounded-md border px-2 text-xs focus:outline-none"
+      >
+        {installedClis.length === 0 && (
+          <option value="">No CLIs detected</option>
+        )}
+        {installedClis.map((cli) => (
+          <option key={cli.command} value={cli.command}>
+            {cli.name}
+            {cli.version ? ` (${cli.version})` : ""}
+          </option>
+        ))}
+      </select>
+
+      {/* Session status badge */}
+      {activeSession && (
+        <Badge
+          variant="secondary"
+          className={cn(
+            "text-[10px]",
+            isRunning &&
+              "border-emerald-500 bg-emerald-600 text-emerald-950",
+            isExited &&
+              "border-secondary bg-secondary text-secondary-foreground",
+            hasError &&
+              "border-destructive bg-destructive text-destructive-foreground",
+          )}
+        >
+          {activeSession.status}
+        </Badge>
+      )}
+
+      <div className="flex-1" />
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-1">
+        {!isRunning ? (
+          <Button
+            variant="default"
+            size="xs"
+            onClick={onStart}
+            disabled={!selectedCommand}
+          >
+            <Play className="mr-1 size-3" />
+            Start
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={onStart}
+              disabled={!selectedCommand}
+            >
+              <Plus className="mr-1 size-3" />
+              New
+            </Button>
+            <Button variant="outline" size="xs" onClick={onStop}>
+              <Square className="mr-1 size-3" />
+              Stop
+            </Button>
+            <Button variant="outline" size="xs" onClick={onRestart}>
+              <RotateCcw className="mr-1 size-3" />
+              Restart
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Terminal Card
+// ============================================================================
+
 interface CliTerminalCardProps {
   cwd?: string
   command?: string
   args?: Array<string>
   shouldSpawn: boolean
   className?: string
+  onStart: () => void
+  onStop: () => void
+  onRestart: () => void
   onSessionStart?: (ptySessionId: string) => void
   onSessionExit?: (exitCode?: number) => void
 }
@@ -37,6 +194,9 @@ export const CliTerminalCard = memo(function CliTerminalCard({
   args,
   shouldSpawn,
   className,
+  onStart,
+  onStop,
+  onRestart,
   onSessionStart,
   onSessionExit,
 }: CliTerminalCardProps) {
@@ -153,10 +313,6 @@ export const CliTerminalCard = memo(function CliTerminalCard({
         terminal.loadAddon(webLinksAddon)
         terminal.open(containerRef.current)
 
-        // To enable WebGL or Canvas renderer, install the addon package
-        // (e.g. pnpm add @xterm/addon-webgl) then load it here based on
-        // TERMINAL_RENDERER. DOM renderer is the default and needs no addon.
-
         requestAnimationFrame(() => {
           fitAddon.fit()
         })
@@ -246,35 +402,44 @@ export const CliTerminalCard = memo(function CliTerminalCard({
     }
   }, [isLoaded, handleResizeDebounced])
 
+  const showEmptyState = !shouldSpawn && !isConnected
+
   return (
     <div
       className={cn(
-        "border-border bg-card flex min-h-0 flex-col overflow-hidden rounded-xl border",
+        "glass flex min-h-0 flex-col overflow-hidden rounded-xl",
         className,
       )}
     >
-      {/* Status bar */}
-      <div className="border-border flex items-center justify-between border-b px-3 py-1.5">
-        {isConnected ? (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-            <span className="size-1.5 rounded-full bg-emerald-400" />
-            Connected
-          </span>
-        ) : (
-          <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-            <span className="bg-muted-foreground size-1.5 rounded-full" />
-            {shouldSpawn ? "Connecting..." : "Idle"}
-          </span>
-        )}
+      {/* Main area */}
+      <div className="relative min-h-0 flex-1">
+        {/* Terminal container - always mounted, hidden when idle */}
+        <div
+          ref={containerRef}
+          className={cn(
+            "absolute inset-0 overflow-hidden p-2",
+            showEmptyState && "invisible",
+          )}
+        />
+
+        {/* Empty state overlay */}
+        {showEmptyState && <CliEmptyState />}
       </div>
 
-      <div ref={containerRef} className="min-h-0 flex-1 overflow-hidden p-2" />
-
+      {/* Error bar */}
       {error && (
-        <div className="border-border bg-destructive/10 text-destructive border-t px-3 py-1 text-xs">
+        <div className="border-border bg-destructive text-destructive-foreground border-t px-3 py-1 text-xs">
           {error}
         </div>
       )}
+
+      {/* Bottom action bar */}
+      <CliBottomBar
+        isConnected={isConnected}
+        onStart={onStart}
+        onStop={onStop}
+        onRestart={onRestart}
+      />
     </div>
   )
 })

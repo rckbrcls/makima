@@ -34,7 +34,16 @@ impl OpenClawClient {
 
         let (ws_stream, _) = tokio_tungstenite::connect_async(url)
             .await
-            .map_err(|e| format!("Failed to connect to OpenClaw gateway: {}", e))?;
+            .map_err(|e| {
+                let msg = e.to_string();
+                if msg.contains("Connection refused") {
+                    "Gateway is not responding. Make sure it is running and try again.".to_string()
+                } else if msg.contains("timed out") || msg.contains("Timed out") {
+                    "Connection timed out. The gateway may be overloaded or unreachable.".to_string()
+                } else {
+                    format!("Failed to connect to gateway: {}", msg)
+                }
+            })?;
 
         let (sink, stream) = ws_stream.split();
         let sink = Arc::new(Mutex::new(sink));

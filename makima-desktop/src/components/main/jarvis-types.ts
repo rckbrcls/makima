@@ -52,6 +52,7 @@ export interface Conversation {
   summary: string;
   status: ConversationStatus;
   state: ConversationState;
+  isPinned?: boolean;
   createdAt: number;
   updatedAt: number;
   globalState?: GlobalState;

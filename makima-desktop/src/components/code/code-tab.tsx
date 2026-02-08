@@ -8,6 +8,7 @@ import {
   useState,
 } from "react"
 
+import { invoke } from "@tauri-apps/api/core"
 import { AddRepositoryDialog } from "./add-repository-dialog"
 import { CliTerminalCard } from "./cli-terminal-card"
 import { CliToolbar } from "./cli-toolbar"
@@ -29,6 +30,13 @@ import {
   useCliSessionActions,
   useCliSessions,
   useSelectedCliCommand,
+  useAgentPanelCollapsed,
+  useGitPanelCollapsed,
+  useCodePanelLayout,
+  useCodeLayoutHydrated,
+  useLastActiveRepositoryId,
+  useCodeLayoutActions,
+  useCodeLayoutStore,
 } from "@/stores"
 
 // ============================================================================
@@ -48,6 +56,7 @@ interface CodeTabContextValue {
     branch?: string,
   ) => Promise<void>
   handleDeleteRepository: (repoId: string) => Promise<void>
+  handleRenameRepository: (repoId: string, newName: string) => Promise<void>
   isAddRepoDialogOpen: boolean
   setIsAddRepoDialogOpen: (open: boolean) => void
 }
@@ -70,18 +79,32 @@ interface CodeTabProviderProps {
 }
 
 export function CodeTabProvider({ children }: CodeTabProviderProps) {
-  const { repositories, createRepository, deleteRepository } =
+  const { repositories, createRepository, deleteRepository, updateRepository } =
     useRepositories()
   const {
     setActiveRepositoryId: setCliActiveRepoId,
     setActiveSessionId,
   } = useCliSessionActions()
   const sessions = useCliSessions()
+  const lastActiveRepoId = useLastActiveRepositoryId()
+  const isHydrated = useCodeLayoutHydrated()
+  const { setLastActiveRepositoryId } = useCodeLayoutActions()
 
   const [isAddRepoDialogOpen, setIsAddRepoDialogOpen] = useState(false)
   const [activeRepositoryId, setActiveRepositoryId] = useState<string | null>(
     null,
   )
+
+  // Restore last active repository on mount after hydration
+  const hasRestoredRepo = useRef(false)
+  useEffect(() => {
+    if (!isHydrated || hasRestoredRepo.current || repositories.length === 0) return
+    hasRestoredRepo.current = true
+    if (lastActiveRepoId && repositories.some((r) => r.id === lastActiveRepoId)) {
+      setActiveRepositoryId(lastActiveRepoId)
+      setCliActiveRepoId(lastActiveRepoId)
+    }
+  }, [isHydrated, lastActiveRepoId, repositories, setCliActiveRepoId])
 
   const activeRepository = useMemo(
     () => repositories.find((r) => r.id === activeRepositoryId),
@@ -92,6 +115,7 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
     (repoId: string) => {
       setActiveRepositoryId(repoId)
       setCliActiveRepoId(repoId)
+      setLastActiveRepositoryId(repoId)
 
       // Auto-select the best session for this repo (prefer running, fallback to most recent)
       let bestSession: { id: string; startedAt: number; running: boolean } | null = null
@@ -108,7 +132,7 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
       }
       setActiveSessionId(bestSession?.id ?? null)
     },
-    [setCliActiveRepoId, setActiveSessionId, sessions],
+    [setCliActiveRepoId, setActiveSessionId, sessions, setLastActiveRepositoryId],
   )
 
   const handleSelectSession = useCallback(
@@ -142,6 +166,13 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
     [deleteRepository, activeRepositoryId, setCliActiveRepoId, setActiveSessionId],
   )
 
+  const handleRenameRepository = useCallback(
+    async (repoId: string, newName: string) => {
+      await updateRepository(repoId, { name: newName })
+    },
+    [updateRepository],
+  )
+
   const value: CodeTabContextValue = {
     repositories,
     activeRepositoryId,
@@ -151,6 +182,7 @@ export function CodeTabProvider({ children }: CodeTabProviderProps) {
     handleSelectSession,
     handleAddRepository,
     handleDeleteRepository,
+    handleRenameRepository,
     isAddRepoDialogOpen,
     setIsAddRepoDialogOpen,
   }
@@ -175,6 +207,60 @@ export function CodeTabSidebar() {
   const ctx = useCodeTabContext()
   const sessions = useCliSessions()
   const activeSessionId = useCliActiveSessionId()
+  const { updateSessionStatus, removeSession, createSession, setActiveSessionId } =
+    useCliSessionActions()
+
+  const handleStopSession = useCallback(
+    (sessionId: string) => {
+      const session = sessions.get(sessionId)
+      if (!session) return
+      if (session.ptySessionId) {
+        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
+      }
+      updateSessionStatus(sessionId, "exited")
+    },
+    [sessions, updateSessionStatus],
+  )
+
+  const handleRestartSession = useCallback(
+    (sessionId: string) => {
+      const session = sessions.get(sessionId)
+      if (!session) return
+
+      // Stop current
+      if (session.ptySessionId) {
+        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
+      }
+      updateSessionStatus(sessionId, "exited")
+
+      // Create new session with same CLI after brief delay
+      setTimeout(() => {
+        const newSessionId = `cli-${Date.now()}`
+        createSession({
+          id: newSessionId,
+          repositoryId: session.repositoryId,
+          cliName: session.cliName,
+          cliCommand: session.cliCommand,
+          ptySessionId: null,
+          status: "idle",
+          startedAt: Date.now(),
+        })
+        setActiveSessionId(newSessionId)
+      }, 200)
+    },
+    [sessions, updateSessionStatus, createSession, setActiveSessionId],
+  )
+
+  const handleRemoveSession = useCallback(
+    (sessionId: string) => {
+      const session = sessions.get(sessionId)
+      if (session?.ptySessionId && session.status === "running") {
+        invoke("pty_kill", { sessionId: session.ptySessionId }).catch(() => {})
+      }
+      removeSession(sessionId)
+    },
+    [sessions, removeSession],
+  )
 
   return (
     <RepositorySidebar
@@ -185,6 +271,10 @@ export function CodeTabSidebar() {
       onSelectSession={ctx.handleSelectSession}
       onAddRepository={() => ctx.setIsAddRepoDialogOpen(true)}
       onDeleteRepository={ctx.handleDeleteRepository}
+      onRenameRepository={ctx.handleRenameRepository}
+      onStopSession={handleStopSession}
+      onRestartSession={handleRestartSession}
+      onRemoveSession={handleRemoveSession}
       sessions={sessions}
     />
   )
@@ -324,16 +414,29 @@ export function CodeTabWorkspace() {
     [activeSessionId, updateSessionStatus],
   )
 
+  // Persisted layout state
+  const isAgentCollapsed = useAgentPanelCollapsed()
+  const isGitCollapsed = useGitPanelCollapsed()
+  const savedLayout = useCodePanelLayout()
+  const isHydrated = useCodeLayoutHydrated()
+  const {
+    setAgentPanelCollapsed,
+    setGitPanelCollapsed,
+    setPanelLayout,
+  } = useCodeLayoutActions()
+
   // Agent panel collapse
   const agentPanelRef = useRef<PanelImperativeHandle | null>(null)
-  const [isAgentCollapsed, setIsAgentCollapsed] = useState(false)
 
   const handleAgentPanelResize = useCallback(() => {
     const panel = agentPanelRef.current
     if (panel) {
-      setIsAgentCollapsed(panel.isCollapsed())
+      const collapsed = panel.isCollapsed()
+      if (collapsed !== useCodeLayoutStore.getState().agentPanelCollapsed) {
+        setAgentPanelCollapsed(collapsed)
+      }
     }
-  }, [])
+  }, [setAgentPanelCollapsed])
 
   const toggleAgentPanel = useCallback(() => {
     const panel = agentPanelRef.current
@@ -347,14 +450,16 @@ export function CodeTabWorkspace() {
 
   // Git panel collapse
   const gitPanelRef = useRef<PanelImperativeHandle | null>(null)
-  const [isGitCollapsed, setIsGitCollapsed] = useState(false)
 
   const handleGitPanelResize = useCallback(() => {
     const panel = gitPanelRef.current
     if (panel) {
-      setIsGitCollapsed(panel.isCollapsed())
+      const collapsed = panel.isCollapsed()
+      if (collapsed !== useCodeLayoutStore.getState().gitPanelCollapsed) {
+        setGitPanelCollapsed(collapsed)
+      }
     }
-  }, [])
+  }, [setGitPanelCollapsed])
 
   const toggleGitPanel = useCallback(() => {
     const panel = gitPanelRef.current
@@ -365,6 +470,27 @@ export function CodeTabWorkspace() {
       panel.collapse()
     }
   }, [])
+
+  // Persist panel layout on resize (fires after pointer release)
+  // Layout is keyed by panel id: { "agent-panel": number, "git-panel": number }
+  const handleLayoutChanged = useCallback(
+    (layout: Record<string, number>) => {
+      setPanelLayout(layout)
+    },
+    [setPanelLayout],
+  )
+
+  // Restore collapsed state on mount after hydration
+  const hasRestoredPanels = useRef(false)
+  useEffect(() => {
+    if (!isHydrated || hasRestoredPanels.current) return
+    hasRestoredPanels.current = true
+    const state = useCodeLayoutStore.getState()
+    requestAnimationFrame(() => {
+      if (state.agentPanelCollapsed) agentPanelRef.current?.collapse()
+      if (state.gitPanelCollapsed) gitPanelRef.current?.collapse()
+    })
+  }, [isHydrated])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -406,9 +532,6 @@ export function CodeTabWorkspace() {
       {/* Toolbar */}
       <CliToolbar
         repositoryName={ctx.activeRepository?.name}
-        onStart={handleStart}
-        onStop={handleStop}
-        onRestart={handleRestart}
         isAgentPanelCollapsed={isAgentCollapsed}
         onToggleAgentPanel={toggleAgentPanel}
         isGitPanelCollapsed={isGitCollapsed}
@@ -419,11 +542,13 @@ export function CodeTabWorkspace() {
       <ResizablePanelGroup
         direction="horizontal"
         className="h-full min-h-0 w-full"
+        onLayoutChanged={handleLayoutChanged}
       >
         {/* Terminal - collapsible agent panel */}
         <ResizablePanel
+          id="agent-panel"
           panelRef={agentPanelRef}
-          defaultSize={60}
+          defaultSize={savedLayout?.["agent-panel"] ?? 60}
           minSize={30}
           collapsible
           collapsedSize={0}
@@ -434,6 +559,9 @@ export function CodeTabWorkspace() {
             cwd={repoPath}
             command={activeSession?.cliCommand ?? selectedCommand ?? undefined}
             shouldSpawn={shouldSpawn}
+            onStart={handleStart}
+            onStop={handleStop}
+            onRestart={handleRestart}
             onSessionStart={handleSessionStart}
             onSessionExit={handleSessionExit}
             className="h-full"
@@ -444,8 +572,9 @@ export function CodeTabWorkspace() {
 
         {/* Git Changes - collapsible side panel */}
         <ResizablePanel
+          id="git-panel"
           panelRef={gitPanelRef}
-          defaultSize={40}
+          defaultSize={savedLayout?.["git-panel"] ?? 40}
           minSize={20}
           collapsible
           collapsedSize={0}

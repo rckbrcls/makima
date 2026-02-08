@@ -14,6 +14,7 @@ interface DbConversationSummary {
   summary: string;
   status: string;
   state: string;
+  pinned: boolean;
   created_at: number;
   updated_at: number;
   repository_id: string | null;
@@ -42,6 +43,7 @@ interface DbConversation {
   summary: string;
   status: string;
   state: string;
+  pinned: boolean;
   created_at: number;
   updated_at: number;
   repository_id: string | null;
@@ -74,6 +76,7 @@ function dbConversationToConversation(dbConv: DbConversation): Conversation {
     summary: dbConv.summary,
     status: dbConv.status as ConversationStatus,
     state: dbConv.state as ConversationState,
+    isPinned: dbConv.pinned,
     createdAt: dbConv.created_at,
     updatedAt: dbConv.updated_at,
     repositoryId: dbConv.repository_id ?? undefined,
@@ -88,6 +91,7 @@ function dbSummaryToConversation(summary: DbConversationSummary): Conversation {
     summary: summary.summary,
     status: summary.status as ConversationStatus,
     state: summary.state as ConversationState,
+    isPinned: summary.pinned,
     createdAt: summary.created_at,
     updatedAt: summary.updated_at,
     repositoryId: summary.repository_id ?? undefined,
@@ -117,6 +121,7 @@ export function useConversations() {
               summary: summary.summary,
               status: summary.status as ConversationStatus,
               state: summary.state as ConversationState,
+              isPinned: summary.pinned,
               updatedAt: summary.updated_at,
               repositoryId: summary.repository_id ?? undefined,
             };

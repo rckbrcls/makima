@@ -55,6 +55,7 @@ pub fn db_update_conversation(
     summary: Option<String>,
     status: Option<String>,
     conversation_state: Option<String>,
+    pinned: Option<bool>,
     repository_id: Option<String>,
 ) -> Result<bool, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -63,6 +64,7 @@ pub fn db_update_conversation(
         summary,
         status,
         state: conversation_state,
+        pinned,
         repository_id,
     };
     repository::update_conversation(&conn, &id, &input).map_err(|e| e.to_string())
