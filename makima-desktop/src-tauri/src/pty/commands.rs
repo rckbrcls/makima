@@ -217,7 +217,8 @@ pub async fn pty_spawn(
                     state_clone.remove(&session_id_clone);
                     break;
                 }
-                Ok(PtyReaderMessage::Error(_)) => {
+                Ok(PtyReaderMessage::Error(error)) => {
+                    log::error!("PTY reader error for {}: {}", session_id_clone, error);
                     // Flush remaining data
                     emit_batch(&app_clone, &session_id_clone, &mut accumulated, &bp);
                     let _ = app_clone.emit(

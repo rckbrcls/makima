@@ -15,7 +15,6 @@ mod filesystem;
 mod git;
 mod ollama;
 mod openai;
-mod providers;
 mod pty;
 
 use anthropic::{
@@ -129,20 +128,6 @@ pub fn run() {
             let win_builder = win_builder.title_bar_style(TitleBarStyle::Overlay);
 
             let window = win_builder.build().unwrap();
-
-            // set background color only when building for macOS
-            #[cfg(target_os = "macos")]
-            {
-                use cocoa::appkit::{NSColor, NSWindow};
-                use cocoa::base::{id, nil};
-
-                let ns_window = window.ns_window().unwrap() as id;
-                unsafe {
-                    ns_window.setOpaque_(false);
-                    let bg_color = NSColor::clearColor(nil);
-                    ns_window.setBackgroundColor_(bg_color);
-                }
-            }
 
             #[cfg(target_os = "macos")]
             {

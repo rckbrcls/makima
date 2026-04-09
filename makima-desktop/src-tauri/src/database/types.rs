@@ -47,12 +47,6 @@ pub struct Conversation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateConversationInput {
-    pub title: String,
-    pub repository_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateConversationInput {
     pub title: Option<String>,
     pub summary: Option<String>,

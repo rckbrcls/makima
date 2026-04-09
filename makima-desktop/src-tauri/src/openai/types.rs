@@ -30,17 +30,6 @@ pub struct StreamOptions {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OpenAIChatResponse {
-    pub id: String,
-    pub object: String,
-    pub created: u64,
-    pub model: String,
-    pub choices: Vec<OpenAIChoice>,
-    #[serde(default)]
-    pub usage: Option<OpenAIUsage>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAIChoice {
     pub index: u32,
     #[serde(default)]
@@ -108,18 +97,4 @@ pub struct StreamChunkEvent {
 pub struct StreamErrorEvent {
     pub session_id: String,
     pub error: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OpenAIModelsResponse {
-    pub object: String,
-    pub data: Vec<OpenAIModelInfo>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OpenAIModelInfo {
-    pub id: String,
-    pub object: String,
-    pub created: u64,
-    pub owned_by: String,
 }
