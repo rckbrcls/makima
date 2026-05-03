@@ -1,180 +1,66 @@
 # Makima
 
-Aplicacao desktop para orquestracao e gerenciamento de comandos de desenvolvimento. Permite gerenciar, executar e monitorar comandos de build, test e deploy de multiplos repositorios em uma unica interface.
+> **Status:** Active
+> This project is currently maintained as a desktop/mobile orchestration workspace for AI coding sessions.
 
-## Sobre o Projeto
+Desktop and mobile orchestration workspace for AI coding sessions. Makima pairs a local desktop app with an iOS companion and a Supabase relay so commands, agent conversations, approvals, and session state can be controlled across devices.
 
-Makima e um painel de controle para desenvolvedores que trabalham com multiplos repositorios simultaneamente. Em vez de alternar entre terminais e projetos, o Makima centraliza todos os comandos em um hub unificado com monitoramento em tempo real, historico de execucoes e composicao de comandos customizados.
+## Summary
 
-### Funcionalidades
+- [What it is](#what-it-is)
+- [Goals](#goals)
+- [Product surfaces](#product-surfaces)
+- [Project map](#project-map)
+- [Current state](#current-state)
+- [Working notes](#working-notes)
 
-- **Gerenciamento de Comandos** -- Visualizacao de todos os comandos organizados por repositorio, com status (running, queued, success, failed, idle), duracao e barra de progresso.
-- **Monitoramento em Tempo Real** -- Acompanhamento de execucoes ativas com logs ao vivo, uso de CPU/RAM, PID do processo e botao para encerrar.
-- **Fila de Execucao** -- Visualizacao de comandos enfileirados com tempo estimado e pipeline de steps de build.
-- **Historico e Analytics** -- Registro de todas as execucoes passadas com taxa de sucesso, duracao media, detalhes de cada run e opcao de re-executar.
-- **Composicao de Comandos** -- Interface para montar comandos customizados com comando base, argumentos, notas e injecao de contexto (`{{repo}}`, `{{branch}}`).
-- **Gerenciamento de Repositorios** -- Sidebar com todos os repos, indicador de status (active, idle, warn), contagem de comandos rodando, branch atual e stack tecnologica.
-- **Interface Responsiva** -- Layout adaptado para desktop (sidebar fixa) e mobile (menu lateral deslizante).
-- **Tema Claro/Escuro** -- Alternancia entre temas com deteccao automatica de preferencia do sistema.
+## What it is
 
-## Stack Tecnologica
+Makima is a control layer for real development work. The desktop app owns local execution, terminal sessions, repositories, providers, and AI CLI integration. The mobile app is a companion interface for chat, approvals, pairing, status, and remote control through a Supabase-backed relay.
 
-### Frontend
+The product direction is not "hide the terminal." It is to make real terminal and agent execution observable, resumable, permissioned, and easier to coordinate.
 
-| Tecnologia     | Versao | Uso                                    |
-| -------------- | ------ | -------------------------------------- |
-| React          | 19.2   | Biblioteca de UI                       |
-| TypeScript     | 5.7    | Tipagem estatica                       |
-| TanStack Start | 1.132  | Framework com file-based routing e SSR |
-| Tailwind CSS   | 4.0    | Estilizacao utility-first              |
-| Vite           | 7.1    | Build tool e dev server                |
-| shadcn/ui      | 3.7    | Componentes de interface               |
-| Radix UI       | 1.4    | Primitivos acessiveis                  |
-| Lucide React   | 0.563  | Icones                                 |
+## Goals
 
-### Desktop
+- Manage multiple AI CLI sessions from a richer desktop UI.
+- Keep command execution, logs, approvals, and resume IDs visible.
+- Support provider configuration for local and hosted model providers.
+- Pair a mobile device to a desktop session through short-lived relay sessions.
+- Let mobile users review approval requests and send messages without bypassing desktop control.
+- Preserve a local-first desktop stance while using Supabase only for relay/auth/mobile sync needs.
 
-| Tecnologia | Versao | Uso                      |
-| ---------- | ------ | ------------------------ |
-| Tauri      | 2.9    | Framework desktop (Rust) |
-| Serde      | 1.0    | Serializacao JSON (Rust) |
+## Product surfaces
 
-### Ferramentas de Desenvolvimento
+- `makima-desktop`: Tauri + React desktop app with chat, code sessions, CLI detection, terminal pool behavior, providers, repositories, and local storage.
+- `makima-mobile`: native iOS app with chat UI, approvals, pairing, notification support, conversations, settings, and relay services.
+- `supabase`: relay schema for sessions, messages, devices, realtime, and push notification trigger support.
+- `docs`: business and product notes.
 
-| Tecnologia      | Uso                    |
-| --------------- | ---------------------- |
-| Vitest          | Testes unitarios       |
-| Testing Library | Testes de componentes  |
-| ESLint          | Linting                |
-| Prettier        | Formatacao de codigo   |
-| pnpm            | Gerenciador de pacotes |
+## Project map
 
-## Estrutura do Projeto
-
-```
+```text
 makima/
-├── src/
-│   ├── components/
-│   │   ├── command-hub/          # Componentes principais da aplicacao
-│   │   │   ├── index.tsx         # Componente raiz (CommandHub)
-│   │   │   ├── commands-tab.tsx  # Aba de comandos
-│   │   │   ├── execution-tab.tsx # Aba de execucao ao vivo
-│   │   │   ├── history-tab.tsx   # Aba de historico
-│   │   │   ├── compose-tab.tsx   # Aba de composicao de comandos
-│   │   │   ├── command-card.tsx  # Card individual de comando
-│   │   │   ├── live-execution-card.tsx  # Card de execucao ativa
-│   │   │   ├── execution-queue-card.tsx # Card de fila
-│   │   │   ├── build-steps-card.tsx     # Card de steps do pipeline
-│   │   │   ├── history-list.tsx         # Lista de historico
-│   │   │   ├── run-details-panel.tsx    # Painel de detalhes de um run
-│   │   │   ├── repository-sidebar.tsx   # Sidebar de repositorios
-│   │   │   ├── command-hub-header.tsx   # Header da aplicacao
-│   │   │   ├── stats-cards.tsx          # Cards de estatisticas
-│   │   │   ├── quick-composer.tsx       # Interface de composicao
-│   │   │   └── types.ts                # Tipos TypeScript
-│   │   └── ui/                   # Componentes shadcn/ui reutilizaveis
-│   ├── hooks/
-│   │   └── use-mobile.ts        # Hook de deteccao de viewport mobile
-│   ├── lib/
-│   │   ├── command-hub/
-│   │   │   ├── helpers.ts       # Funcoes utilitarias (filtro, agrupamento, stats)
-│   │   │   └── constants.ts     # Estilos de status e mapeamento de icones
-│   │   └── utils.ts             # Utilitario cn() para classes Tailwind
-│   ├── routes/
-│   │   ├── __root.tsx           # Root route (HTML, providers, devtools)
-│   │   └── index.tsx            # Rota principal (renderiza CommandHub)
-│   ├── styles.css               # Estilos globais e variaveis de tema
-│   └── router.tsx               # Configuracao do TanStack Router
-├── src-tauri/
-│   ├── src/
-│   │   ├── main.rs              # Entry point do Tauri
-│   │   └── lib.rs               # Configuracao do app Tauri
-│   ├── tauri.conf.json          # Config da janela e build do Tauri
-│   ├── Cargo.toml               # Dependencias Rust
-│   └── icons/                   # Icones do app desktop
-├── public/                       # Assets estaticos
-├── vite.config.ts               # Configuracao do Vite
-├── tsconfig.json                # Configuracao do TypeScript
-├── components.json              # Configuracao do shadcn/ui
-├── eslint.config.js             # Configuracao do ESLint
-└── prettier.config.js           # Configuracao do Prettier
+├── makima-desktop/
+│   ├── src/        # React app, routes, stores, hooks, terminal/session logic
+│   └── src-tauri/  # Tauri shell and Rust-side desktop capabilities
+├── makima-mobile/
+│   ├── makima-mobile/       # SwiftUI app, models, services, views, view models
+│   ├── makima-mobileTests/  # Unit tests
+│   └── makima-mobileUITests/
+├── supabase/
+│   └── migrations/          # Relay sessions, messages, devices, and push trigger
+├── docs/
+├── CLAUDE.md
+└── todo.md
 ```
 
-## Arquitetura
+## Current state
 
-O componente raiz `CommandHub` gerencia o estado global da aplicacao (repositorio selecionado, aba ativa) e distribui dados para quatro abas:
+The active repository shape is broader than an older single-desktop README implied. The important split is desktop runtime, mobile companion, and Supabase relay. `CLAUDE.md` contains detailed engineering notes for the desktop orchestrator and should be checked before changing state management, CLI session lifecycle, terminal pooling, or execution behavior.
 
-```
-CommandHub
-├── CommandHubHeader        # Busca, tema, acoes
-├── RepositorySidebar       # Filtro por repositorio
-├── Tabs
-│   ├── CommandsTab         # Lista de comandos com status
-│   ├── ExecutionTab        # Monitoramento ao vivo
-│   ├── HistoryTab          # Historico de execucoes
-│   └── ComposeTab          # Criacao de comandos
-```
+## Working notes
 
-Os dados fluem de cima para baixo via props. Funcoes auxiliares em `lib/command-hub/helpers.ts` processam filtragem por repositorio, agrupamento e calculo de estatisticas. O sistema de temas usa CSS custom properties com color space oklch e e controlado pelo `ThemeProvider`.
-
-A aplicacao integra-se com o backend Tauri para gerenciar repositorios, comandos e execucoes em tempo real.
-
-## Como Executar
-
-### Pre-requisitos
-
-- Node.js
-- pnpm
-- Rust (para o build desktop com Tauri)
-
-### Desenvolvimento (web)
-
-```bash
-pnpm install
-pnpm dev
-```
-
-O servidor de desenvolvimento inicia em `http://localhost:3000`.
-
-### Desenvolvimento (desktop)
-
-```bash
-pnpm install
-pnpm tauri dev
-```
-
-### Build de Producao
-
-```bash
-pnpm build
-```
-
-### Testes
-
-```bash
-pnpm test
-```
-
-### Linting e Formatacao
-
-```bash
-pnpm lint          # Executar ESLint
-pnpm format        # Executar Prettier
-pnpm check         # Formatar + corrigir tudo
-```
-
-## Tipos Principais
-
-```typescript
-// Status de um repositorio
-type RepositoryStatus = "active" | "idle" | "warn";
-
-// Tipos de comando suportados
-type CommandType = "run" | "build" | "test" | "lint" | "check" | "bundle";
-
-// Status de execucao de um comando
-type CommandStatus = "running" | "queued" | "success" | "failed" | "idle";
-
-// Estados de um step do pipeline
-type StepState = "done" | "running" | "pending";
-```
+- Do not let the mobile app execute outside desktop-controlled policies.
+- Treat `relay_sessions`, `relay_messages`, and `relay_devices` as the cross-device contract.
+- Keep the desktop app responsible for local execution and session ownership.
+- Avoid running build or dev commands from agent sessions in this workspace.
