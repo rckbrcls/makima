@@ -7,20 +7,19 @@ Desktop and mobile orchestration workspace for AI coding sessions. Makima pairs 
 
 ## Summary
 
-- [What it is](#what-it-is)
-- [Goals](#goals)
-- [Product surfaces](#product-surfaces)
-- [Project map](#project-map)
-- [Current state](#current-state)
-- [Working notes](#working-notes)
+- Desktop/mobile orchestration workspace for AI coding sessions.
+- Solves local execution control, terminal/CLI session visibility, provider configuration, approvals, mobile pairing, and Supabase relay across devices.
+- Main stack: Tauri + React desktop app, native iOS companion, Supabase migrations/relay tables, local storage, terminal session management, and provider integrations.
+- Current status: active workspace with desktop runtime, mobile companion, and relay split.
+- Technical value: keeps mobile control permissioned through desktop-owned execution instead of bypassing local policies.
 
-## What it is
+## Overview
 
 Makima is a control layer for real development work. The desktop app owns local execution, terminal sessions, repositories, providers, and AI CLI integration. The mobile app is a companion interface for chat, approvals, pairing, status, and remote control through a Supabase-backed relay.
 
 The product direction is not "hide the terminal." It is to make real terminal and agent execution observable, resumable, permissioned, and easier to coordinate.
 
-## Goals
+## Motivation
 
 - Manage multiple AI CLI sessions from a richer desktop UI.
 - Keep command execution, logs, approvals, and resume IDs visible.
@@ -29,14 +28,14 @@ The product direction is not "hide the terminal." It is to make real terminal an
 - Let mobile users review approval requests and send messages without bypassing desktop control.
 - Preserve a local-first desktop stance while using Supabase only for relay/auth/mobile sync needs.
 
-## Product surfaces
+## Features
 
 - `makima-desktop`: Tauri + React desktop app with chat, code sessions, CLI detection, terminal pool behavior, providers, repositories, and local storage.
 - `makima-mobile`: native iOS app with chat UI, approvals, pairing, notification support, conversations, settings, and relay services.
 - `supabase`: relay schema for sessions, messages, devices, realtime, and push notification trigger support.
 - `docs`: business and product notes.
 
-## Project map
+## Project Structure
 
 ```text
 makima/
@@ -54,11 +53,11 @@ makima/
 └── todo.md
 ```
 
-## Current state
+## Current Status
 
 The active repository shape is broader than an older single-desktop README implied. The important split is desktop runtime, mobile companion, and Supabase relay. `CLAUDE.md` contains detailed engineering notes for the desktop orchestrator and should be checked before changing state management, CLI session lifecycle, terminal pooling, or execution behavior.
 
-## Working notes
+## Known Limitations
 
 - Do not let the mobile app execute outside desktop-controlled policies.
 - Treat `relay_sessions`, `relay_messages`, and `relay_devices` as the cross-device contract.
